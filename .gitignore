@@ -1,0 +1,99 @@
+# ===================================
+# 🌐 Node.js / JavaScript / TypeScript
+# ===================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+.pnpm-debug.log*
+
+# ===================================
+# ⚙️ Compilaciones y builds
+# ===================================
+dist_electron/
+dist/
+build/
+.cache/
+.next/
+out/
+.temp/
+.tmp/
+coverage/
+.DS_Store
+*.log
+*.tmp
+
+# ===================================
+# 🧩 IDEs y editores
+# ===================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+*.orig
+
+# ===================================
+# 🧱 OS-specific
+# ===================================
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ===================================
+# 🧠 Electron / App compilada
+# ===================================
+/release/
+*.asar
+*.exe
+*.dmg
+*.app
+*.msi
+*.deb
+*.rpm
+*.snap
+
+# ===================================
+# 🗂️ Prisma / Base de datos local
+# ===================================
+*.db
+*.db-journal
+/prisma/migrations/dev.db
+/mariam-pos-backend/prisma/dev.db
+/mariam-pos-backend/prisma/database.db
+
+# ===================================
+# ⚛️ Frontend React
+# ===================================
+/mariam-pos-front/node_modules/
+/mariam-pos-front/dist/
+/mariam-pos-front/.env.local
+/mariam-pos-front/.env.development.local
+/mariam-pos-front/.env.test.local
+/mariam-pos-front/.env.production.local
+
+# ===================================
+# 🧠 Backend Node.js
+# ===================================
+/mariam-pos-backend/node_modules/
+/mariam-pos-backend/dist/
+/mariam-pos-backend/.env
+/mariam-pos-backend/.env.local
+/mariam-pos-backend/.env.production
+/mariam-pos-backend/prisma/dev.db
+/mariam-pos-backend/prisma/database.db
+
+# ===================================
+# 📦 Root (Electron)
+# ===================================
+/node_modules/
+/dist/
+/out/
+/release/
+/MariamPos-win32-x64/
+/MariamPos-linux-x64/
+/MariamPos-darwin-x64/
+.env

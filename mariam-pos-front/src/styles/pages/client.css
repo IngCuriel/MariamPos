@@ -1,0 +1,43 @@
+.app-client{
+  width: 100%;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.client-container{
+  background: var(--background-light);
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  padding: 40px;
+  max-width: 100%;
+  width: 100%;
+  backdrop-filter: blur(10px);
+}
+
+.client-content {
+  text-align: left;
+}
+
+
+.client-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.client-table th,
+.client-table td {
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.client-table th {
+  background-color: #f5f5f5;
+}
+  
+.client-table button:hover {
+  opacity: 0.8;
+}

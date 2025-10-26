@@ -1,0 +1,84 @@
+/* ====== POS FOOTER STYLES ====== */
+.pos-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #f8f9fa;
+  border-top: 2px solid #ddd;
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* two equal columns */
+  gap: 1rem;
+  padding: 3px;
+  box-shadow: 0 -3px 8px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+}
+
+/* ====== COLUMNS ====== */
+.column {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.left {
+  justify-content: space-evenly;
+}
+
+.right {
+  justify-content: center;
+}
+
+/* ====== TOUCH BUTTONS ====== */
+.touch-btn { 
+  border: none;
+  border-radius: 5px;
+  padding: 10px;
+  cursor: pointer;
+  color: white;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  min-width: 130px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+
+.touch-btn:active {
+  transform: scale(0.97);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* ====== BUTTON COLORS ====== */
+.pending {
+  background: #f59e0b; /* yellow */
+}
+
+.today-sales {
+  background: #3b82f6; /* blue */
+}
+
+.print-last {
+  background: #10b981; /* green */
+}
+
+.active-filter-report {
+  background: #048b2d; /* green */
+}
+
+.inactive-filter-report {
+  background: #64b499;
+}
+/* ====== RESPONSIVE ====== */
+@media (max-width: 768px) {
+  .pos-footer {
+    grid-template-columns: 1fr; /* stack columns */
+  }
+
+  .left {
+    flex-wrap: wrap;
+    gap: 0.8rem;
+  }
+
+  .touch-btn {
+    flex: 1;
+    min-width: 100px;
+  }
+}

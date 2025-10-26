@@ -1,0 +1,37 @@
+.app-products-catalog {
+  width: 100%;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+}
+
+.products-catalog-container {
+  background: var(--background-light);
+  border-radius: 5px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+  max-width: 100%;
+  width: 100%;
+  backdrop-filter: blur(10px);
+}
+ 
+.modal-overlay-newEdit-product {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-newEdit-product-container {
+  width: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+}

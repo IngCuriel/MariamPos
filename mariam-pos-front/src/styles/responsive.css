@@ -1,0 +1,158 @@
+/* Estilos responsivos */
+
+/* Tablets */
+@media (max-width: 768px) {
+  .main-container {
+    padding: 20px;
+    margin: 10px;
+  }
+  
+  .main-title {
+    font-size: 2.5rem;
+  }
+  
+  .main-subtitle {
+    font-size: 1.1rem;
+  }
+  
+  .main-actions {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .action-button {
+    padding: 30px 20px;
+    min-height: 150px;
+  }
+  
+  .button-icon {
+    font-size: 3rem;
+  }
+  
+  .button-content h2 {
+    font-size: 1.5rem;
+  }
+  
+  .header {
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+  }
+  
+  .header-title {
+    font-size: 2rem;
+  }
+  
+  .products-actions {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .product-action-button {
+    padding: 30px 20px;
+    min-height: 150px;
+  }
+  
+  .product-action-button .button-icon {
+    font-size: 3rem;
+  }
+  
+  .product-action-button .button-content h2 {
+    font-size: 1.5rem;
+  }
+  
+  .pos-features {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .filters {
+    grid-template-columns: 1fr;
+  }
+  
+  .products-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .search-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .categories-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .modal-container {
+    max-width: 95%;
+  }
+}
+
+/* Móviles */
+@media (max-width: 480px) {
+  .app {
+    padding: 1px;
+  }
+  .help-container {
+    padding: 5px;
+  }
+  .help-section {
+    padding: 5px;
+  }
+  .main-title {
+    font-size: 2rem;
+  }
+  
+  .action-button {
+    padding: 25px 15px;
+    min-height: 120px;
+  }
+  
+  .button-icon {
+    font-size: 2.5rem;
+  }
+  
+  .button-content h2 {
+    font-size: 1.3rem;
+  }
+  
+  .button-content p {
+    font-size: 1rem;
+  }
+  
+  .product-action-button {
+    padding: 25px 15px;
+    min-height: 120px;
+  }
+  
+  .product-action-button .button-icon {
+    font-size: 2.5rem;
+  }
+  
+  .product-action-button .button-content h2 {
+    font-size: 1.3rem;
+  }
+  
+  .product-action-button .button-content p {
+    font-size: 1rem;
+  }
+}
+
+/* Animaciones */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -1,0 +1,156 @@
+/* ===== MODAL OVERLAY ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+}
+
+/* ===== MODAL CONTAINER ===== */
+.modal-container-day-sales {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 900px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.modal-title {
+  text-align: center;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+/* ===== MAIN CONTENT ===== */
+.modal-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  overflow: hidden;
+  flex: 1;
+}
+
+/* ===== SALES LIST (LEFT) ===== */
+.sales-list {
+  border-right: 2px solid #eee;
+  overflow-y: auto;
+}
+
+.sales-list table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sales-list th {
+  background: #f3f4f6;
+  text-align: left;
+  padding: 10px;
+  font-size: 1rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.sales-list td {
+  padding: 10px;
+  font-size: 1rem;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+}
+
+.sales-list tr:hover {
+  background: #f9fafb;
+}
+
+.sales-list tr.selected {
+  background: #dbeafe;
+  font-weight: bold;
+}
+
+/* ===== SALE DETAILS (RIGHT) ===== */
+.sale-details {
+  padding: 0.5rem 1rem;
+  overflow-y: auto;
+}
+
+.sale-details h3 {
+  margin-top: 0;
+  font-size: 1.3rem;
+}
+
+.sale-details ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sale-details li {
+  padding: 5px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.no-selection {
+  text-align: center;
+  color: #666;
+  margin-top: 2rem;
+}
+
+/* ===== FOOTER BUTTONS ===== */
+.modal-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+
+.btn:active {
+  transform: scale(0.96);
+}
+
+.close-btn-day-sales {
+  background: #9ca3af;
+}
+
+.print-btn {
+  background: #10b981;
+}
+
+.load-btn {
+  background: #3b82f6;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.datepicker-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #111827;
+  transition: border 0.2s ease;
+  margin-bottom: 4px;
+}
+
+.datepicker-input:focus {
+  border-color: #2563eb;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.datepicker-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 4px;
+  margin-right: 2px;
+}

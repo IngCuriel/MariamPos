@@ -1,0 +1,49 @@
+{
+  "name": "MariamPOS",
+  "version": "1.0.0",
+  "description": "Punto de venta de escritorio con React, Node y SQLite",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.mariam.pos",
+    "productName": "Mariam POS",
+    "directories": {
+      "output": "dist_electron"
+    },
+    "files": [
+      "main.js",
+      "package.json",
+      "mariam-pos-front/dist/**/*",
+      "mariam-pos-backend/**/*",
+      "!**/node_modules/**"
+    ],
+    "extraResources": [
+      {
+        "from": "mariam-pos-backend",
+        "to": "mariam-pos-backend"
+      },
+       {
+        "from": "mariam-pos-front/dist/",
+        "to": "mariam-pos-front/dist/"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico"
+    }
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "@prisma/client": "^5.1.0"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.6.0",
+    "prisma": "^5.1.0"
+  }
+}

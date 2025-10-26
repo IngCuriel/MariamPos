@@ -1,0 +1,5 @@
+/* Importar todos los estilos */
+@import './globals.css';
+@import './components.css';
+@import './pages.css';
+@import './responsive.css';

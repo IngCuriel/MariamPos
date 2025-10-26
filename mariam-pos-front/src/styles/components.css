@@ -1,0 +1,170 @@
+/* Estilos para componentes */
+
+/* Botones */
+.button {
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  outline: none;
+  border-radius: 12px;
+  padding: 12px 24px;
+}
+
+.button:focus,
+.button:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.button-primary {
+  background: linear-gradient(145deg, #667eea, #764ba2);
+  color: white;
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+.button-primary:hover {
+  background: linear-gradient(145deg, #5a6fd8, #6a4190);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.button-secondary {
+  background: linear-gradient(145deg, #f7fafc, #edf2f7);
+  color: var(--text-primary);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+}
+
+.button-secondary:hover {
+  background: linear-gradient(145deg, #edf2f7, #e2e8f0);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+}
+
+.button-success {
+  background: linear-gradient(145deg, #014819, #03352c);
+  color: white;
+  box-shadow: 0 3px 10px rgba(67, 233, 123, 0.3);
+}
+
+.button-success-s {
+  background: linear-gradient(145deg, #43e97b, #38f9d7);
+  color: white;
+  box-shadow: 0 3px 10px rgba(67, 233, 123, 0.3);
+}
+
+.button-success:hover {
+  background: linear-gradient(145deg, #32d574, #2dd4bf);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(67, 233, 123, 0.4);
+}
+
+.button-info {
+  background: linear-gradient(145deg, #4facfe, #00f2fe);
+  color: white;
+  box-shadow: 0 3px 10px rgba(79, 172, 254, 0.3);
+}
+
+.button-info:hover {
+  background: linear-gradient(145deg, #3d8bfe, #00d4fe);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+}
+
+.button-warning {
+  background: linear-gradient(145deg, #ff6b6b, #ee5a52);
+  color: white;
+  box-shadow: 0 3px 10px rgba(255, 107, 107, 0.3);
+}
+
+.button-warning:hover {
+  background: linear-gradient(145deg, #ff5252, #e53e3e);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+}
+
+.button-small {
+  padding: 8px 16px;
+  font-size: 0.875rem;
+}
+
+.button-medium {
+  padding: 12px 24px;
+  font-size: 1rem;
+}
+
+.button-large {
+  padding: 16px 32px;
+  font-size: 1.125rem;
+}
+
+/* Tarjetas */
+.card {
+  background: linear-gradient(145deg, #f7fafc, #edf2f7);
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.card-hoverable:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  border-color: #667eea;
+}
+
+.card-clickable {
+  cursor: pointer;
+}
+
+.card-feature {
+  background: linear-gradient(145deg, #f7fafc, #edf2f7);
+  text-align: center;
+}
+
+.card-product {
+  background: linear-gradient(145deg, #ffffff, #f8f9fa);
+  text-align: center;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Headers */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 5px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.header-title {
+  font-size: 2.5rem;
+  color: var(--text-primary);
+  font-weight: 700;
+  margin: 0;
+}
+
+.back-button {
+  background: linear-gradient(145deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 15px;
+  padding: 15px 25px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.back-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
