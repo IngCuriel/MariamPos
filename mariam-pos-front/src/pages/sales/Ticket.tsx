@@ -7,6 +7,22 @@ interface TicketProps {
 }
 
 const Ticket: React.FC<TicketProps> = ({sale}) => {
+  console.log('sale ticker', sale)
+  const dateFormat = (date: Date)=> {
+    const fecha = new Date(date);
+    // Ejemplo: "28/10/2025 11:19 p.m."
+    const fechaFormateada = fecha.toLocaleString("es-MX", {
+      timeZone: "America/Mexico_City",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    return fechaFormateada;
+  }
   return (
     <div
       id="ticket-content"
@@ -24,7 +40,7 @@ const Ticket: React.FC<TicketProps> = ({sale}) => {
       {/*<p style={{ textAlign: "center", margin: "4px 0" }}>Progreso 10, entro, Yutanduchi de Guerrero, Oax.</p>*/}
       <hr />
       <p style={{ textAlign: "left" }}>Folio: {sale.id}</p>
-      <p style={{ textAlign: "left" }}>Fecha: {new Date().toLocaleString()}</p>
+      <p style={{ textAlign: "left" }}>Fecha: {dateFormat(sale.createdAt)}</p>
       <hr />
 
       <table style={{ width: "100%", borderCollapse: "collapse" }}>

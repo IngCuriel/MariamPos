@@ -39,6 +39,20 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
   });
   const [products, setProducts] = useState<Product[]>([]);
   const [showModal, setShowModal] = useState(false);
+ 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "F2") {
+        e.preventDefault();
+        console.log('cart', cart)
+        if (cart.length >= 1) {
+          setShowModal(true); 
+        }
+    };
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [cart]);
 
   // Cada vez que cambie el carrito, lo guardamos
   useEffect(() => {
@@ -140,7 +154,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
           productId: cart.id,
         };
       });
-      const sale: SaleInput = {
+      const sale: Omit<SaleInput, "createdAt"> = {
         folio: "",
         total: total,
         status: "Pagado",
@@ -352,7 +366,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                 disabled={cart.length === 0}
                 onClick={() => setShowModal(true)}
               >
-                💵 Cobrar
+                💵 Cobrar (F2)
               </button>
             </div>
           </div>

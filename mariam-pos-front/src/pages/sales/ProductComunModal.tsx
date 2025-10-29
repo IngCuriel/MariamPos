@@ -1,87 +1,98 @@
 import Swal from 'sweetalert2';
-import type {Product} from '../../types/index'
+import type { Product } from '../../types/index';
 
 export const ProductComunModal = async (_product: Product) => {
   const { value: formValues } = await Swal.fire({
-    title: ``,
+    title: '🆕 Producto no registrado',
     html: `
-      <div style="display: flex; flex-direction: column; gap: 8px; text-align: left;">
-        <label for="" style="font-weight: 600;">Producto</label>
-        <input id="swal-name" type="text" value="" class="swal2-input" placeholder="Ejemplo: Nombre del producto">
+      <div style="display: flex; flex-direction: column; gap: 10px; text-align: left;">
+        <label style="font-weight: 600;">Nombre del producto</label>
+        <input id="swal-name" type="text" class="swal2-input" placeholder="Ejemplo: Refresco 600ml">
 
-        <label for="swal-cantidad" style="font-weight: 600;">Cantidad (kg, L, etc.)</label>
-        <input id="swal-cantidad" type="number" value="" step="0.01" class="swal2-input" placeholder="Ejemplo: 1">
+        <label style="font-weight: 600;">Cantidad</label>
+        <input id="swal-cantidad" type="number" step="0.01" class="swal2-input" placeholder="Ejemplo: 1">
 
-        <label for="swal-precio" style="font-weight: 600;">Precio por unidad o total</label>
-        <input id="swal-precio" type="number" value="" step="0.01" class="swal2-input" placeholder="Ejemplo: 25.00">
+        <label style="font-weight: 600;">Precio unitario o total</label>
+        <input id="swal-precio" type="number" step="0.01" class="swal2-input" placeholder="Ejemplo: 25.00">
       </div>
-      `,
-    focusConfirm: false,
+    `,
+    confirmButtonText: 'Agregar al carrito (Enter)',
+    cancelButtonText: 'Cancelar (ESC)',
     showCancelButton: true,
-    confirmButtonText: 'Aceptar',
-    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+    focusConfirm: false,
     didOpen: () => {
       const nameInput = document.getElementById('swal-name') as HTMLInputElement;
       const cantidadInput = document.getElementById('swal-cantidad') as HTMLInputElement;
       const precioInput = document.getElementById('swal-precio') as HTMLInputElement;
+      const confirmButton = Swal.getConfirmButton();
 
-      // 🔹 Enfocar el campo name y colocar el cursor al final del valor
-      nameInput?.focus(); 
+      if (!nameInput || !cantidadInput || !precioInput || !confirmButton) return;
 
-      // 🔁 Cálculo automático cuando cambia la cantidad
-      /*cantidadInput?.addEventListener('input', () => {
-        const cantidad = parseFloat(cantidadInput.value);
-        if (!isNaN(cantidad)) {
-          const nuevoPrecio = cantidad * product.price;
-          precioInput.value = nuevoPrecio.toFixed(2);
+      // Comenzamos enfocando el primer input
+      nameInput.focus();
+
+      // Función para pasar el foco con Enter
+      const focusNext = (current: HTMLElement, next: HTMLElement) => {
+        current.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            next.focus();
+          }
+        });
+      };
+
+      focusNext(nameInput, cantidadInput);
+      focusNext(cantidadInput, precioInput);
+      focusNext(precioInput, confirmButton);
+
+      // Si está enfocado el botón y presiona Enter => confirmar
+      confirmButton.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          confirmButton.click();
         }
       });
-
-      // 🔁 Cálculo automático cuando cambia el precio total
-      precioInput?.addEventListener('input', () => {
-        const precioTotal = parseFloat(precioInput.value);
-        if (!isNaN(precioTotal)) {
-          const nuevaCantidad = precioTotal / product.price;
-          cantidadInput.value = nuevaCantidad.toFixed(6);
-        }
-      });*/
-
-      // ⚡ Confirmar con Enter
-      const onEnter = (e: KeyboardEvent) => {
-        if (e.key === 'Enter') Swal.clickConfirm();
-      };
-      cantidadInput?.addEventListener('keypress', onEnter);
-      precioInput?.addEventListener('keypress', onEnter);
     },
     preConfirm: () => {
-      const nombre = (document.getElementById('swal-name') as HTMLInputElement)?.value || ''
-      
-      const cantidad = parseFloat(
-        (document.getElementById('swal-cantidad') as HTMLInputElement)?.value || '0'
-      );
-      const precio = parseFloat(
-        (document.getElementById('swal-precio') as HTMLInputElement)?.value || '0'
-      );
+        const nombreInput = document.getElementById('swal-name') as HTMLInputElement;
+        const cantidadInput = document.getElementById('swal-cantidad') as HTMLInputElement;
+        const precioInput = document.getElementById('swal-precio') as HTMLInputElement;
 
-      if (!cantidad || !precio) {
-        Swal.showValidationMessage('Por favor ingresa cantidad y precio válidos');
-        return;
-      }
+        const nombre = nombreInput?.value.trim();
+        const cantidad = parseFloat(cantidadInput?.value || '0');
+        const precio = parseFloat(precioInput?.value || '0');
 
-      console.log('nameProduct' ,nombre)
-      if (!nombre) {
-         Swal.showValidationMessage('Por favor alguna descripción del producto');
-         const nameInput = document.getElementById('swal-name') as HTMLInputElement;
-         nameInput?.focus(); 
-        return;
-      }
+        if (!nombre) {
+          Swal.showValidationMessage('⚠️ Ingresa una descripción del producto');
+          nombreInput?.focus(); // <--- aquí forzamos el foco al input que falta
+          return false;
+        }
 
-      return {nombre, cantidad, precio };
-    }
+        if (cantidad <= 0) {
+          Swal.showValidationMessage('⚠️ La cantidad debe ser mayor que cero');
+          cantidadInput?.focus(); // <--- foco en cantidad
+          return false;
+        }
+
+        if (precio <= 0) {
+          Swal.showValidationMessage('⚠️ El precio debe ser mayor que cero');
+          precioInput?.focus(); // <--- foco en precio
+          return false;
+        }
+
+        return { nombre, cantidad, precio };
+      },
   });
 
   if (formValues) {
-    console.log('✅ Datos del producto:', formValues);
+    Swal.fire({
+      icon: 'success',
+      title: '📦 Producto agregado al carrito',
+      timer: 2000,
+      showConfirmButton: false,
+    });
     return formValues;
   }
 

@@ -35,6 +35,7 @@ export interface Sale {
   total: number;
   status: string; //Pendiente, Pagado
   paymentMethod?: string; // Efectivo, Tarjeta, etc.
+  createdAt: Date;
   branch:string, // sucursal
   cashRegister: string,  //Caja de cobro
   clientName?: string;

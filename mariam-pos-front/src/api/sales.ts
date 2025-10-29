@@ -15,7 +15,7 @@ export const getSalesByDateRange = async (startDate:string, endDate:string): Pro
   return data;
 };
 
-export const createSale = async (sale: Omit<Sale, "id" | 'details'>): Promise<Sale> => {
+export const createSale = async (sale: Omit<Sale, "id" | 'details' | 'createdAt'>): Promise<Sale> => {
   const clientAxios = await getAxiosClient();
   const { data } = await clientAxios.post<Sale>("/sales", sale);
   return data;
