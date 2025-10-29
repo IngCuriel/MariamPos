@@ -28,6 +28,8 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
   const [search, setSearch] = useState("");
   const inputRef = useRef<HTMLInputElement>(null); // 👈 search al input
 
+  const [branch, _setBranch] = useState(localStorage.getItem('sucursal') || 'Procesar Venta');
+  const [cashRegister, _setCashRegister] = useState(localStorage.getItem('caja') || 'Caja 1');
   const [client, _setClient] = useState("Publico en General");
 
   const [cart, setCart] = useState<ItemCart[]>(() => {
@@ -145,6 +147,8 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         paymentMethod: data.paymentType,
         clientName: client,
         details,
+        branch,
+        cashRegister
       };
       const responseCreateSale = await createSale(sale);
       setCart([]);
@@ -239,7 +243,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
     <div className="app-sales">
       <div className="sales-container">
         <Header
-          title="Procesar Venta"
+          title= {branch}
           onBack={onBack}
           backText="← Volver al POS"
           className=""

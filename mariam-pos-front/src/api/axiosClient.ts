@@ -1,15 +1,45 @@
 import axios from "axios";
+import type { Config } from "../types/config";
 
-const API_URL = 'http://127.0.0.1:3001';
+// Variable global para almacenar el cliente
+let axiosClient: ReturnType<typeof axios.create> | null = null;
 
-const axiosClient = axios.create({
-  baseURL: API_URL+"/api", // 👈 Cambia por tu endpoint real
-});
+// Función para cargar la configuración desde /public/config.json
+async function loadConfig(): Promise<Config> {
+  try {
+    const response = await fetch("/config.json", { cache: "no-store" });
+    const config = await response.json();
+    return config;
+  } catch (error) {
+    console.error("❌ Error cargando config.json:", error);
+    // Valor por defecto si no existe el archivo o hay error
+    return {
+      apiUrl: "http://localhost:3001/api",
+      sucursal: "DEFAULT",
+      caja: "1",
+    };
+  }
+}
 
-axiosClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
+// Función que inicializa y devuelve el cliente Axios
+export async function getAxiosClient() {
+  if (axiosClient) return axiosClient; // si ya existe, reutilízalo
 
-export default axiosClient;
+  const config = await loadConfig();
+
+  axiosClient = axios.create({
+    baseURL: config.apiUrl,
+  });
+  
+  localStorage.setItem("sucursal", config.sucursal)
+  localStorage.setItem("caja", config.caja)
+  axiosClient.interceptors.request.use((reqConfig) => {
+    const token = localStorage.getItem("token");
+    if (token) reqConfig.headers.Authorization = `Bearer ${token}`;
+    return reqConfig;
+  });
+
+  console.log("✅ AxiosClient inicializado con baseURL:", config.apiUrl);
+
+  return axiosClient;
+}

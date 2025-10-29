@@ -31,6 +31,7 @@
         "to": "mariam-pos-front/dist/"
       }
     ],
+    "icon": "icon.ico",
     "win": {
       "target": "nsis",
       "icon": "icon.ico"

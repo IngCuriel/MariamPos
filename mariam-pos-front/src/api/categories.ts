@@ -1,18 +1,21 @@
-import axiosClient from "./axiosClient";
+import {getAxiosClient} from "./axiosClient";
 import type { Category } from "../types/index";
 
 export const getCategories = async (): Promise<Category[]> => {
-  const { data } = await axiosClient.get<Category[]>("/categories");
+  const client = await getAxiosClient();
+  const { data } = await client.get<Category[]>("/categories");
   return data;
 };
 
 export const createCategory = async (category: Omit<Category, "id">): Promise<Category> => {
-  const { data } = await axiosClient.post<Category>("/categories", category);
+  const client = await getAxiosClient();
+  const { data } = await client.post<Category>("/categories", category);
   return data;
 };
 
 export const updateCategory = async (id:string, category:Partial<Category>): Promise<Category> => {
-  const { data } = await axiosClient.put<Category>(`/categories/${id}`, category);
+  const client = await getAxiosClient();
+  const { data } = await client.put<Category>(`/categories/${id}`, category);
   return data;
 };
 
@@ -21,6 +24,7 @@ interface ResponseDelete  {
 }
 
 export const deleteCategory = async (id:string): Promise<ResponseDelete> => {
-    const { data } = await axiosClient.delete<ResponseDelete>(`/categories/${id}`);
+  const client = await getAxiosClient();
+    const { data } = await client.delete<ResponseDelete>(`/categories/${id}`);
     return data;
 };

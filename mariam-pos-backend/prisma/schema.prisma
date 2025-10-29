@@ -36,9 +36,7 @@ model Product {
 model Category {
   id          String   @id @default(uuid())
   name        String
-  description String?
-  color       String?
-  icon        String?
+  description String? 
   createdAt   DateTime @default(now())
 
   Product   Product[]
@@ -51,12 +49,18 @@ model Client {
 
 model Sale {
   id            Int           @id @default(autoincrement())
-  folio         String?        
+  folio         String?
   total         Float
   status        String?        //Pendiente, Pagado
   paymentMethod String?       // Efectivo, Tarjeta, etc.
   createdAt     DateTime      @default(now())
-  clientName    String?      
+  clientName    String?
+  
+  //Sucursal
+  branch        String?  @default("Sucursal Defult") 
+ 
+  //Caja de cobro
+  cashRegister  String?   @default("Caja 1") 
 
   // Nuevo campo de sincronización
   syncStatus    String        @default("pendiente") // pendiente, enviado
@@ -87,3 +91,4 @@ model SaleDetail {
   @@index([saleId])
   @@index([productId])
 }
+ 

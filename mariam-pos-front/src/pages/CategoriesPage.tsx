@@ -117,9 +117,6 @@ const CategoriesPage: React.FC<CategoriesPageProps> = ({
               filteredCategories.map(category => (
                 <Card key={category.id} className="category-card">
                   <div className="category-header">
-                    <div className="category-icon" style={{ backgroundColor: category.color }}>
-                      {category.icon}
-                    </div>
                     <div className="category-info">
                       <h3 className="category-name">{category.name}</h3>
                       {category.description && (

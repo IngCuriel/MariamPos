@@ -8,7 +8,11 @@ export const getSales = async (req, res) => {
     include: {
       details: {
         include: {
-          product: true, // ✅ traer información del producto
+          product: {
+            include: {
+              category:true
+            }
+          }, // ✅ traer información del producto
         },
       },
     },
@@ -33,7 +37,7 @@ export const getSalesById = async (req, res) => {
 
 export const createSales = async (req, res) => {
   try {
-    const { folio, status, total, paymentMethod, clientName, details } =
+    const { folio, status, total, branch, cashRegister, paymentMethod, clientName, details } =
       req.body;
 
     if (!details || details.length === 0) {
@@ -47,6 +51,8 @@ export const createSales = async (req, res) => {
         folio,
         status,
         total,
+        branch,
+        cashRegister,
         paymentMethod,
         clientName,
         details: {

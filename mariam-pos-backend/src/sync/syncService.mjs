@@ -11,7 +11,7 @@ const SYNC_INTERVAL = (process.env.SYNC_INTERVAL_MINUTES || 5) * 60 * 1000
 // 🧩 función auxiliar: verificar si hay internet
 async function hasInternetConnection() {
   try {
-    await axios.get(`${REMOTE_API_URL}/ping`, { timeout: 3000 })
+    await axios.get(`${REMOTE_API_URL}/api/sales`, { timeout: 3000 })
     return true
   } catch {
     return false
@@ -31,6 +31,7 @@ async function syncPendingSales() {
   const pendingSales = await prisma.sale.findMany({
     where: { syncStatus: 'pendiente' },
     include: { details: true },
+    take: 3, // 🔹 Trae solo 3 registros
   })
 
   if (pendingSales.length === 0) {
@@ -41,7 +42,7 @@ async function syncPendingSales() {
   console.log(`📤 Intentando enviar ${pendingSales.length} ventas...`)
 
   try {
-    const res = await axios.post(`${REMOTE_API_URL}/api/sync/sales`, pendingSales)
+    const res = await axios.post(`${REMOTE_API_URL}/api/sales/bulk`, pendingSales)
 
     if (res.status === 200) {
       const ids = pendingSales.map((s) => s.id)

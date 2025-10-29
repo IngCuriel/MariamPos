@@ -19,9 +19,9 @@ const Ticket: React.FC<TicketProps> = ({sale}) => {
         color: "black",
       }}
     >
-      <h3 style={{ textAlign: "center", margin: 0 }}>Mini Súper Curiel</h3>
+      <h3 style={{ textAlign: "center", margin: 0 }}>{sale.branch}</h3>
       <p style={{ textAlign: "center", margin: "4px 0" }}>Cliente: {sale.clientName}</p>
-      <p style={{ textAlign: "center", margin: "4px 0" }}>Progreso 10, entro, Yutanduchi de Guerrero, Oax.</p>
+      {/*<p style={{ textAlign: "center", margin: "4px 0" }}>Progreso 10, entro, Yutanduchi de Guerrero, Oax.</p>*/}
       <hr />
       <p style={{ textAlign: "left" }}>Folio: {sale.id}</p>
       <p style={{ textAlign: "left" }}>Fecha: {new Date().toLocaleString()}</p>

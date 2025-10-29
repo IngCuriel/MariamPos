@@ -38,6 +38,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
+    icon: path.join("assets","icon.ico"), // 👈 Aquí tu icono
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

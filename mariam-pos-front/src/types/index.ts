@@ -20,8 +20,6 @@ export interface Category {
   id: string;
   name: string;
   description?: string;
-  color?: string;
-  icon?: string;
   createdAt: Date;
 }
 
@@ -37,6 +35,8 @@ export interface Sale {
   total: number;
   status: string; //Pendiente, Pagado
   paymentMethod?: string; // Efectivo, Tarjeta, etc.
+  branch:string, // sucursal
+  cashRegister: string,  //Caja de cobro
   clientName?: string;
   details: SaleDetail[];
 }

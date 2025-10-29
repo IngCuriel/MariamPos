@@ -8,16 +8,16 @@ export const getCategories = async (req, res) => {
 };
 
 export const createCategory = async (req, res) => {
-  const { name, description, color, icon } = req.body;
+  const { name, description } = req.body;
   if (!name) return res.status(400).json({ error: "El nombre es obligatorio" });
 
-  const newCategory = await prisma.category.create({ data: { name, description, color, icon } });
+  const newCategory = await prisma.category.create({ data: { name, description} });
   res.status(201).json(newCategory);
 };
 
 export const updateCategory = async (req, res) => {
   const { id } = req.params;
-  const { name, description, color, icon } = req.body;
+  const { name, description} = req.body;
 
   try {
     // Verificar si existe la categoría
@@ -29,7 +29,7 @@ export const updateCategory = async (req, res) => {
     // Actualizar categoría
     const updatedCategory = await prisma.category.update({
       where: { id },
-      data: { name, description, color, icon },
+      data: { name, description },
     });
 
     res.status(200).json(updatedCategory);

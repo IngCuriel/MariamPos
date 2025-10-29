@@ -20,9 +20,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     name: '',
-    description: '',
-    color: '#667eea',
-    icon: ''
+    description: '' 
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -31,16 +29,12 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
     if (category) {
       setFormData({
         name: category.name,
-        description: category.description || '',
-        color: category.color || '#667eea',
-        icon: category.icon || ''
+        description: category.description || '' 
       });
     } else {
       setFormData({
         name: '',
-        description: '',
-        color: '#667eea',
-        icon: ''
+        description: ''
       });
     }
     setErrors({});
@@ -79,33 +73,14 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
     if (validateForm()) {
       const categoryData: Omit<Category, 'id' | 'createdAt'> = {
         name: formData.name.trim(),
-        description: formData.description.trim() || undefined,
-        color: formData.color,
-        icon: formData.icon.trim() || undefined,
+        description: formData.description.trim() || undefined
       };
       
       onSave(categoryData);
       onClose();
     }
   };
-
-  const colors = [
-    '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#e74c3c',
-    '#3498db', '#e67e22', '#9b59b6', '#667eea', '#764ba2',
-    '#43e97b', '#38f9d7', '#ff9ff3', '#54a0ff', '#5f27cd'
-  ];
-
-  const icons = [
-    '🍎', '🍌', '🍊', '🍇', '🍓', '🥝', '🍑', '🥭',
-    '🥕', '🥔', '🍅', '🥒', '🥬', '🥦', '🧅', '🧄',
-    '🥛', '🧀', '🥚', '🍞', '🥖', '🥐', '🧈',
-    '🥩', '🍗', '🥓', '🍖', '🦐', '🐟',
-    '🥤', '🧃', '☕', '🍵', '🍺', '🍷',
-    '🍿', '🍪', '🍰', '🍫', '🍭', '🍬',
-    '🧽', '🧴', '🧼', '🧻', '🧺', '🧹',
-    '📱', '💻', '🖥️', '⌨️', '🖱️', '📷','👞','🩴','🎒','👖','🧸','🎁','🎉','🍺','🎩'
-  ];
-
+  
   if (!isOpen) return null;
 
   return (
@@ -143,61 +118,6 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
                 rows={3}
               />
             </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="color">Color</label>
-                <div className="color-selector">
-                  <input
-                    type="color"
-                    id="color"
-                    name="color"
-                    value={formData.color}
-                    onChange={handleInputChange}
-                    className="color-input"
-                  />
-                  <div className="color-palette">
-                    {colors.map(color => (
-                      <button
-                        key={color}
-                        type="button"
-                        className="color-option"
-                        style={{ backgroundColor: color }}
-                        onClick={() => setFormData(prev => ({ ...prev, color }))}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="icon">Icono</label>
-                <div className="icon-selector">
-                  <input
-                    type="text"
-                    id="icon"
-                    name="icon"
-                    value={formData.icon}
-                    onChange={handleInputChange}
-                    placeholder="Selecciona un emoji"
-                    maxLength={2}
-                  />
-                  <div className="icon-grid">
-                    {icons.map(icon => (
-                      <button
-                        key={icon}
-                        type="button"
-                        className="icon-option"
-                        onClick={() => setFormData(prev => ({ ...prev, icon }))}
-                      >
-                        {icon}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
             <div className="form-actions">
               <Button
                 type="button"
