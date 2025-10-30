@@ -138,6 +138,8 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
           } else {
             addCart = false;
             console.log('Venta cancelada');
+            setSearch("");
+            inputRef.current?.focus();
           }
     }
     //Code Product Comun
@@ -182,8 +184,8 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
    } 
   };
 
-  const handleRemove = (id: number) => {
-    setCart((prev) => prev.filter((p) => p.id !== id));
+  const handleRemove = (id: number, name:string) => {
+    setCart((prev) => prev.filter((p) => !(p.id === id && p.name === name)));
   };
 
   const total = cart.reduce((acc, p) => acc + p.price * p.quantity, 0);
@@ -387,7 +389,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                           <h4>${(item.price * item.quantity).toFixed(2)}</h4>
                         </td>
                         <td>
-                          <button onClick={() => handleRemove(item.id)}>
+                          <button onClick={() => handleRemove(item.id, item.name)}>
                             ✖
                           </button>
                         </td>

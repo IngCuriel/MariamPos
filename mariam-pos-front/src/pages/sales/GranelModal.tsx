@@ -23,9 +23,27 @@ export const GranelModal = async (product: Product) => {
     didOpen: () => {
       const cantidadInput = document.getElementById('swal-cantidad') as HTMLInputElement;
       const precioInput = document.getElementById('swal-precio') as HTMLInputElement;
- 
+      const confirmButton = Swal.getConfirmButton();
+       
+      if ( !cantidadInput || !precioInput || !confirmButton) return;
+       
       // 🔹 Enfocar el campo cantidad y colocar el cursor al final del valor
       cantidadInput?.focus(); 
+      cantidadInput?.select();
+
+       // Función para pasar el foco con Enter
+      const focusNext = (current: HTMLElement, next: HTMLElement) => {
+        current.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            next?.focus();
+            if (next instanceof HTMLInputElement) next.select(); // 👈 también selecciona el siguiente
+           }
+        });
+      };
+
+      focusNext(cantidadInput, precioInput);
+      focusNext(precioInput, confirmButton);
 
       // 🔁 Cálculo automático cuando cambia la cantidad
       cantidadInput?.addEventListener('input', () => {
@@ -45,12 +63,13 @@ export const GranelModal = async (product: Product) => {
         }
       });
 
-      // ⚡ Confirmar con Enter
-      const onEnter = (e: KeyboardEvent) => {
-        if (e.key === 'Enter') Swal.clickConfirm();
-      };
-      cantidadInput?.addEventListener('keypress', onEnter);
-      precioInput?.addEventListener('keypress', onEnter);
+      // ⚡ Confirmar con Enter 
+      confirmButton.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          confirmButton.click();
+        }
+      });
     },
     preConfirm: () => {
       const cantidad = parseFloat(
