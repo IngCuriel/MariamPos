@@ -39,6 +39,36 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
   });
   const [products, setProducts] = useState<Product[]>([]);
   const [showModal, setShowModal] = useState(false);
+
+  // Nuevo Agrega estos estados y funciones dentro de tu componente
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const cardsPerRow = 5; // Ajusta según tu grilla de productos
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (products.length === 0) return;
+
+      if (e.key === "ArrowDown") {
+        setActiveIndex((prev) =>
+          Math.min(prev + cardsPerRow, products.length - 1)
+        );
+        e.preventDefault();
+      } else if (e.key === "ArrowUp") {
+        setActiveIndex((prev) => Math.max(prev - cardsPerRow, 0));
+        e.preventDefault();
+      } else if (e.key === "ArrowRight") {
+        setActiveIndex((prev) => Math.min(prev + 1, products.length - 1));
+        e.preventDefault();
+      } else if (e.key === "ArrowLeft") {
+        setActiveIndex((prev) => Math.max(prev - 1, 0));
+        e.preventDefault();
+      } else if (e.key === "Enter") {
+        if (activeIndex >= 0 && activeIndex < products.length) {
+              handleAdd(products[activeIndex]);
+               setActiveIndex(-1);
+            }
+        e.preventDefault();
+      }
+    };
  
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -63,7 +93,15 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
 
   useEffect(() => {
     if(search.length > 2) {
-      fetchProducts();
+       const handler = setTimeout(() => {
+        fetchProducts();
+        setActiveIndex(0);
+      }, 300); // 🕒 Espera 300 ms después del último cambio
+
+      // Limpiar el timeout si `search` cambia antes de que pasen los 300 ms
+      return () => clearTimeout(handler);
+    } else if (search.length===0) {
+       setProducts([])
     }
   }, [search]);
 
@@ -73,10 +111,14 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       if(data.length === 1) {
         const getProduct = data[0];
         if (getProduct.code === search) {
-            handleAdd(getProduct);
-        }
-      }
-      setProducts(data);
+           handleAdd(getProduct);
+           setProducts([]);
+         } else {
+           setProducts(data);
+         }
+      } else {
+           setProducts(data);
+         }
     } catch (err) {
       console.error(err);
     } finally {
@@ -99,9 +141,10 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
           }
     }
     //Code Product Comun
-    if (product.code==='111') {
+    if (product.code === '111') {
       addCart = false;
         const result = await ProductComunModal(product);
+        setProducts([]);
         if (result) {
             quantity = result.cantidad;
             console.log( 'Se vendio:',result.nombre, '--Cantidad-', result.cantidad, '-Precio-', result.precio, 'MXN');
@@ -112,7 +155,9 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
             });
             // Aquí puedes actualizar tu carrito o llamar una API
         } else {
-             console.log('Venta cancelada');
+            console.log('Venta cancelada');
+            setSearch("");
+            inputRef.current?.focus();
         }
     }
     if (addCart) {
@@ -127,6 +172,13 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         }
         return [...prev, { ...product, quantity}];
       });
+       Swal.fire({
+            icon: 'success',
+            title: `${product.name} agreado`,
+            timer: 2000,
+            showConfirmButton: false,
+          });
+      setProducts([])
    } 
   };
 
@@ -273,16 +325,18 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                 placeholder="Buscar producto... ó Producto Común Codigo=111"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
               />
             </div>
 
             <div className="sales-cards">
               {products.length > 0 ? (
-                products.map((p) => (
+                products.map((p , index) => (
                   <div
                     key={p.id}
-                    className="product-card-sales"
+                    className={`product-card-sales ${activeIndex === index ? "active-card" : ""}`}
                     onClick={() => handleAdd(p)}
+                    onMouseEnter={() => setActiveIndex(index)}
                   >
                     <div>{p.icon}</div>
                     <h4>{p.name}</h4>

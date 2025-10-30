@@ -18,10 +18,12 @@ export const GranelModal = async (product: Product) => {
     showCancelButton: true,
     confirmButtonText: 'Aceptar',
     cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
     didOpen: () => {
       const cantidadInput = document.getElementById('swal-cantidad') as HTMLInputElement;
       const precioInput = document.getElementById('swal-precio') as HTMLInputElement;
-
+ 
       // 🔹 Enfocar el campo cantidad y colocar el cursor al final del valor
       cantidadInput?.focus(); 
 

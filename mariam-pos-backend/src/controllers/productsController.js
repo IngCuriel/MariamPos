@@ -83,7 +83,7 @@ export const filterProducts = async (req, res) => {
     include: {
       category: true,
     },
-    take: 50, 
+    take: 25, 
     orderBy: { name: 'asc' },
   });
 

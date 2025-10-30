@@ -258,3 +258,8 @@
 .confirm-btn:hover {
   background: #2980b9;
 }
+
+.product-card-sales.active-card {
+  border: 2px solid #4CAF50;
+  background-color: #e0f8e0;
+}
