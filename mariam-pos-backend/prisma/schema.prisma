@@ -74,7 +74,7 @@ model Sale {
 
 model SaleDetail {
   id          Int       @id @default(autoincrement())
-  quantity    Int
+  quantity    Float
   price       Float
   subTotal    Float
   productName String?

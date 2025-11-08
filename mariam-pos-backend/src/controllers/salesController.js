@@ -82,7 +82,7 @@ export const createSales = async (req, res) => {
 export const getSalesByDateRange = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
-
+    console.log('startDate, endDate',startDate, endDate);
     if (!startDate || !endDate) {
       return res
         .status(400)
@@ -90,14 +90,14 @@ export const getSalesByDateRange = async (req, res) => {
     }
 
     // Ajustar el rango completo del día
-    const start = new Date(`${startDate}T00:00:00.000Z`);
-    const end = new Date(`${endDate}T23:59:59.999Z`);
+    const start = new Date(`${startDate}T00:00:00.000`);
+    const end = new Date(`${endDate}T23:59:59.999`);
     console.log("start", start, "end", end);
 
     // Validar fechas
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
       return res.status(400).json({ message: "Fechas inválidas" });
-    }
+    } 
 
     const sales = await prisma.sale.findMany({
       where: {
@@ -200,7 +200,7 @@ export const getDailySales = async (req, res) => {
     `;
     console.log('dailySales', dailySales)
     const result = dailySales.reduce((acc, sale) => {
-              const dateOnly = new Date(sale.date).toISOString().slice(0, 10); // 'YYYY-MM-DD'
+              const dateOnly = new Date(sale.date).toLocaleDateString('en-CA'); // 'YYYY-MM-DD'
               const existing = acc.find(r => r.date === dateOnly);
               if (existing) {
                 existing.total += sale.total;

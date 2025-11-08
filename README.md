@@ -45,3 +45,16 @@ Pasos:
 
 buscar en el administrador de tarea 
  MariamPOS.exe y node.exe y finalizar tarea
+
+
+## Version dos apartir del 08-11-2025
+
+cambio de reporte en el front (ventas del día)
+cambio de reporte en el back end 
+
+cambio de dato a la cantidad en el detalle de la compra. 
+  ```
+  npx prisma db push
+  ```
+
+

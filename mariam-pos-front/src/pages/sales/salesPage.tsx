@@ -143,7 +143,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
           }
     }
     //Code Product Comun
-    if (product.code === '111') {
+    if (product.code === '000000') {
       addCart = false;
         const result = await ProductComunModal(product);
         setProducts([]);

@@ -97,3 +97,5 @@ Desktop.ini
 /MariamPos-linux-x64/
 /MariamPos-darwin-x64/
 .env
+
+consultas-ventas.sql

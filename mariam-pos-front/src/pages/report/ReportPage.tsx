@@ -25,14 +25,10 @@ interface DashboardSalesPageProps {
 }
 
 const DashboardSalesPage: React.FC<DashboardSalesPageProps> = ({onBack}) => {
-  const [summary, setSummary] = useState<Summary | null>({totalVentas:123, totalDinero:3444});
+  const [summary, setSummary] = useState<Summary | null>({totalVentas:0, totalDinero:0});
   const [dailySales, setDailySales] = useState<DailySale[]>([]);
-  const [topProducts, setTopProducts] = useState<TopProduct[]>([{productName:'Jitomate', _sum:{quantity:19}}, {productName:'Coca', _sum:{quantity:34}}]);
-  const [byPayment, setByPayment] = useState<Record<string, unknown>[]>( [
-  { nombre: "Efectivo", total: 1500 },
-  { nombre: "Tarjeta", total: 2300 },
-  { nombre: "Transferencia", total: 800 },
-]);
+  const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
+  const [byPayment, setByPayment] = useState<Record<string, unknown>[]>( []);
   //filters
   const [filter, setFilter] = useState<"day" | "week" | "month" | "custom">("day");
   //const [startDate, setStartDate] = useState<string>("");

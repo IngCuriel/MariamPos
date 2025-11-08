@@ -21,8 +21,12 @@ export default function DaySalesModal() {
 
    useEffect(() => { 
     if(isOpen) {
-      const start = dateToday.toISOString().split("T")[0];
-      const end = dateToday.toISOString().split("T")[0];
+      /*const localDate = new Date(dateToday.getTime() - dateToday.getTimezoneOffset() * 60000)
+      .toISOString()
+      .split("T")[0];*/
+      const localDate = dateToday.toLocaleDateString('en-CA'); // YYYY-MM-DD en hora local
+      const start = localDate;
+      const end = localDate;
       fetchSalesByDateRange(start, end);
     }
   }, [dateToday, isOpen]);

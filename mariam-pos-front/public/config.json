@@ -1,5 +1,5 @@
 {
   "apiUrl": "http://localhost:3001/api",
-  "sucursal" :"Papeleria Curiel",
+  "sucursal" :"Sucursal Test",
   "caja": "Caja 1"
 }
