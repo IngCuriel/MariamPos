@@ -12,26 +12,44 @@ datasource db {
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
-  code        String   @unique
+  id          Int          @id @default(autoincrement())
+  code        String       @unique
   name        String
-  status      Int?      //1 activo,  0 desactivado 
-  saleType    String?   //pieza-agranel
-  price       Float
+  status      Int?
+  saleType    String?
+  price       Float        // PRECIO BASE (precio por pieza) → para compatibilidad
   cost        Float?
   description String?
   icon        String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime     @default(now())
 
   categoryId  String
-  category    Category  @relation(fields: [categoryId], references: [id])
+  category    Category     @relation(fields: [categoryId], references: [id])
 
-  saleDetails SaleDetail[]  // 👈 Relación inversa
+  // 🔥 Nueva relación (un producto puede tener varias presentaciones)
+  presentations ProductPresentation[]
+
+  saleDetails SaleDetail[]
 
   @@index([code])
   @@index([name])
   @@index([description])
 }
+
+model ProductPresentation {
+  id        Int      @id @default(autoincrement())
+  name      String   // Ej: “Pieza”, “Cono”, “Six”
+  quantity  Int      // Ej: 1, 30, 6 → unidades reales
+  unitPrice Float    // Precio por unidad en esta presentación
+  isDefault Boolean  @default(false)
+
+  product   Product  @relation(fields: [productId], references: [id])
+  productId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 
 model Category {
   id          String   @id @default(uuid())

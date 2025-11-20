@@ -33,12 +33,69 @@
   max-height: 500px;
 }
 
+.venta-search {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
 .venta-search input {
-  width: 100%;
+  flex: 1;
   padding: 10px;
   border-radius: 10px;
   border: 1px solid #ccc;
-  margin-bottom: 15px;
+}
+
+/* Botón de Producto Común */
+.btn-common-product {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  min-width: 180px;
+  white-space: nowrap;
+}
+
+.btn-common-product:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+.btn-common-product:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+}
+
+.btn-common-product .btn-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.btn-common-product .btn-text {
+  font-size: 0.95rem;
+}
+
+/* Responsive para el botón */
+@media (max-width: 768px) {
+  .venta-search {
+    flex-direction: column;
+  }
+  
+  .btn-common-product {
+    width: 100%;
+    min-width: auto;
+  }
 }
 
 .sales-cards {

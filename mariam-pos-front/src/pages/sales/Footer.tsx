@@ -3,11 +3,12 @@ import "../../styles/pages/sales/footer.css";
 import DaySalesModal from "./DaySalesModal";
 
 interface FooterProps  {
+ cartLength:number;
  onSaleToPending: () => void;
  showPendingCarts:() => void;
 }
 
-const Footer:React.FC<FooterProps>= ({onSaleToPending, showPendingCarts}) =>{
+const Footer:React.FC<FooterProps>= ({cartLength, onSaleToPending, showPendingCarts}) =>{
   return (
     <footer className="pos-footer">
         <div className="column left">
@@ -16,7 +17,7 @@ const Footer:React.FC<FooterProps>= ({onSaleToPending, showPendingCarts}) =>{
             <DaySalesModal/>
         </div>
         <div className="column right">
-            11 Productos en la venta actual
+            {cartLength} Productos en la venta actual
         </div>
     </footer>
   );

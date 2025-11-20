@@ -35,7 +35,33 @@ export default function DaySalesModal() {
        setIsOpen(true)
   };
   
-  const total = sales.reduce((acc, p) => acc + p.total, 0);
+  const resumen = sales.reduce(
+    (acc, sale) => {
+      const metodo = sale.paymentMethod?.toLowerCase() || "desconocido";
+      const total = sale.total || 0;
+
+      // Suma total general
+      acc.totalGeneral += total;
+
+      // Suma por método de pago
+      if (metodo.includes("efectivo")) {
+        acc.totalEfectivo += total;
+      } else if (metodo.includes("tarjeta")) {
+        acc.totalTarjeta += total;
+      } else {
+        acc.totalOtros += total;
+      }
+
+      return acc;
+    },
+    {
+      totalEfectivo: 0,
+      totalTarjeta: 0,
+      totalOtros: 0,
+      totalGeneral: 0,
+    }
+  );
+  console.log(resumen);
 
   const fetchSalesByDateRange = async(startDate:string, endDate:string ) =>{
      try {
@@ -77,10 +103,22 @@ export default function DaySalesModal() {
       {isOpen && (
         <div className="modal-overlay">
           <div className="modal-container-day-sales">
-            <h2 className="modal-title">Ventas del Día Total {total.toLocaleString('es-MX', {
-                                                                                      style: 'currency',
-                                                                                      currency: 'MXN',
-                                                                                    })}</h2>                                                   
+            <h2 className="modal-title text-lg font-semibold">
+              <span className="text-green-600">
+                💵 Efectivo:{" "}
+                {resumen.totalEfectivo.toLocaleString("es-MX", {
+                  style: "currency",
+                  currency: "MXN",
+                })}
+              </span>{" "}
+              <span className="text-blue-600 ml-4">
+                💳 Tarjeta:{" "}
+                {resumen.totalTarjeta.toLocaleString("es-MX", {
+                  style: "currency",
+                  currency: "MXN",
+                })}
+              </span>
+            </h2>                            
             <div className="modal-content">
               {/* Left column - sales list */}
               <div className="sales-list">
@@ -93,32 +131,33 @@ export default function DaySalesModal() {
                       dateFormat="yyyy-MM-dd"
                       className="datepicker-input"
                       /> 
+                      Total de folios:{sales.length}
                  </div>
                 { sales.length > 0 ?
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Folio</th>
-                      <th>Status</th>
-                      <th>Check</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sales.map((sale) => (
-                      <tr
-                        key={sale.id}
-                        className={
-                          selectedSale?.id === sale.id ? "selected" : ""
-                        }
-                        onClick={() => setSelectedSale(sale)}
-                      >
-                        <td>{sale.id}</td>
-                        <td>{sale.status}</td>
-                        <td>✅</td>
+                  <div className="table-container">
+                  <table className="sales-table">
+                    <thead>
+                      <tr>
+                        <th>Folio</th>
+                        <th>Status</th>
+                        <th>Check</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {sales.map((sale) => (
+                        <tr
+                          key={sale.id}
+                          className={selectedSale?.id === sale.id ? "selected" : ""}
+                          onClick={() => setSelectedSale(sale)}
+                        >
+                          <td>{sale.id}</td>
+                          <td>{sale.status}</td>
+                          <td>✅</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
                 : <p className="no-selection">No se encontraron ventas en al fecha seleccionada</p>
                 }
               </div>

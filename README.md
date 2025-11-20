@@ -58,3 +58,5 @@ cambio de dato a la cantidad en el detalle de la compra.
   ```
 
 
+pasar el dist carpeta del front 
+y el archivo salesController, productsController del back

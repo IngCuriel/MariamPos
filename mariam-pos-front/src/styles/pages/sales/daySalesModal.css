@@ -154,3 +154,63 @@
   margin-bottom: 4px;
   margin-right: 2px;
 }
+
+.table-container {
+  max-height: 400px; /* Altura máxima antes de activar el scroll */
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: #fff;
+}
+
+/* Asegura que la tabla ocupe todo el ancho */
+.sales-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: Arial, sans-serif;
+  font-size: 15px;
+}
+
+/* Encabezado */
+.sales-table thead th {
+  position: sticky;
+  top: 0;
+  background-color: #f8f8f8;
+  color: #333;
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 2px solid #ccc;
+  z-index: 2;
+}
+
+/* Filas del cuerpo */
+.sales-table tbody td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #eee;
+}
+
+/* Efecto hover */
+.sales-table tbody tr:hover {
+  background-color: #f3f6ff;
+  cursor: pointer;
+}
+
+/* Fila seleccionada */
+.sales-table tbody tr.selected {
+  background-color: #dbeafe;
+  font-weight: bold;
+}
+
+/* Scroll estético */
+.table-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background-color: #aaa;
+}

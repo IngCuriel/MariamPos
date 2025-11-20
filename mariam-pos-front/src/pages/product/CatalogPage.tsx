@@ -43,7 +43,16 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack }) => {
   }, []);
 
   useEffect(() => {
-    fetchProductsFilters();
+    if(searchTerm.length > 2) {
+       const handler = setTimeout(() => {
+        fetchProductsFilters();
+      }, 300); // 🕒 Espera 300 ms después del último cambio
+
+      // Limpiar el timeout si `search` cambia antes de que pasen los 300 ms
+      return () => clearTimeout(handler);
+    } else if (searchTerm.length===0) {
+       setProducts([])
+    } 
   }, [searchTerm]);
 
   useEffect(() => {
@@ -64,7 +73,6 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack }) => {
   };
 
   const fetchProductsFilters = async () => {
-    if (searchTerm.length >= 3) {
       setLoading(true); // 🔹 iniciar loader
       try {
         const data = await getProductsFilters(searchTerm);
@@ -76,7 +84,6 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack }) => {
         setLoading(false); // 🔹 finalizar loader
         if (selectedCategory !== "") setSelectedCategory("");
       }
-    }
   };
 
   const fetchProductsByCategoryId = async () => {

@@ -7,65 +7,177 @@ export const getProducts = async (req, res) => {
     orderBy: { createdAt: "desc" }, 
     include: {
               category: true, // 👈 esto hace que Prisma traiga toda la info de la categoría
+              presentations: true
              },
-    take: 800, 
+    take: 50, 
     });
   res.json(products);
 };
 
 export const createProduct = async (req, res) => {
-  const { code, name, price,status, saleType, cost, description, icon, categoryId} = req.body;
-  
-  if (!name) return res.status(400).json({ error: "El nombre es obligatorio" });
+  try {
+    const {
+      code,
+      name,
+      price,
+      status,
+      saleType,
+      cost,
+      description,
+      icon,
+      categoryId,
+      presentations = []   // 👈 nuevas presentaciones opcionales
+    } = req.body;
 
-   // Verificar que el producto existe
-  if (code) {
+    if (!name) return res.status(400).json({ error: "El nombre es obligatorio" });
+
+    // Validar código de barras repetido
+    if (code) {
       const existingCode = await prisma.product.findUnique({ where: { code } });
-      console.log('existingCode', existingCode);
-      if (existingCode) return res.status(404).json({ error: "El codigo de barras ya esta asignado a producto "+ existingCode.name });
-     }
+      if (existingCode)
+        return res.status(400).json({
+          error: `El código de barras ya está asignado al producto "${existingCode.name}".`
+        });
+    }
 
-  const newProduct = await prisma.product.create(
-      { data: { code, name, price, status, saleType, cost, description, icon, categoryId },
-        include: {category: true },});
-  res.status(201).json(newProduct);
+    // Crear producto + presentaciones en una transacción
+    const newProduct = await prisma.$transaction(async (tx) => {
+      const product = await tx.product.create({
+        data: { code, name, price, status, saleType, cost, description, icon, categoryId }
+      });
+
+      // Si trae presentaciones, crearlas
+      if (presentations.length > 0) {
+        for (const p of presentations) {
+          await tx.productPresentation.create({
+            data: {
+              name: p.name,
+              quantity: p.quantity,
+              unitPrice: p.unitPrice,
+              isDefault: p.isDefault ?? false,
+              productId: product.id,
+            }
+          });
+        }
+      }
+
+      return product;
+    });
+
+    // Devolver con presentaciones incluidas
+    const result = await prisma.product.findUnique({
+      where: { id: newProduct.id },
+      include: { presentations: true, category: true }
+    });
+
+    res.status(201).json(result);
+
+  } catch (error) {
+    console.error("Error al crear producto:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
 };
 
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const { code, name, price, status, saleType, cost, description, icon, categoryId } = req.body;
+    const {
+      code,
+      name,
+      price,
+      status,
+      saleType,
+      cost,
+      description,
+      icon,
+      categoryId,
+      presentations = []   // 👈 nuevas presentaciones
+    } = req.body;
 
-    // Validación básica
     if (!id) return res.status(400).json({ error: "El ID del producto es obligatorio" });
 
-    // Verificar que el producto existe
-    const existingProduct = await prisma.product.findUnique({ where: { id: Number(id) } });
-    if (!existingProduct) return res.status(404).json({ error: "Producto no encontrado" });
-    
-    // 2️⃣ Solo validamos si el code cambió
+    const productId = Number(id);
+
+    const existingProduct = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { presentations: true }
+    });
+
+    if (!existingProduct)
+      return res.status(404).json({ error: "Producto no encontrado" });
+
+    // Validar código de barras repetido si cambia
     if (code && code !== existingProduct.code) {
       const existingCode = await prisma.product.findUnique({ where: { code } });
-      if (existingCode && existingCode.id !== id) {
+      if (existingCode && existingCode.id !== productId) {
         return res.status(400).json({
           error: `El código de barras ya está asignado al producto "${existingCode.name}".`,
         });
       }
     }
 
-    // Actualizar el producto
-    const updatedProduct = await prisma.product.update({
-      where: { id: Number(id) },
-      data: { code, name, price, status, saleType, cost, description, icon, categoryId },
-      include: { category: true },
+    // Iniciamos la transacción
+    const updatedProduct = await prisma.$transaction(async (tx) => {
+      // 1️⃣ Actualizar datos del producto
+      await tx.product.update({
+        where: { id: productId },
+        data: { code, name, price, status, saleType, cost, description, icon, categoryId }
+      });
+
+      // 2️⃣ Manejo de presentaciones
+      const existing = existingProduct.presentations.map((p) => p.id);
+      const incoming = presentations.filter((p) => p.id).map((p) => p.id);
+
+      // 👉 Presentaciones a eliminar (si existen en BD y ya no vienen en el request)
+      const toDelete = existing.filter((id) => !incoming.includes(id));
+
+      if (toDelete.length > 0) {
+        await tx.productPresentation.deleteMany({
+          where: { id: { in: toDelete } }
+        });
+      }
+
+      // 👉 Actualizar y crear presentaciones
+      for (const p of presentations) {
+        if (p.id) {
+          // actualizar
+          await tx.productPresentation.update({
+            where: { id: p.id },
+            data: {
+              name: p.name,
+              quantity: p.quantity,
+              unitPrice: p.unitPrice,
+              isDefault: p.isDefault ?? false
+            }
+          });
+        } else {
+          // crear
+          await tx.productPresentation.create({
+            data: {
+              name: p.name,
+              quantity: p.quantity,
+              unitPrice: p.unitPrice,
+              isDefault: p.isDefault ?? false,
+              productId
+            }
+          });
+        }
+      }
+
+      return tx.product.findUnique({
+        where: { id: productId },
+        include: { presentations: true, category: true }
+      });
     });
 
     res.status(200).json(updatedProduct);
+
   } catch (error) {
     console.error("Error al actualizar producto:", error);
     res.status(500).json({ error: "Error interno del servidor" });
   }
 };
+
 
 export const deleteProduct = async (req, res) => {
   try {
@@ -99,7 +211,8 @@ export const filterProducts = async (req, res) => {
       ],
     },
     include: {
-      category: true,
+      category: true, 
+      presentations: true
     },
     take: 25, 
     orderBy: { name: 'asc' },

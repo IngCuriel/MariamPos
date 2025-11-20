@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Header from "../../components/Header";
 import "../../styles/pages/sales.css";
 import PaymentModal from "./PaymentModal";
@@ -15,6 +15,8 @@ import Footer from "./Footer";
 
 import Swal from "sweetalert2";
 import { ProductComunModal } from "./ProductComunModal";
+import { PresentationModal } from "./PresentationModal";
+import type { ProductPresentation } from "../../types";
 
 interface SalesPageProps {
   onBack: () => void;
@@ -22,6 +24,8 @@ interface SalesPageProps {
 
 interface ItemCart extends Product {
   quantity: number;
+  selectedPresentation?: ProductPresentation; // Presentación seleccionada si aplica
+  presentationQuantity?: number; // Cantidad de presentaciones (ej: 2 conos)
 }
 
 const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
@@ -70,6 +74,49 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       }
     };
  
+  // Función para agregar producto común directamente
+  const handleAddCommonProduct = useCallback(async () => {
+    // Crear un producto temporal con código 000000
+    const commonProduct: Product = {
+      id: 1,
+      code: '000000',
+      name: 'Producto Común',
+      status: 1,
+      saleType: 'Pieza',
+      price: 0,
+      cost: 0,
+      icon: '',
+      categoryId: '',
+    };
+
+    const result = await ProductComunModal(commonProduct);
+    setProducts([]);
+    if (result) {
+      const quantity = result.cantidad;
+      console.log('Se vendió:', result.nombre, '--Cantidad-', result.cantidad, '-Precio-', result.precio, 'MXN');
+      
+      setCart((prev) => {
+        return [...prev, {
+          ...commonProduct,
+          name: result.nombre,
+          price: result.precio,
+          quantity
+        }];
+      });
+
+      Swal.fire({
+        icon: 'success',
+        title: `${result.nombre} agregado`,
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    } else {
+      console.log('Venta cancelada');
+    }
+    setSearch("");
+    inputRef.current?.focus();
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "F2") {
@@ -78,11 +125,14 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         if (cart.length >= 1) {
           setShowModal(true); 
         }
-    };
+      } else if (e.key === "F3") {
+        e.preventDefault();
+        handleAddCommonProduct();
+      }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [cart]);
+  }, [cart, handleAddCommonProduct]);
 
   // Cada vez que cambie el carrito, lo guardamos
   useEffect(() => {
@@ -129,7 +179,27 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
   const handleAdd = async(product: Product) => {
     let quantity = 1;
     let addCart = true;
-    if (product.saleType === 'Granel') {
+    let selectedPresentation: ProductPresentation | undefined;
+    let presentationQuantity = 1;
+
+    // 👇 PRIMERO: Verificar si el producto tiene presentaciones
+    if (product.presentations && product.presentations.length > 0) {
+      const presentationResult = await PresentationModal(product);
+      if (presentationResult) {
+        selectedPresentation = presentationResult.presentation;
+        presentationQuantity = presentationResult.quantity;
+        quantity = selectedPresentation.quantity * presentationQuantity; // Total de unidades
+      } else {
+        addCart = false;
+        console.log('Selección de presentación cancelada');
+        setSearch("");
+        inputRef.current?.focus();
+        return;
+      }
+    }
+
+    // Si no tiene presentaciones o ya se seleccionó una, continuar con el flujo normal
+    if (addCart && product.saleType === 'Granel') {
          const result = await GranelModal(product);
           if (result) {
             quantity = result.cantidad;
@@ -143,7 +213,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
           }
     }
     //Code Product Comun
-    if (product.code === '000000') {
+    if (addCart && product.code === '000000') {
       addCart = false;
         const result = await ProductComunModal(product);
         setProducts([]);
@@ -163,20 +233,67 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         }
     }
     if (addCart) {
+      // Calcular el precio según la presentación seleccionada
+      const finalPrice = selectedPresentation 
+        ? selectedPresentation.unitPrice 
+        : product.price;
+
+      // Crear el item del carrito
+      const cartItem: ItemCart = {
+        ...product,
+        quantity,
+        price: finalPrice, // Precio unitario de la presentación
+        selectedPresentation,
+        presentationQuantity,
+      };
+
       setCart((prev) => {
-        const existing = prev.find((item) => item.id === product.id);
+        // Verificar si ya existe el mismo producto con la misma presentación
+        const existing = prev.find((item) => {
+          if (item.id !== product.id) return false;
+          
+          // Si ambos tienen presentación, comparar por ID de presentación
+          if (selectedPresentation && item.selectedPresentation) {
+            return item.selectedPresentation.id === selectedPresentation.id;
+          }
+          
+          // Si ninguno tiene presentación, es el mismo item
+          if (!selectedPresentation && !item.selectedPresentation) {
+            return true;
+          }
+          
+          return false;
+        });
+
         if (existing) {
-          return prev.map((item) =>
-            item.id === product.id
-              ? { ...item, quantity: item.quantity + quantity }
-              : item
-          );
+          return prev.map((item) => {
+            const isSameItem = item.id === product.id && 
+              ((selectedPresentation && item.selectedPresentation && 
+                item.selectedPresentation.id === selectedPresentation.id) ||
+               (!selectedPresentation && !item.selectedPresentation));
+            
+            if (isSameItem) {
+              return { 
+                ...item, 
+                quantity: item.quantity + quantity,
+                presentationQuantity: item.presentationQuantity 
+                  ? (item.presentationQuantity + presentationQuantity)
+                  : presentationQuantity,
+              };
+            }
+            return item;
+          });
         }
-        return [...prev, { ...product, quantity}];
+        return [...prev, cartItem];
       });
-       Swal.fire({
+      
+      const presentationName = selectedPresentation 
+        ? ` (${selectedPresentation.name})` 
+        : '';
+      
+      Swal.fire({
             icon: 'success',
-            title: `${product.name} agreado`,
+            title: `${product.name}${presentationName} agregado`,
             timer: 2000,
             showConfirmButton: false,
           });
@@ -184,11 +301,29 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
    } 
   };
 
-  const handleRemove = (id: number, name:string) => {
-    setCart((prev) => prev.filter((p) => !(p.id === id && p.name === name)));
+  const handleRemove = (id: number, name: string, presentationId?: number) => {
+    setCart((prev) => prev.filter((item) => {
+      // Si se especifica presentationId, comparar también por presentación
+      if (presentationId !== undefined) {
+        return !(item.id === id && 
+                 item.name === name && 
+                 item.selectedPresentation?.id === presentationId);
+      }
+      // Si no hay presentación, comparar solo por id y name
+      return !(item.id === id && item.name === name && !item.selectedPresentation);
+    }));
   };
 
-  const total = cart.reduce((acc, p) => acc + p.price * p.quantity, 0);
+  // Calcular total considerando presentaciones
+  const total = cart.reduce((acc, item) => {
+    // Si tiene presentación seleccionada, calcular: cantidad de presentaciones * precio unitario * unidades por presentación
+    if (item.selectedPresentation && item.presentationQuantity) {
+      const totalUnits = item.selectedPresentation.quantity * item.presentationQuantity;
+      return acc + (item.selectedPresentation.unitPrice * totalUnits);
+    }
+    // Si no tiene presentación, usar el cálculo normal
+    return acc + (item.price * item.quantity);
+  }, 0);
 
   const confirmPayment = async (data: ConfirmPaymentData) => {
      setShowModal(false);
@@ -199,13 +334,33 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         details: SaleDetailInput[];
       };
 
-      const details: SaleDetailInput[] = cart.map((cart) => {
+      const details: SaleDetailInput[] = cart.map((item) => {
+        // Calcular subtotal según presentación
+        const subtotal = item.selectedPresentation && item.presentationQuantity
+          ? item.selectedPresentation.unitPrice * item.selectedPresentation.quantity * item.presentationQuantity
+          : item.price * item.quantity;
+        
+        // Nombre del producto con presentación si aplica
+        const productName = item.selectedPresentation
+          ? `${item.name} (${item.presentationQuantity}x ${item.selectedPresentation.name})`
+          : item.name;
+        
+        // Precio unitario usado
+        const unitPrice = item.selectedPresentation
+          ? item.selectedPresentation.unitPrice
+          : item.price;
+        
+        // Cantidad total de unidades
+        const totalQuantity = item.selectedPresentation && item.presentationQuantity
+          ? item.selectedPresentation.quantity * item.presentationQuantity
+          : item.quantity;
+
         return {
-          quantity: cart.quantity,
-          price: cart.price,
-          productName: cart.name,
-          subTotal: cart.quantity * cart.price,
-          productId: cart.id,
+          quantity: totalQuantity,
+          price: unitPrice,
+          productName,
+          subTotal: subtotal,
+          productId: item.id,
         };
       });
       const sale: Omit<SaleInput, "createdAt"> = {
@@ -324,11 +479,19 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
               <input
                 ref={inputRef}
                 type="text"
-                placeholder="Buscar producto... ó Producto Común Codigo=111"
+                placeholder="Buscar producto..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
               />
+              <button
+                className="btn-common-product"
+                onClick={handleAddCommonProduct}
+                title="Agregar producto no registrado (F3)"
+              >
+                <span className="btn-icon">➕</span>
+                <span className="btn-text">Producto Común</span>
+              </button>
             </div>
 
             <div className="sales-cards">
@@ -374,27 +537,64 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                 </thead>
                 <tbody>
                   {cart.length > 0 ? (
-                    cart.map((item) => (
-                      <tr key={item.id}>
-                        <td>
-                          <h4>{item.name}</h4>
-                        </td>
-                        <td>
-                          <h4>{item.quantity}</h4>
-                        </td>
-                        <td>
-                          <h4>${item.price.toFixed(2)}</h4>
-                        </td>
-                        <td>
-                          <h4>${(item.price * item.quantity).toFixed(2)}</h4>
-                        </td>
-                        <td>
-                          <button onClick={() => handleRemove(item.id, item.name)}>
-                            ✖
-                          </button>
-                        </td>
-                      </tr>
-                    ))
+                    cart.map((item, index) => {
+                      // Calcular subtotal según presentación
+                      const subtotal = item.selectedPresentation && item.presentationQuantity
+                        ? item.selectedPresentation.unitPrice * item.selectedPresentation.quantity * item.presentationQuantity
+                        : item.price * item.quantity;
+                      
+                      // Mostrar información de presentación si existe
+                      const displayName = item.selectedPresentation
+                        ? `${item.name} (${item.presentationQuantity}x ${item.selectedPresentation.name})`
+                        : item.name;
+                      
+                      // Mostrar cantidad: unidades totales o cantidad de presentaciones
+                      const displayQuantity = item.selectedPresentation && item.presentationQuantity
+                        ? `${item.presentationQuantity} ${item.selectedPresentation.name}${item.presentationQuantity > 1 ? 's' : ''}`
+                        : item.quantity;
+                      
+                      // Precio unitario a mostrar
+                      const displayPrice = item.selectedPresentation
+                        ? item.selectedPresentation.unitPrice
+                        : item.price;
+
+                      return (
+                        <tr key={`${item.id}-${item.selectedPresentation?.id || 'default'}-${index}`}>
+                          <td>
+                            <h4>{displayName}</h4>
+                            {item.selectedPresentation && (
+                              <small style={{ color: '#6b7280', fontSize: '0.85rem' }}>
+                                {item.selectedPresentation.quantity} unidad{item.selectedPresentation.quantity !== 1 ? 'es' : ''} por {item.selectedPresentation.name}
+                              </small>
+                            )}
+                          </td>
+                          <td>
+                            <h4>{displayQuantity}</h4>
+                            {item.selectedPresentation && item.quantity > item.presentationQuantity! && (
+                              <small style={{ color: '#6b7280', fontSize: '0.85rem' }}>
+                                ({item.quantity} unidades totales)
+                              </small>
+                            )}
+                          </td>
+                          <td>
+                            <h4>${displayPrice.toFixed(2)}</h4>
+                            {item.selectedPresentation && (
+                              <small style={{ color: '#6b7280', fontSize: '0.85rem' }}>
+                                c/u
+                              </small>
+                            )}
+                          </td>
+                          <td>
+                            <h4>${subtotal.toFixed(2)}</h4>
+                          </td>
+                          <td>
+                            <button onClick={() => handleRemove(item.id, item.name, item.selectedPresentation?.id)}>
+                              ✖
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
                   ) : (
                     <tr>
                       <td
@@ -429,6 +629,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         </div>
       </div>
       <Footer
+        cartLength = {cart.length}
         onSaleToPending={saleToPending}
         showPendingCarts={showPendingCarts}
       />
