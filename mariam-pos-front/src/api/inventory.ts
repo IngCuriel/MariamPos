@@ -1,0 +1,87 @@
+import { getAxiosClient } from "./axiosClient";
+import type {
+  Inventory,
+  InventoryMovement,
+  CreateInventoryMovementInput,
+  UpdateStockInput,
+  Product,
+} from "../types/index";
+
+// Obtener inventario de todos los productos
+export const getInventory = async (): Promise<Inventory[]> => {
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.get<Inventory[]>("/inventory");
+  return data;
+};
+
+// Obtener inventario de un producto específico
+export const getProductInventory = async (productId: number): Promise<Inventory | null> => {
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.get<Inventory>(`/inventory/product/${productId}`);
+  return data;
+};
+
+// Obtener productos con inventario bajo
+export const getLowStockProducts = async (): Promise<Inventory[]> => {
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.get<Inventory[]>("/inventory/low-stock");
+  return data;
+};
+
+// Crear un movimiento de inventario
+export const createInventoryMovement = async (
+  movement: CreateInventoryMovementInput
+): Promise<InventoryMovement> => {
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.post<InventoryMovement>("/inventory/movements", movement);
+  return data;
+};
+
+// Obtener movimientos de inventario de un producto
+export const getProductMovements = async (
+  productId: number,
+  limit?: number
+): Promise<InventoryMovement[]> => {
+  const clientAxios = await getAxiosClient();
+  const params = limit ? `?limit=${limit}` : "";
+  const { data } = await clientAxios.get<InventoryMovement[]>(
+    `/inventory/movements/product/${productId}${params}`
+  );
+  return data;
+};
+
+// Obtener todos los movimientos de inventario
+export const getAllMovements = async (
+  startDate?: string,
+  endDate?: string
+): Promise<InventoryMovement[]> => {
+  const clientAxios = await getAxiosClient();
+  const params = new URLSearchParams();
+  if (startDate) params.append("startDate", startDate);
+  if (endDate) params.append("endDate", endDate);
+  const query = params.toString();
+  const { data } = await clientAxios.get<InventoryMovement[]>(
+    `/inventory/movements${query ? `?${query}` : ""}`
+  );
+  return data;
+};
+
+// Actualizar stock directamente (ajuste rápido)
+export const updateStock = async (update: UpdateStockInput): Promise<Inventory> => {
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.put<Inventory>(`/inventory/stock`, update);
+  return data;
+};
+
+// Habilitar/deshabilitar rastreo de inventario para un producto
+export const toggleInventoryTracking = async (
+  productId: number,
+  trackInventory: boolean
+): Promise<Product> => {
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.patch<Product>(`/inventory/tracking/${productId}`, {
+    trackInventory,
+  });
+  return data;
+};
+

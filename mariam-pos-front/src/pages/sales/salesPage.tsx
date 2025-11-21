@@ -11,12 +11,14 @@ import type {
 } from "../../types";
 import { getProductsFilters } from "../../api/products";
 import { createSale } from "../../api/sales";
+import { createInventoryMovement, getProductInventory } from "../../api/inventory";
 import Footer from "./Footer";
 
 import Swal from "sweetalert2";
 import { ProductComunModal } from "./ProductComunModal";
 import { PresentationModal } from "./PresentationModal";
-import type { ProductPresentation } from "../../types";
+import ProductCardWithStock from "./ProductCardWithStock";
+import type { ProductPresentation, Inventory } from "../../types";
 
 interface SalesPageProps {
   onBack: () => void;
@@ -182,6 +184,23 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
     let selectedPresentation: ProductPresentation | undefined;
     let presentationQuantity = 1;
 
+    // 🏭 PRIMERO: Validar stock si el producto rastrea inventario
+    if (product.trackInventory && product.id !== 1) {
+      try {
+        const inventory = await getProductInventory(product.id);
+        if (inventory) {
+          // Calcular cantidad que se va a agregar
+          let quantityToAdd = 1;
+          
+          // Si tiene presentaciones, calcular después de seleccionar
+          // Por ahora validamos después de seleccionar presentación
+        }
+      } catch (error) {
+        console.error("Error verificando inventario:", error);
+        // Continuar sin validar si hay error
+      }
+    }
+
     // 👇 PRIMERO: Verificar si el producto tiene presentaciones
     if (product.presentations && product.presentations.length > 0) {
       const presentationResult = await PresentationModal(product);
@@ -189,12 +208,60 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         selectedPresentation = presentationResult.presentation;
         presentationQuantity = presentationResult.quantity;
         quantity = selectedPresentation.quantity * presentationQuantity; // Total de unidades
+        
+        // 🏭 Validar stock después de seleccionar presentación
+        if (product.trackInventory && product.id !== 1) {
+          try {
+            const inventory = await getProductInventory(product.id);
+            if (inventory && inventory.currentStock < quantity) {
+              Swal.fire({
+                icon: "warning",
+                title: "Stock insuficiente",
+                html: `
+                  <p>Stock disponible: <strong>${inventory.currentStock}</strong></p>
+                  <p>Stock requerido: <strong>${quantity}</strong></p>
+                  <p>Faltan: <strong>${quantity - inventory.currentStock}</strong> unidades</p>
+                `,
+                confirmButtonText: "Entendido",
+              });
+              setSearch("");
+              inputRef.current?.focus();
+              return;
+            }
+          } catch (error) {
+            console.error("Error validando stock:", error);
+          }
+        }
       } else {
         addCart = false;
         console.log('Selección de presentación cancelada');
         setSearch("");
         inputRef.current?.focus();
         return;
+      }
+    } else {
+      // 🏭 Validar stock para productos sin presentaciones
+      if (product.trackInventory && product.id !== 1) {
+        try {
+          const inventory = await getProductInventory(product.id);
+          if (inventory && inventory.currentStock < quantity) {
+            Swal.fire({
+              icon: "warning",
+              title: "Stock insuficiente",
+              html: `
+                <p>Stock disponible: <strong>${inventory.currentStock}</strong></p>
+                <p>Stock requerido: <strong>${quantity}</strong></p>
+                <p>Faltan: <strong>${quantity - inventory.currentStock}</strong> unidades</p>
+              `,
+              confirmButtonText: "Entendido",
+            });
+            setSearch("");
+            inputRef.current?.focus();
+            return;
+          }
+        } catch (error) {
+          console.error("Error validando stock:", error);
+        }
       }
     }
 

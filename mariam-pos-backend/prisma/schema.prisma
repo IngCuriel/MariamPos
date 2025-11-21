@@ -23,6 +23,14 @@ model Product {
   icon        String?
   createdAt   DateTime     @default(now())
 
+  // Nuevas propiedades para inventario
+  trackInventory Boolean? @default(false) // si el producto usa inventario
+  stock          Int?     @default(0)     // stock actual
+  minStock       Int?     @default(0)     // stock para alertas
+  
+  inventory      Inventory?            // ← 1:1
+  movements      InventoryMovement[]
+
   categoryId  String
   category    Category     @relation(fields: [categoryId], references: [id])
 
@@ -110,3 +118,64 @@ model SaleDetail {
   @@index([productId])
 }
  
+// ============================================================
+// 🏭 MÓDULO DE INVENTARIO
+// ============================================================
+
+// ------------------------------------------------------------
+// Tabla principal de inventario por producto y sucursal
+// ------------------------------------------------------------
+model Inventory {
+  id               Int       @id @default(autoincrement())
+
+  productId        Int       @unique        // ← IMPORTANTE
+  product          Product   @relation(fields: [productId], references: [id])
+
+  currentStock     Int       @default(0)
+  minStock         Int       @default(0)
+  maxStock         Int?
+  lastMovementDate DateTime?
+  trackInventory   Boolean   @default(false)
+  branch           String?
+
+  movements        InventoryMovement[]
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+
+// ------------------------------------------------------------
+// Movimientos de inventario
+// ------------------------------------------------------------
+model InventoryMovement {
+  id         Int       @id @default(autoincrement())
+  
+  productId  Int
+  product    Product   @relation(fields: [productId], references: [id])
+
+  inventoryId Int?
+  inventory   Inventory? @relation(fields: [inventoryId], references: [id])
+
+  type       InventoryMovementType
+  quantity   Int
+
+  reason     String?
+  reference  String?
+  notes      String?
+
+  branch     String? // Sucursal
+
+  createdBy  String?
+  createdAt  DateTime @default(now())
+}
+
+// ------------------------------------------------------------
+// Enum para tipos de movimientos
+// ------------------------------------------------------------
+enum InventoryMovementType {
+  ENTRADA
+  SALIDA
+  AJUSTE
+  TRANSFERENCIA
+}

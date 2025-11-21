@@ -212,7 +212,8 @@ export const filterProducts = async (req, res) => {
     },
     include: {
       category: true, 
-      presentations: true
+      presentations: true,
+      inventory: true
     },
     take: 25, 
     orderBy: { name: 'asc' },

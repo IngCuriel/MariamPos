@@ -1,6 +1,6 @@
 // Tipos principales de la aplicación
 
-export type ViewType = 'main' | 'help' | 'pos' | 'products' | 'new-product' | 'catalog' | 'categories' | 'sales' |'client' | 'report';
+export type ViewType = 'main' | 'help' | 'pos' | 'products' | 'new-product' | 'catalog' | 'categories' | 'sales' |'client' | 'report' | 'inventory';
 
 // Representa una presentación de un producto (ej: 1 pieza, 1 cono, 1 six)
 export interface ProductPresentation {
@@ -24,6 +24,9 @@ export interface Product {
   categoryId: string;
   category?: Category;
   presentations?: ProductPresentation[]; // Presentaciones opcionales para compatibilidad
+  trackInventory?: boolean; // Si el producto maneja inventario
+  stock?: number; // Stock actual (opcional para compatibilidad)
+  minStock?: number; // Stock mínimo para alertas
 }
 
 export interface Category {
@@ -68,5 +71,63 @@ export interface ConfirmPaymentData {
    paymentType: string;
    amountReceived: number
    change: number;
+}
+
+// ============================================================
+// 🏭 MÓDULO DE INVENTARIO
+// ============================================================
+
+// Tipos de movimientos de inventario
+export type InventoryMovementType = 
+  | 'ENTRADA'      // Compra, recepción
+  | 'SALIDA'       // Venta, consumo
+  | 'AJUSTE'       // Ajuste manual (positivo o negativo)
+  | 'TRANSFERENCIA'; // Transferencia entre sucursales
+
+// Representa un movimiento de inventario
+export interface InventoryMovement {
+  id: number;
+  productId: number;
+  product?: Product;
+  type: InventoryMovementType;
+  quantity: number; // Cantidad positiva (se suma o resta según el tipo)
+  reason?: string; // Motivo del movimiento
+  reference?: string; // Referencia (factura, orden, etc.)
+  notes?: string; // Notas adicionales
+  createdAt: Date;
+  createdBy?: string; // Usuario que realizó el movimiento
+  branch?: string; // Sucursal
+}
+
+// Representa el inventario actual de un producto
+export interface Inventory {
+  id: number;
+  productId: number;
+  product?: Product;
+  currentStock: number; // Stock actual
+  minStock: number; // Stock mínimo
+  maxStock?: number; // Stock máximo (opcional)
+  lastMovementDate?: Date; // Fecha del último movimiento
+  trackInventory: boolean; // Si se rastrea inventario
+  branch?: string; // Sucursal
+}
+
+// DTO para crear un movimiento de inventario
+export interface CreateInventoryMovementInput {
+  productId: number;
+  type: InventoryMovementType;
+  quantity: number;
+  reason?: string;
+  reference?: string;
+  notes?: string;
+  branch?: string;
+}
+
+// DTO para actualizar stock directamente
+export interface UpdateStockInput {
+  productId: number;
+  newStock: number;
+  reason?: string;
+  notes?: string;
 }
 

@@ -118,10 +118,42 @@
   font-weight: 700;
   color: #16a34a; /* verde elegante */
  }
+
+.product-card-sales {
+  position: relative;
+}
  
 .product-card-sales:hover {
   background: #bcf1c8;
   transform: translateY(-3px);
+}
+
+/* Badges de stock en tarjetas de productos */
+.stock-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stock-badge.stock-ok {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.stock-badge.stock-low {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.stock-badge.stock-out {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 /* 🧾 Lado derecho */
