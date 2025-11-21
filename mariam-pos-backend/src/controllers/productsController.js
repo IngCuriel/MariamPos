@@ -175,10 +175,12 @@ export const updateProduct = async (req, res) => {
           update: { currentStock: inventory?.currentStock, minStock: inventory.minStock, trackInventory: trackInventory},
         });
       } else {
-        await tx.inventory.update({
-          where: { productId: productId },
-          data: { trackInventory: false },
-        });
+        if (existingProduct.inventory) {
+          await tx.inventory.update({
+            where: { productId: productId },
+            data: { trackInventory: false },
+          });
+        }
       }
 
       return tx.product.findUnique({

@@ -393,7 +393,18 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
   }, 0);
 
   const confirmPayment = async (data: ConfirmPaymentData) => {
-     setShowModal(false);
+    setShowModal(false);
+    
+    // Mostrar loading mientras se procesa
+    Swal.fire({
+      title: "Procesando venta...",
+      text: "Por favor espera",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+
     try {
       // 👉 tipo para crear ventas (sin id, ni campos anidados)
       type SaleDetailInput = Omit<SaleDetail, "id" | "saleId" | "product">;
@@ -430,6 +441,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
           productId: item.id,
         };
       });
+      
       const sale: Omit<SaleInput, "createdAt"> = {
         folio: "",
         total: total,
@@ -440,11 +452,97 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         branch,
         cashRegister
       };
+      
+      // 1️⃣ Crear la venta
       const responseCreateSale = await createSale(sale);
-      setCart([]);
       console.log("responseCreateSale", responseCreateSale);
+      
+      // 2️⃣ Descontar inventario después de crear la venta exitosamente
+      await updateInventoryFromSale(cart, branch);
+      
+      // 3️⃣ Limpiar carrito y mostrar éxito
+      setCart([]);
+      
+      Swal.fire({
+        icon: "success",
+        title: "✅ Venta completada",
+        html: `
+          <p>La venta se registró correctamente.</p>
+          <p style="margin-top: 10px; color: #059669; font-weight: 600;">
+            Total: ${total.toLocaleString("es-MX", {
+              style: "currency",
+              currency: "MXN",
+            })}
+          </p>
+          <p style="margin-top: 10px; font-size: 0.9rem; color: #6b7280;">
+            El inventario ha sido actualizado automáticamente.
+          </p>
+        `,
+        timer: 4000,
+        showConfirmButton: false,
+      });
     } catch (error) {
-      console.log("Error ConfirmPayment", error);
+      console.error("Error ConfirmPayment", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error al procesar la venta",
+        text: "No se pudo completar la venta. Por favor intenta de nuevo.",
+        confirmButtonText: "Entendido",
+      });
+    }
+  };
+
+  // Función para descontar inventario de una venta
+  const updateInventoryFromSale = async (cartItems: ItemCart[], branchName: string) => {
+    const errors: Array<{ product: string; quantity: number }> = [];
+
+    for (const item of cartItems) {
+      // Solo descontar si el producto rastrea inventario y no es producto común
+      const hasInventory = item.inventory?.trackInventory || item.trackInventory;
+      
+      if (hasInventory && item.id !== 1) { // Excluir producto común (id: 1)
+        try {
+          // Calcular cantidad total a descontar
+          const totalQuantity = item.selectedPresentation && item.presentationQuantity
+            ? item.selectedPresentation.quantity * item.presentationQuantity
+            : item.quantity;
+
+          // Crear movimiento de inventario (SALIDA)
+          await createInventoryMovement({
+            productId: item.id,
+            type: "SALIDA",
+            quantity: totalQuantity,
+            reason: "Venta",
+            reference: `Venta - ${branchName}`,
+            notes: `Venta realizada en ${branchName}. Producto: ${item.name}${item.selectedPresentation ? ` (${item.presentationQuantity}x ${item.selectedPresentation.name})` : ''}`,
+            branch: branchName,
+          });
+        } catch (error) {
+          console.error(`Error actualizando inventario para producto ${item.id} (${item.name}):`, error);
+          const totalQuantity = item.selectedPresentation && item.presentationQuantity
+            ? item.selectedPresentation.quantity * item.presentationQuantity
+            : item.quantity;
+          errors.push({ product: item.name, quantity: totalQuantity });
+          // Continuar con los demás productos aunque uno falle
+        }
+      }
+    }
+
+    // Mostrar advertencia si hubo errores (pero no bloquear la venta)
+    if (errors.length > 0) {
+      Swal.fire({
+        icon: "warning",
+        title: "Advertencia de inventario",
+        html: `
+          <p>La venta se completó, pero hubo problemas al actualizar el inventario de algunos productos:</p>
+          <ul style="text-align: left; margin-top: 10px; padding-left: 20px;">
+            ${errors.map(e => `<li><strong>${e.product}</strong>: ${e.quantity} unidades</li>`).join('')}
+          </ul>
+          <p style="margin-top: 10px; font-size: 0.9rem; color: #6b7280;">Por favor verifica el inventario manualmente.</p>
+        `,
+        confirmButtonText: "Entendido",
+        confirmButtonColor: "#3b82f6",
+      });
     }
   };
 
