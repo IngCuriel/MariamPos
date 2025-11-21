@@ -24,9 +24,7 @@ model Product {
   createdAt   DateTime     @default(now())
 
   // Nuevas propiedades para inventario
-  trackInventory Boolean? @default(false) // si el producto usa inventario
-  stock          Int?     @default(0)     // stock actual
-  minStock       Int?     @default(0)     // stock para alertas
+  trackInventory Boolean? @default(false) // si el producto usa inventario 
   
   inventory      Inventory?            // ← 1:1
   movements      InventoryMovement[]

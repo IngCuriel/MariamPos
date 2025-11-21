@@ -76,11 +76,15 @@ export const updateStock = async (update: UpdateStockInput): Promise<Inventory> 
 // Habilitar/deshabilitar rastreo de inventario para un producto
 export const toggleInventoryTracking = async (
   productId: number,
-  trackInventory: boolean
+  trackInventory: boolean,
+  currentStock: number,
+  minStock: number,
 ): Promise<Product> => {
   const clientAxios = await getAxiosClient();
   const { data } = await clientAxios.patch<Product>(`/inventory/tracking/${productId}`, {
     trackInventory,
+    currentStock,
+    minStock,
   });
   return data;
 };

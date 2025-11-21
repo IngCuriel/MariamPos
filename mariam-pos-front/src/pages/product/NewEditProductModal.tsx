@@ -39,6 +39,8 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
   const [saleType, setSaleType] = useState("Pieza");
   const [status, setStatus] = useState<number>(1);
   const [trackInventory, setTrackInventory] = useState<boolean>(false);
+  const [initialStock, setInitialStock] = useState<number>(0);
+  const [minStock, setMinStock] = useState<number>(0);
   const [categories, setCategories] = useState<Category[]>([]);
   const [labelQuantity, setLabelQuantity] = useState(5);
   const [activeTab, setActiveTab] = useState("producto");
@@ -91,6 +93,11 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
         setSaleType(product.saleType)
         setStatus(product.status)
         
+        // Cargar configuración de inventario
+        setTrackInventory(product.inventory?.trackInventory || false);
+        setInitialStock(product.inventory?.currentStock || 0);
+        setMinStock(product.inventory?.minStock || 0);
+        
         // Cargar presentaciones si existen, sino crear la presentación base
         if (product.presentations && product.presentations.length > 0) {
           setPresentations(product.presentations);
@@ -118,6 +125,11 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
         });
         setStatus(1);
         setSaleType("Pieza");
+        
+        // Inicializar inventario
+        setTrackInventory(false);
+        setInitialStock(0);
+        setMinStock(0);
         
         // Inicializar con presentación base
         setPresentations([{
@@ -230,6 +242,16 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
     if (!formData.cost || Number(formData.cost) < 0)
       newErrors.cost = "El costo debe ser 0 o mayor";
 
+    // Validar campos de inventario si está activado
+    if (trackInventory) {
+      if (initialStock < 0) {
+        newErrors.initialStock = "El stock inicial no puede ser negativo";
+      }
+      if (minStock < 0) {
+        newErrors.minStock = "El stock mínimo no puede ser negativo";
+      }
+    }
+
     // Validar todas las presentaciones
     const allPresentationsValid = presentations.every((p, index) => validatePresentation(p, index));
 
@@ -258,6 +280,16 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
         categoryId: formData.category,
         category: categories.find((cat) => cat.id === formData.category),
         presentations: presentations.length > 1 ? presentations : undefined, // Solo incluir si hay más de una presentación
+        inventory: trackInventory ? {
+          id: 0,
+          productId: formData.id,
+          trackInventory: trackInventory,
+          currentStock: initialStock,
+          minStock: minStock,
+        } : undefined,
+        trackInventory: trackInventory,
+        stock: trackInventory ? initialStock : undefined,
+        minStock: trackInventory ? minStock : undefined,
       };
       onSave(productToSave);
     }
@@ -901,65 +933,161 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
           )}
          {activeTab === "avanzado" && (
             <div className="tab-content">
-              {product && (
-                  <>
-                  <form onSubmit={handleSubmit} className="product-form">
-                    <div className="form-group">
-                      <label htmlFor="inventory">Maneja inventario</label>
-                      <input
-                        type="checkbox"
-                        id="inventory"
-                        name="inventory"
-                        checked={trackInventory}
-                        onChange={() => setTrackInventory(!trackInventory)}
-                      />
+              <form onSubmit={handleSubmit} className="product-form">
+                    {/* Sección de Control de Inventario */}
+                    <div className="inventory-control-section">
+                      <div className="section-header">
+                        <h3>📦 Control de Inventario</h3>
+                        <p className="section-description">
+                          Activa el control de inventario para rastrear el stock de este producto automáticamente
+                        </p>
+                      </div>
+
+                      <div className="inventory-toggle-card">
+                        <div className="toggle-header">
+                          <div className="toggle-info">
+                            <label htmlFor="inventory" className="toggle-label">
+                              <strong>Activar control de inventario</strong>
+                            </label>
+                            <p className="toggle-description">
+                              {trackInventory 
+                                ? "El sistema rastreará automáticamente las entradas y salidas de este producto"
+                                : "Sin control de inventario. El producto se puede vender sin límite de stock"}
+                            </p>
+                          </div>
+                          <div className="toggle-switch">
+                            <input
+                              type="checkbox"
+                              id="inventory"
+                              name="inventory"
+                              checked={trackInventory}
+                              onChange={() => setTrackInventory(!trackInventory)}
+                              className="switch-input"
+                            />
+                            <label htmlFor="inventory" className="switch-label">
+                              <span className="switch-slider"></span>
+                            </label>
+                          </div>
+                        </div>
+
+                        {trackInventory && (
+                          <div className="inventory-fields">
+                            <div className="inventory-fields-grid">
+                              <div className="form-group">
+                                <label htmlFor="initialStock">
+                                  Stock Inicial *
+                                  <span className="field-hint">Cantidad disponible al crear el producto</span>
+                                </label>
+                                <input
+                                  type="number"
+                                  id="initialStock"
+                                  name="initialStock"
+                                  min="0"
+                                  step="0.01"
+                                  value={initialStock}
+                                  onChange={(e) => setInitialStock(Number(e.target.value))}
+                                  placeholder="Ej: 100"
+                                  className={`inventory-input ${errors.initialStock ? "error" : ""}`}
+                                />
+                                {errors.initialStock && (
+                                  <span className="error-message">{errors.initialStock}</span>
+                                )}
+                                <small className="field-help">
+                                  Establece la cantidad inicial de productos en inventario
+                                </small>
+                              </div>
+
+                              <div className="form-group">
+                                <label htmlFor="minStock">
+                                  Stock Mínimo *
+                                  <span className="field-hint">Nivel mínimo antes de alertar</span>
+                                </label>
+                                <input
+                                  type="number"
+                                  id="minStock"
+                                  name="minStock"
+                                  min="0"
+                                  step="0.01"
+                                  value={minStock}
+                                  onChange={(e) => setMinStock(Number(e.target.value))}
+                                  placeholder="Ej: 10"
+                                  className={`inventory-input ${errors.minStock ? "error" : ""}`}
+                                />
+                                {errors.minStock && (
+                                  <span className="error-message">{errors.minStock}</span>
+                                )}
+                                <small className="field-help">
+                                  Recibirás alertas cuando el stock esté por debajo de este valor
+                                </small>
+                              </div>
+                            </div>
+
+                            <div className="inventory-preview">
+                              <div className="preview-item">
+                                <span className="preview-label">Stock inicial:</span>
+                                <span className="preview-value">{initialStock}</span>
+                              </div>
+                              <div className="preview-item">
+                                <span className="preview-label">Stock mínimo:</span>
+                                <span className="preview-value">{minStock}</span>
+                              </div>
+                              {initialStock <= minStock && initialStock > 0 && (
+                                <div className="preview-warning">
+                                  ⚠️ El stock inicial está en o por debajo del mínimo
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Sección de Generación de Etiquetas */}
                     <div className="label-section">
-                       <div className="label-controls">
-                        <div className="form-group small">
-                          <label htmlFor="labelQuantity">Hay en este momento:</label>
+                      <div className="section-header">
+                        <h3>🏷️ Generar Etiquetas</h3>
+                        <p className="section-description">
+                          Genera etiquetas con código de barras para este producto
+                        </p>
+                      </div>
+                      <div className="label-controls">
+                        <div className="form-group">
+                          <label htmlFor="labelQuantity">Cantidad de etiquetas</label>
                           <input
                             type="number"
                             id="labelQuantity"
                             name="labelQuantity"
                             min="1"
-                            disabled
-                            value={0}
-                            onChange={() => {}}
+                            value={labelQuantity}
+                            onChange={(e) => setLabelQuantity(Number(e.target.value))}
                             placeholder="Ej: 5"
                           />
                         </div>
-                      </div>
-                    </div>
-                  </form>
-                  <div className="label-section">
-                    <h4>Generar etiquetas</h4>
-                    <div className="label-controls">
-                      <div className="form-group small">
-                        <label htmlFor="labelQuantity">Cantidad</label>
-                        <input
-                          type="number"
-                          id="labelQuantity"
-                          name="labelQuantity"
-                          min="1"
-                          value={labelQuantity}
-                          onChange={(e) => setLabelQuantity(Number(e.target.value))}
-                          placeholder="Ej: 5"
-                        />
-                      </div>
 
-                      <Button
-                        type="button"
-                        variant="primary"
-                        onClick={() => handleGenerateLabel(labelQuantity)}
-                        className="generate-btn"
-                      >
-                        Generar etiquetas
-                      </Button>
+                        <Button
+                          type="button"
+                          variant="primary"
+                          onClick={() => handleGenerateLabel(labelQuantity)}
+                          className="generate-btn"
+                        >
+                          🖨️ Generar etiquetas PDF
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </>
-                )}
+                <div className="form-actions">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={onClose}
+                    className="cancel-btn"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button type="submit" variant="success" className="save-btn">
+                    {product ? "Actualizar" : "Crear"} Producto
+                  </Button>
+                </div>
+              </form>
             </div>
           )}
         </Card>

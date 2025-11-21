@@ -25,8 +25,7 @@ export interface Product {
   category?: Category;
   presentations?: ProductPresentation[]; // Presentaciones opcionales para compatibilidad
   trackInventory?: boolean; // Si el producto maneja inventario
-  stock?: number; // Stock actual (opcional para compatibilidad)
-  minStock?: number; // Stock mínimo para alertas
+  inventory?: Inventory; 
 }
 
 export interface Category {

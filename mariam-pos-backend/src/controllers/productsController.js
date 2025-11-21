@@ -7,7 +7,8 @@ export const getProducts = async (req, res) => {
     orderBy: { createdAt: "desc" }, 
     include: {
               category: true, // 👈 esto hace que Prisma traiga toda la info de la categoría
-              presentations: true
+              presentations: true,
+              inventory: true
              },
     take: 50, 
     });
@@ -26,6 +27,7 @@ export const createProduct = async (req, res) => {
       description,
       icon,
       categoryId,
+      trackInventory,
       presentations = []   // 👈 nuevas presentaciones opcionales
     } = req.body;
 
@@ -43,7 +45,7 @@ export const createProduct = async (req, res) => {
     // Crear producto + presentaciones en una transacción
     const newProduct = await prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
-        data: { code, name, price, status, saleType, cost, description, icon, categoryId }
+        data: { code, name, price, status, saleType, cost, description, icon, categoryId, trackInventory}
       });
 
       // Si trae presentaciones, crearlas
@@ -91,6 +93,8 @@ export const updateProduct = async (req, res) => {
       description,
       icon,
       categoryId,
+      trackInventory,
+      inventory, 
       presentations = []   // 👈 nuevas presentaciones
     } = req.body;
 
@@ -121,7 +125,7 @@ export const updateProduct = async (req, res) => {
       // 1️⃣ Actualizar datos del producto
       await tx.product.update({
         where: { id: productId },
-        data: { code, name, price, status, saleType, cost, description, icon, categoryId }
+        data: { code, name, price, status, saleType, cost, description, icon, categoryId, trackInventory}
       });
 
       // 2️⃣ Manejo de presentaciones
@@ -163,10 +167,23 @@ export const updateProduct = async (req, res) => {
           });
         }
       }
+        // Actualizar inventario
+      if (inventory) {
+        await tx.inventory.upsert({
+          where: { productId: productId },
+          create: { productId: productId, currentStock: inventory.currentStock, minStock: inventory.minStock, trackInventory: trackInventory},
+          update: { currentStock: inventory?.currentStock, minStock: inventory.minStock, trackInventory: trackInventory},
+        });
+      } else {
+        await tx.inventory.update({
+          where: { productId: productId },
+          data: { trackInventory: false },
+        });
+      }
 
       return tx.product.findUnique({
         where: { id: productId },
-        include: { presentations: true, category: true }
+        include: { presentations: true, category: true, inventory: true}
       });
     });
 

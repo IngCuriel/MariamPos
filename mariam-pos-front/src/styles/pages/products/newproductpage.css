@@ -93,11 +93,280 @@ input[type="radio"] {
 }
 
 .label-section {
-  margin-top: 1rem;
+  margin-top: 1.5rem;
   background: #f9fafb;
-  padding: 1rem;
-  border-radius: 8px;
+  padding: 1.5rem;
+  border-radius: 12px;
   border: 1px solid #e5e7eb;
+}
+
+/* ============================================================
+   📦 ESTILOS PARA CONTROL DE INVENTARIO
+   ============================================================ */
+
+.inventory-control-section {
+  margin-bottom: 2rem;
+}
+
+.section-header {
+  margin-bottom: 1rem;
+}
+
+.section-header h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.section-description {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.inventory-toggle-card {
+  background: #ffffff;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.inventory-toggle-card:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.toggle-info {
+  flex: 1;
+}
+
+.toggle-label {
+  display: block;
+  font-size: 1rem;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+}
+
+.toggle-label strong {
+  font-weight: 600;
+}
+
+.toggle-description {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* Switch Toggle Moderno */
+.toggle-switch {
+  flex-shrink: 0;
+}
+
+.switch-input {
+  display: none;
+}
+
+.switch-label {
+  display: block;
+  width: 56px;
+  height: 32px;
+  background: #d1d5db;
+  border-radius: 16px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.switch-input:checked + .switch-label {
+  background: #10b981;
+}
+
+.switch-slider {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 24px;
+  height: 24px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.switch-input:checked + .switch-label .switch-slider {
+  transform: translateX(24px);
+}
+
+/* Campos de Inventario */
+.inventory-fields {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.inventory-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.inventory-fields .form-group {
+  margin-bottom: 0;
+}
+
+.inventory-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.field-hint {
+  font-weight: 400;
+  color: #9ca3af;
+  font-size: 0.75rem;
+  font-style: italic;
+}
+
+.inventory-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.inventory-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.field-help {
+  display: block;
+  margin-top: 0.5rem;
+  color: #6b7280;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+/* Vista Previa de Inventario */
+.inventory-preview {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.preview-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.preview-label {
+  color: #0369a1;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.preview-value {
+  color: #0c4a6e;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.preview-warning {
+  width: 100%;
+  padding: 0.75rem;
+  background: #fef3c7;
+  border: 1px solid #fbbf24;
+  border-radius: 6px;
+  color: #92400e;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-top: 0.5rem;
+}
+
+/* Mejoras para la sección de etiquetas */
+.label-section .section-header {
+  margin-bottom: 1rem;
+}
+
+.label-section .label-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.label-section .form-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.generate-btn {
+  padding: 10px 20px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .toggle-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .inventory-fields-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .inventory-preview {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .label-section .label-controls {
+    flex-direction: column;
+  }
+
+  .label-section .form-group {
+    width: 100%;
+  }
 }
 
 /* Estilos para la sección de Presentaciones */

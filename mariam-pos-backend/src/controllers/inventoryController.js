@@ -217,7 +217,7 @@ export const updateStock = async (req, res) => {
 export const toggleInventoryTracking = async (req, res) => {
   try {
     const { productId } = req.params;
-    const { trackInventory } = req.body;
+    const { trackInventory, currentStock, minStock} = req.body;
 
     const updatedProduct = await prisma.product.update({
       where: { id: Number(productId) },
@@ -228,7 +228,7 @@ export const toggleInventoryTracking = async (req, res) => {
     if (trackInventory) {
       await prisma.inventory.upsert({
         where: { productId: Number(productId) },
-        create: { productId: Number(productId), currentStock: 0, minStock: 0 },
+        create: { productId: Number(productId), currentStock, minStock},
         update: {},
       });
     }
