@@ -287,9 +287,7 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
           currentStock: initialStock,
           minStock: minStock,
         } : undefined,
-        trackInventory: trackInventory,
-        stock: trackInventory ? initialStock : undefined,
-        minStock: trackInventory ? minStock : undefined,
+        trackInventory: trackInventory
       };
       onSave(productToSave);
     }
@@ -728,7 +726,7 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                             </div>
                           </div>
                           <div className="presentation-actions">
-                            {!(presentation.isDefault || presentation.quantity === 1) ? (
+                            {!(presentation.isDefault /*|| presentation.quantity === 1*/) ? (
                               <>
                                 <button
                                   type="button"

@@ -18,7 +18,7 @@ const ProductCardWithStock: React.FC<ProductCardWithStockProps> = ({
   onMouseEnter,
 }) => {
   const [inventory, setInventory] = useState<Inventory | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [_loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (product.trackInventory && product.id !== 1) {

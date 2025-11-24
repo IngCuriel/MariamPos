@@ -17,8 +17,7 @@ import Footer from "./Footer";
 import Swal from "sweetalert2";
 import { ProductComunModal } from "./ProductComunModal";
 import { PresentationModal } from "./PresentationModal";
-import ProductCardWithStock from "./ProductCardWithStock";
-import type { ProductPresentation, Inventory } from "../../types";
+import type { ProductPresentation } from "../../types";
 
 interface SalesPageProps {
   onBack: () => void;
@@ -190,7 +189,6 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         const inventory = await getProductInventory(product.id);
         if (inventory) {
           // Calcular cantidad que se va a agregar
-          let quantityToAdd = 1;
           
           // Si tiene presentaciones, calcular después de seleccionar
           // Por ahora validamos después de seleccionar presentación

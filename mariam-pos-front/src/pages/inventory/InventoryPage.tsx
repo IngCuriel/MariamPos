@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import Header from "../../components/Header";
 import Card from "../../components/Card";
 import Button from "../../components/Button";
-import type { Inventory, Product } from "../../types";
-import { getInventory, getLowStockProducts } from "../../api/inventory";
+import type { Inventory } from "../../types";
+import { getInventory } from "../../api/inventory";
 import { getProductsFilters } from "../../api/products";
 import "../../styles/pages/inventory/inventory.css";
 import InventoryEntryModal from "./InventoryEntryModal";
@@ -192,7 +192,6 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onBack }) => {
                               variant="primary"
                               size="small"
                               onClick={() => handleEntry(inv)}
-                              title="Agregar entrada"
                             >
                               ➕ Entrada
                             </Button>
@@ -200,7 +199,6 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onBack }) => {
                               variant="secondary"
                               size="small"
                               onClick={() => handleAdjust(inv)}
-                              title="Ajustar stock"
                             >
                               🔧 Ajustar
                             </Button>
