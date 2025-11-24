@@ -18,6 +18,7 @@ import Swal from "sweetalert2";
 import { ProductComunModal } from "./ProductComunModal";
 import { PresentationModal } from "./PresentationModal";
 import CategoryProductModal from "./CategoryProductModal";
+import QuickAddCalculator from "./QuickAddCalculator";
 import type { ProductPresentation } from "../../types";
 
 interface SalesPageProps {
@@ -46,6 +47,8 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [productCounter, setProductCounter] = useState(1);
 
   // Nuevo Agrega estos estados y funciones dentro de tu componente
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -368,6 +371,21 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
    } 
   };
 
+  // Función para agregar producto desde la calculadora
+  const handleCalculatorAdd = (product: Product, quantity: number, productName: string) => {
+    // Agregar al carrito
+    setCart((prev) => {
+      return [...prev, {
+        ...product,
+        name: productName,
+        quantity,
+      }];
+    });
+
+    // Incrementar contador para siguiente producto
+    setProductCounter((prev) => prev + 1);
+  };
+
   const handleRemove = (id: number, name: string, presentationId?: number) => {
     setCart((prev) => prev.filter((item) => {
       // Si se especifica presentationId, comparar también por presentación
@@ -460,8 +478,9 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       // 2️⃣ Descontar inventario después de crear la venta exitosamente
       await updateInventoryFromSale(cart, branch);
       
-      // 3️⃣ Limpiar carrito y mostrar éxito
+      // 3️⃣ Limpiar carrito, reiniciar contador y mostrar éxito
       setCart([]);
+      setProductCounter(1); // Reiniciar contador de productos no registrados
       
       Swal.fire({
         icon: "success",
@@ -640,56 +659,72 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         <div className="venta-main">
           {/* 🔹 Lado izquierdo: productos */}
           <div className="venta-left">
-            <div className="venta-search">
-              <input
-                ref={inputRef}
-                type="text"
-                placeholder="Buscar producto..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
-              />
-              <button
-                className="btn-common-product"
-                onClick={handleAddCommonProduct}
-                title="Agregar producto no registrado (F3)"
-              >
-                <span className="btn-icon">➕</span>
-                <span className="btn-text">Producto Común</span>
-              </button>
-              <button
-                className="btn-categories"
-                onClick={() => setShowCategoryModal(true)}
-                title="Buscar productos por categoría"
-              >
-                <span className="btn-icon">📂</span>
-                <span className="btn-text">Categorías</span>
-              </button>
-            </div>
-
-            <div className="sales-cards">
-              {products.length > 0 ? (
-                products.map((p , index) => (
-                  <div
-                    key={p.id}
-                    className={`product-card-sales ${activeIndex === index ? "active-card" : ""}`}
-                    onClick={() => handleAdd(p)}
-                    onMouseEnter={() => setActiveIndex(index)}
+            {!showCalculator ? (
+              <>
+                <div className="venta-search">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    placeholder="Buscar producto..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    onKeyDown={handleSearchKeyDown}
+                  />
+                  <button
+                    className="btn-common-product"
+                    onClick={handleAddCommonProduct}
+                    title="Agregar producto no registrado (F3)"
                   >
-                    <div>{p.icon}</div>
-                    <h4>{p.name}</h4>
-                    <p>
-                      {p.price.toLocaleString("es-MX", {
-                        style: "currency",
-                        currency: "MXN",
-                      })}
-                    </p>
+                    <span className="btn-icon">➕</span>
+                    <span className="btn-text">Producto Común</span>
+                  </button>
+                  <button
+                    className="btn-categories"
+                    onClick={() => setShowCategoryModal(true)}
+                    title="Buscar productos por categoría"
+                  >
+                    <span className="btn-icon">📂</span>
+                    <span className="btn-text">Categorías</span>
+                  </button>
+                  <button
+                    className="btn-calculator"
+                    onClick={() => setShowCalculator(true)}
+                    title="Calculadora rápida para agregar productos"
+                  >
+                    <span className="btn-icon">🧮</span>
+                    <span className="btn-text">Calculadora</span>
+                  </button>
+                </div>
+                {products.length > 0 && (
+                  <div className="sales-cards">
+                    {products.map((p, index) => (
+                      <div
+                        key={p.id}
+                        className={`product-card-sales ${activeIndex === index ? "active-card" : ""}`}
+                        onClick={() => handleAdd(p)}
+                        onMouseEnter={() => setActiveIndex(index)}
+                      >
+                        <div>{p.icon}</div>
+                        <h4>{p.name}</h4>
+                        <p>
+                          {p.price.toLocaleString("es-MX", {
+                            style: "currency",
+                            currency: "MXN",
+                          })}
+                        </p>
+                      </div>
+                    ))}
                   </div>
-                ))
-              ) : (
-                <p className="no-result">No se encontraron productos</p>
-              )}
-            </div>
+                )}
+              </>
+            ) : (
+              <QuickAddCalculator
+                onClose={() => setShowCalculator(false)}
+                onAddToCart={handleCalculatorAdd}
+                productCounter={productCounter}
+              />
+            )}
+
           </div>
 
           {/* 🔹 Lado derecho: cart */}
