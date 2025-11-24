@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getCategories } from "../../api/categories";
+import { getCategoriesShowInPOS } from "../../api/categories";
 import { getProductsByCategoryId } from "../../api/products";
 import type { Category, Product } from "../../types";
 import "../../styles/pages/sales/categoryProductModal.css";
@@ -32,7 +32,7 @@ const CategoryProductModal: React.FC<CategoryProductModalProps> = ({
     try {
       setLoading(true);
       setError(null);
-      const data = await getCategories();
+      const data = await getCategoriesShowInPOS();
       setCategories(data);
     } catch (err) {
       console.error("Error cargando categorías:", err);

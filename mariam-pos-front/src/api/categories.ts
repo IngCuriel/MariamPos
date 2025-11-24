@@ -7,6 +7,12 @@ export const getCategories = async (): Promise<Category[]> => {
   return data;
 };
 
+export const getCategoriesShowInPOS = async (): Promise<Category[]> => {
+  const client = await getAxiosClient();
+  const { data } = await client.get<Category[]>("/categories/showInPOS");
+  return data;
+};
+
 export const createCategory = async (category: Omit<Category, "id">): Promise<Category> => {
   const client = await getAxiosClient();
   const { data } = await client.post<Category>("/categories", category);

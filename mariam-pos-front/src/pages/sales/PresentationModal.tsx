@@ -74,7 +74,7 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
           step="1" 
           class="swal2-input" 
           placeholder="Ejemplo: 2"
-          style="width: 100%;"
+          style="width: 70%;"
         >
       </div>
     `,

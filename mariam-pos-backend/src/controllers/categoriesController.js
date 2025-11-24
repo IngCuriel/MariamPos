@@ -7,6 +7,11 @@ export const getCategories = async (req, res) => {
   res.json(categories);
 };
 
+export const getCategoriesShowInPOS = async (req, res) => {
+  const categories = await prisma.category.findMany({ where: { showInPOS: true }, orderBy: { createdAt: "desc" } });
+  res.json(categories);
+};
+
 export const createCategory = async (req, res) => {
   const { name, description } = req.body;
   if (!name) return res.status(400).json({ error: "El nombre es obligatorio" });
