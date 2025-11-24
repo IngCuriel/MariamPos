@@ -44,6 +44,38 @@
   padding: 10px;
   border-radius: 10px;
   border: 1px solid #ccc;
+  font-size: 1.1rem;
+  caret-color: #667eea;
+}
+
+/* Cursor más grande y visible */
+.venta-search input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  caret-color: #667eea;
+}
+
+/* Asegurar que el cursor sea visible */
+.venta-search input::selection {
+  background-color: #667eea;
+  color: white;
+}
+
+/* Para navegadores que soportan caret-width (hace el cursor más grueso) */
+@supports (caret-width: 4px) {
+  .venta-search input {
+    caret-width: 4px;
+  }
+  
+  .venta-search input:focus {
+    caret-width: 5px;
+  }
+}
+
+/* Fallback para navegadores que no soportan caret-width */
+.venta-search input:focus {
+  border-width: 2px;
 }
 
 /* Botón de Producto Común */

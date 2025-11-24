@@ -6,15 +6,16 @@ interface FooterProps  {
  cartLength:number;
  onSaleToPending: () => void;
  showPendingCarts:() => void;
+ onFocusSearch?: () => void;
 }
 
-const Footer:React.FC<FooterProps>= ({cartLength, onSaleToPending, showPendingCarts}) =>{
+const Footer:React.FC<FooterProps>= ({cartLength, onSaleToPending, showPendingCarts, onFocusSearch}) =>{
   return (
     <footer className="pos-footer">
         <div className="column left">
             <button className="btn touch-btn print-last" onClick={showPendingCarts}> 🖨 Cargar Pendiente</button>
             <button className="btn touch-btn pending" onClick={onSaleToPending}>🕓 Poner Pendiente</button>
-            <DaySalesModal/>
+            <DaySalesModal onClose={onFocusSearch}/>
         </div>
         <div className="column right">
             {cartLength} Productos en la venta actual

@@ -13,7 +13,11 @@ import Ticket from "./Ticket";
 
 registerLocale("es", es); // ✅ registra el idioma español
 
-export default function DaySalesModal() {
+interface DaySalesModalProps {
+  onClose?: () => void;
+}
+
+export default function DaySalesModal({ onClose }: DaySalesModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [sales, setSales] = useState<Sale[]>([])
@@ -75,6 +79,12 @@ export default function DaySalesModal() {
   const closeModal = () => {
     setSelectedSale(null);
     setIsOpen(false);
+    // Ejecutar callback si existe
+    if (onClose) {
+      setTimeout(() => {
+        onClose();
+      }, 100);
+    }
   };
 
   const handlePrint = async() => {

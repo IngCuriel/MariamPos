@@ -120,7 +120,9 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       console.log('Venta cancelada');
     }
     setSearch("");
-    inputRef.current?.focus();
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
   }, []);
 
   useEffect(() => {
@@ -299,7 +301,9 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         } else {
             console.log('Venta cancelada');
             setSearch("");
-            inputRef.current?.focus();
+            setTimeout(() => {
+              inputRef.current?.focus();
+            }, 100);
         }
     }
     if (addCart) {
@@ -719,7 +723,12 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
               </>
             ) : (
               <QuickAddCalculator
-                onClose={() => setShowCalculator(false)}
+                onClose={() => {
+                  setShowCalculator(false);
+                  setTimeout(() => {
+                    inputRef.current?.focus();
+                  }, 100);
+                }}
                 onAddToCart={handleCalculatorAdd}
                 productCounter={productCounter}
               />
@@ -840,6 +849,11 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         cartLength = {cart.length}
         onSaleToPending={saleToPending}
         showPendingCarts={showPendingCarts}
+        onFocusSearch={() => {
+          setTimeout(() => {
+            inputRef.current?.focus();
+          }, 100);
+        }}
       />
       <div>
         {showModal && (
@@ -851,7 +865,12 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         )}
         {showCategoryModal && (
           <CategoryProductModal
-            onClose={() => setShowCategoryModal(false)}
+            onClose={() => {
+              setShowCategoryModal(false);
+              setTimeout(() => {
+                inputRef.current?.focus();
+              }, 100);
+            }}
             onSelectProduct={handleAdd}
           />
         )}
