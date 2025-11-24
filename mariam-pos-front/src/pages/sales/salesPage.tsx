@@ -17,6 +17,7 @@ import Footer from "./Footer";
 import Swal from "sweetalert2";
 import { ProductComunModal } from "./ProductComunModal";
 import { PresentationModal } from "./PresentationModal";
+import CategoryProductModal from "./CategoryProductModal";
 import type { ProductPresentation } from "../../types";
 
 interface SalesPageProps {
@@ -44,6 +45,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
   });
   const [products, setProducts] = useState<Product[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
 
   // Nuevo Agrega estos estados y funciones dentro de tu componente
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -655,6 +657,14 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                 <span className="btn-icon">➕</span>
                 <span className="btn-text">Producto Común</span>
               </button>
+              <button
+                className="btn-categories"
+                onClick={() => setShowCategoryModal(true)}
+                title="Buscar productos por categoría"
+              >
+                <span className="btn-icon">📂</span>
+                <span className="btn-text">Categorías</span>
+              </button>
             </div>
 
             <div className="sales-cards">
@@ -802,6 +812,12 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
             total={total}
             onClose={() => setShowModal(false)}
             onConfirm={confirmPayment}
+          />
+        )}
+        {showCategoryModal && (
+          <CategoryProductModal
+            onClose={() => setShowCategoryModal(false)}
+            onSelectProduct={handleAdd}
           />
         )}
       </div>

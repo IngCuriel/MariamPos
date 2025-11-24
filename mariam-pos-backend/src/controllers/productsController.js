@@ -248,6 +248,8 @@ export const getProductsByCategoryId = async (req, res) => {
     where: { categoryId:categoryId },
     include: {
       category: true,
+      presentations: true,
+      inventory: true
     },
     take: 50, 
     orderBy: { name: 'asc' },

@@ -86,13 +86,54 @@
   font-size: 0.95rem;
 }
 
-/* Responsive para el botón */
+/* Botón de Categorías */
+.btn-categories {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+  min-width: 180px;
+  white-space: nowrap;
+}
+
+.btn-categories:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+}
+
+.btn-categories:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+}
+
+.btn-categories .btn-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.btn-categories .btn-text {
+  font-size: 0.95rem;
+}
+
+/* Responsive para los botones */
 @media (max-width: 768px) {
   .venta-search {
     flex-direction: column;
   }
   
-  .btn-common-product {
+  .btn-common-product,
+  .btn-categories {
     width: 100%;
     min-width: auto;
   }
