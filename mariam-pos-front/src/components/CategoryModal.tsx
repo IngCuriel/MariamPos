@@ -20,7 +20,8 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     name: '',
-    description: '' 
+    description: '',
+    showInPOS: true
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -29,12 +30,14 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
     if (category) {
       setFormData({
         name: category.name,
-        description: category.description || '' 
+        description: category.description || '',
+        showInPOS: category.showInPOS !== undefined ? category.showInPOS : true
       });
     } else {
       setFormData({
         name: '',
-        description: ''
+        description: '',
+        showInPOS: true
       });
     }
     setErrors({});
@@ -56,6 +59,14 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
     }
   };
 
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: checked
+    }));
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -73,7 +84,8 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
     if (validateForm()) {
       const categoryData: Omit<Category, 'id' | 'createdAt'> = {
         name: formData.name.trim(),
-        description: formData.description.trim() || undefined
+        description: formData.description.trim() || undefined,
+        showInPOS: formData.showInPOS
       };
       
       onSave(categoryData);
@@ -84,8 +96,8 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-container">
+    <div className="modal-overlay category-modal-overlay">
+      <div className="modal-container category-modal-container">
         <Card className="modal-card">
           <div className="modal-header">
             <h2>{title}</h2>
@@ -118,6 +130,21 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
                 rows={3}
               />
             </div>
+
+            <div className="form-group">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  name="showInPOS"
+                  checked={formData.showInPOS}
+                  onChange={handleCheckboxChange}
+                  className="checkbox-input"
+                />
+                <span className="checkbox-text">Mostrar en POS</span>
+              </label>
+              <p className="checkbox-hint">Si está activado, esta categoría aparecerá en el punto de venta</p>
+            </div>
+
             <div className="form-actions">
               <Button
                 type="button"
