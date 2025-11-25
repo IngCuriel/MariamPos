@@ -46,6 +46,21 @@ export const createSales = async (req, res) => {
         .json({ error: "Debe incluir al menos un detalle de venta" });
     }
 
+    // Buscar turno activo para esta caja (si existe)
+    let shiftId = null;
+    if (branch && cashRegister) {
+      const activeShift = await prisma.cashRegisterShift.findFirst({
+        where: {
+          branch,
+          cashRegister,
+          status: "OPEN",
+        },
+      });
+      if (activeShift) {
+        shiftId = activeShift.id;
+      }
+    }
+
     const sale = await prisma.sale.create({
       data: {
         folio,
@@ -55,6 +70,7 @@ export const createSales = async (req, res) => {
         cashRegister,
         paymentMethod,
         clientName,
+        shiftId, // Asociar venta al turno activo si existe
         details: {
           create: details.map((d) => ({
             productId: d.productId,

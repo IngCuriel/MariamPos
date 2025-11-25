@@ -91,11 +91,16 @@ model Sale {
   // Nuevo campo de sincronización
   syncStatus    String        @default("pendiente") // pendiente, enviado
 
+  // Relación con turno de caja
+  shiftId       Int?
+  shift         CashRegisterShift? @relation(fields: [shiftId], references: [id])
+
   // Relación con los detalles
   details       SaleDetail[]
 
   @@index([folio])
   @@index([syncStatus])
+  @@index([shiftId])
 }
 
 model SaleDetail {
@@ -178,4 +183,60 @@ enum InventoryMovementType {
   SALIDA
   AJUSTE
   TRANSFERENCIA
+}
+
+// ============================================================
+// 💰 MÓDULO DE CORTE DE CAJA
+// ============================================================
+
+// ------------------------------------------------------------
+// Turnos/Cortes de Caja
+// ------------------------------------------------------------
+model CashRegisterShift {
+  id              Int       @id @default(autoincrement())
+  shiftNumber     String    @unique // Folio único del turno
+  branch          String    // Sucursal
+  cashRegister    String    // Caja (ej: "Caja 1")
+  cashierName     String?   // Nombre del cajero (por ahora string, luego puede ser FK a User)
+  
+  // Fechas del turno
+  startTime       DateTime  @default(now())
+  endTime         DateTime?
+  
+  // Fondos
+  initialCash     Float     @default(0) // Fondo inicial
+  finalCash       Float?    // Efectivo contado al cerrar
+  expectedCash    Float?    // Efectivo esperado (calculado)
+  difference      Float?    // Diferencia (finalCash - expectedCash)
+  
+  // Totales por método de pago (calculados automáticamente)
+  totalCash       Float     @default(0) // Total en efectivo
+  totalCard       Float     @default(0) // Total en tarjeta
+  totalTransfer   Float     @default(0) // Total en transferencia
+  totalOther      Float     @default(0) // Otros métodos
+  
+  // Estado
+  status          ShiftStatus @default(OPEN) // OPEN, CLOSED, CANCELLED
+  
+  // Observaciones
+  notes           String?
+  
+  // Relación con ventas
+  sales           Sale[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([branch, cashRegister])
+  @@index([status])
+  @@index([startTime])
+}
+
+// ------------------------------------------------------------
+// Enum para estados de turno
+// ------------------------------------------------------------
+enum ShiftStatus {
+  OPEN      // Turno abierto
+  CLOSED    // Turno cerrado
+  CANCELLED // Turno cancelado
 }

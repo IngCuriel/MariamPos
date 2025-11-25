@@ -131,3 +131,95 @@ export interface UpdateStockInput {
   notes?: string;
 }
 
+// ============================================================
+// 💰 MÓDULO DE CORTE DE CAJA
+// ============================================================
+
+// Estados de un turno de caja
+export type ShiftStatus = 'OPEN' | 'CLOSED' | 'CANCELLED';
+
+// Representa un turno/corte de caja
+export interface CashRegisterShift {
+  id: number;
+  shiftNumber: string; // Folio único del turno
+  branch: string; // Sucursal
+  cashRegister: string; // Caja (ej: "Caja 1")
+  cashierName?: string; // Nombre del cajero
+  
+  // Fechas del turno
+  startTime: Date;
+  endTime?: Date;
+  
+  // Fondos
+  initialCash: number; // Fondo inicial
+  finalCash?: number; // Efectivo contado al cerrar
+  expectedCash?: number; // Efectivo esperado (calculado)
+  difference?: number; // Diferencia (finalCash - expectedCash)
+  
+  // Totales por método de pago
+  totalCash: number; // Total en efectivo
+  totalCard: number; // Total en tarjeta
+  totalTransfer: number; // Total en transferencia
+  totalOther: number; // Otros métodos
+  
+  // Estado
+  status: ShiftStatus;
+  
+  // Observaciones
+  notes?: string;
+  
+  // Relación con ventas
+  sales?: Sale[];
+  
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// DTO para abrir un turno
+export interface OpenShiftInput {
+  branch: string;
+  cashRegister: string;
+  cashierName?: string;
+  initialCash: number;
+}
+
+// DTO para cerrar un turno
+export interface CloseShiftInput {
+  finalCash: number;
+  notes?: string;
+}
+
+// Resumen de un turno
+export interface ShiftSummary {
+  shift: {
+    id: number;
+    shiftNumber: string;
+    branch: string;
+    cashRegister: string;
+    cashierName?: string;
+    startTime: Date;
+    endTime?: Date;
+    status: ShiftStatus;
+    initialCash: number;
+    finalCash?: number;
+    expectedCash?: number;
+    difference?: number;
+    notes?: string;
+  };
+  totals: {
+    totalCash: number;
+    totalCard: number;
+    totalTransfer: number;
+    totalOther: number;
+  };
+  statistics: {
+    totalSales: number;
+    totalAmount: number;
+    averageTicket: number;
+  };
+  paymentMethods: Record<string, {
+    count: number;
+    total: number;
+  }>;
+}
+

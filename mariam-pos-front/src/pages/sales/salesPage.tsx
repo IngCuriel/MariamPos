@@ -12,6 +12,8 @@ import type {
 import { getProductsFilters } from "../../api/products";
 import { createSale } from "../../api/sales";
 import { createInventoryMovement, getProductInventory } from "../../api/inventory";
+import { getActiveShift } from "../../api/cashRegister";
+import type { CashRegisterShift } from "../../types";
 import Footer from "./Footer";
 
 import Swal from "sweetalert2";
@@ -19,6 +21,7 @@ import { ProductComunModal } from "./ProductComunModal";
 import { PresentationModal } from "./PresentationModal";
 import CategoryProductModal from "./CategoryProductModal";
 import QuickAddCalculator from "./QuickAddCalculator";
+import ShiftModal from "./ShiftModal";
 import type { ProductPresentation } from "../../types";
 
 interface SalesPageProps {
@@ -48,6 +51,8 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
   const [showModal, setShowModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
+  const [showShiftModal, setShowShiftModal] = useState(false);
+  const [activeShift, setActiveShift] = useState<CashRegisterShift | null>(null);
   const [productCounter, setProductCounter] = useState(1);
 
   // Nuevo Agrega estos estados y funciones dentro de tu componente
@@ -166,22 +171,56 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
     }
   }, [focusSearchInput]);
 
+  // Verificar turno activo al cargar y cuando cambian branch/cashRegister
+  useEffect(() => {
+    checkActiveShift();
+  }, [branch, cashRegister]);
+
+  const checkActiveShift = async () => {
+    try {
+      const shift = await getActiveShift(branch, cashRegister);
+      setActiveShift(shift);
+    } catch (error) {
+      console.error("Error al verificar turno activo:", error);
+      setActiveShift(null);
+    }
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "F2") {
         e.preventDefault();
         console.log('cart', cart)
         if (cart.length >= 1) {
+          // Validar que haya turno activo antes de permitir venta
+          if (!activeShift) {
+            Swal.fire({
+              icon: "warning",
+              title: "Turno no activo",
+              text: "Debe abrir un turno de caja antes de realizar ventas",
+              confirmButtonText: "Abrir Turno",
+              showCancelButton: true,
+              cancelButtonText: "Cancelar",
+            }).then((result) => {
+              if (result.isConfirmed) {
+                setShowShiftModal(true);
+              }
+            });
+            return;
+          }
           setShowModal(true); 
         }
       } else if (e.key === "F3") {
         e.preventDefault();
         handleAddCommonProduct();
+      } else if (e.key === "F4") {
+        e.preventDefault();
+        setShowShiftModal(true);
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [cart, handleAddCommonProduct]);
+  }, [cart, handleAddCommonProduct, activeShift]);
 
   // Cada vez que cambie el carrito, lo guardamos
   useEffect(() => {
@@ -456,6 +495,23 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
   }, 0);
 
   const confirmPayment = async (data: ConfirmPaymentData) => {
+    // Validar que haya turno activo
+    if (!activeShift) {
+      Swal.fire({
+        icon: "warning",
+        title: "Turno no activo",
+        text: "Debe abrir un turno de caja antes de realizar ventas",
+        confirmButtonText: "Abrir Turno",
+        showCancelButton: true,
+        cancelButtonText: "Cancelar",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          setShowShiftModal(true);
+        }
+      });
+      return;
+    }
+
     setShowModal(false);
     
     // Mostrar loading mientras se procesa
@@ -523,9 +579,12 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       // 2️⃣ Descontar inventario después de crear la venta exitosamente
       await updateInventoryFromSale(cart, branch);
       
-      // 3️⃣ Limpiar carrito, reiniciar contador y mostrar éxito
+      // 3️⃣ Limpiar carrito, reiniciar contador y actualizar turno activo
       setCart([]);
       setProductCounter(1); // Reiniciar contador de productos no registrados
+      
+      // Actualizar información del turno activo
+      await checkActiveShift();
       
       Swal.fire({
         icon: "success",
@@ -700,6 +759,51 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
           backText="← Volver al POS"
           className=""
         />
+        
+        {/* Indicador de Turno de Caja */}
+        <div style={{
+          padding: "10px 20px",
+          backgroundColor: activeShift ? "#d1fae5" : "#fee2e2",
+          borderBottom: `3px solid ${activeShift ? "#059669" : "#dc2626"}`,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span style={{ fontSize: "1.2rem" }}>
+              {activeShift ? "🟢" : "🔴"}
+            </span>
+            <span style={{ fontWeight: "600", fontSize: "0.95rem" }}>
+              {activeShift 
+                ? `Turno Activo: ${activeShift.shiftNumber}`
+                : "No hay turno activo"
+              }
+            </span>
+            {activeShift && (
+              <span style={{ fontSize: "0.85rem", color: "#6b7280" }}>
+                | Fondo: ${activeShift.initialCash.toFixed(2)} | 
+                Efectivo: ${activeShift.totalCash.toFixed(2)} | 
+                Tarjeta: ${activeShift.totalCard.toFixed(2)}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={() => setShowShiftModal(true)}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: activeShift ? "#dc2626" : "#059669",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontWeight: "600",
+              fontSize: "0.9rem",
+            }}
+            title={activeShift ? "Cerrar Turno (F4)" : "Abrir Turno (F4)"}
+          >
+            {activeShift ? "🔴 Cerrar Turno" : "🟢 Abrir Turno"}
+          </button>
+        </div>
 
         <div className="venta-main">
           {/* 🔹 Lado izquierdo: productos */}
@@ -906,6 +1010,8 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
             inputRef.current?.focus();
           }, 100);
         }}
+        branch={branch}
+        cashRegister={cashRegister}
       />
       <div>
         {showModal && (
@@ -930,6 +1036,25 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
               }, 100);*/
             }}
             onSelectProduct={handleAdd}
+          />
+        )}
+        {showShiftModal && (
+          <ShiftModal
+            branch={branch}
+            cashRegister={cashRegister}
+            cashierName={client}
+            onClose={() => {
+              setShowShiftModal(false);
+              checkActiveShift();
+            }}
+            onShiftOpened={(shift) => {
+              setActiveShift(shift);
+              setShowShiftModal(false);
+            }}
+            onShiftClosed={() => {
+              setActiveShift(null);
+              setShowShiftModal(false);
+            }}
           />
         )}
       </div>
