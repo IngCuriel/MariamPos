@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { FaMoneyBillWave, FaCreditCard } from "react-icons/fa";
 import { IoCloseCircleOutline } from "react-icons/io5";
-import Swal from "sweetalert2"; // 👈 para los mensajes visuales
+import Swal from "sweetalert2";
 import type { ConfirmPaymentData } from "../../types/index";
 
 interface PaymentModalProps {
@@ -12,13 +12,12 @@ interface PaymentModalProps {
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }) => {
   const [paymentType, setPaymentType] = useState("efectivo");
-  const [amountReceived, setAmountReceived] = useState<string>(""); // vacío por defecto
+  const [amountReceived, setAmountReceived] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const totalNumber = total;
   const received = parseFloat(amountReceived || "0");
-  const change =
-    paymentType === "efectivo" ? Math.max(received - totalNumber, 0) : 0;
+  const change = paymentType === "efectivo" ? Math.max(received - totalNumber, 0) : 0;
 
   useEffect(() => {
     if (paymentType === "efectivo" && inputRef.current) {
@@ -29,29 +28,51 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }
   const handleConfirm = useCallback(() => {
     let finalAmount = received;
 
-    // ✅ Caso 1: No se ingresó nada → se asume pago exacto
     if (paymentType === "efectivo" && amountReceived.trim() === "") {
       finalAmount = totalNumber;
     }
 
-    // ✅ Caso 2: Si el monto es menor → mostrar mensaje elegante
+    // Caso de monto insuficiente
     if (paymentType === "efectivo" && finalAmount < totalNumber) {
+
       Swal.fire({
         title: "💵 Monto insuficiente",
         text: `El monto recibido ($${finalAmount.toFixed(2)}) es menor al total ($${totalNumber.toFixed(2)}).`,
         icon: "warning",
         confirmButtonText: "Entendido",
         confirmButtonColor: "#3085d6",
+        allowOutsideClick: false,
+        allowEnterKey: true,
+        allowEscapeKey: true,
+      
+        // 🔥 ESTA ES LA CLAVE 🔥
+        didClose: () => {
+          Swal.stopTimer && Swal.stopTimer();
+        },
+        returnFocus: false,  // ⛔ evita reenfocar el botón usado
+        focusConfirm: false, // ⛔ evita que enfoque el botón al abrirse
+        didOpen: (popup) => popup.blur(),  // evita autofocus inicial
+        willClose: () => {
+          // ⚠️ evita autofocus al cerrar
+          setTimeout(() => {
+            if (inputRef.current) {
+              inputRef.current.focus();
+              inputRef.current.select();
+            }
+          }, 10);
+        }
       });
+      
       return;
     }
 
-    // ✅ Caso 3: Cobro correcto
+    // Caso exitoso
     Swal.fire({
       title: "✅ Cobro exitoso",
-      text: paymentType === "efectivo"
-        ? `Se ha cobrado $${finalAmount.toFixed(2)} (Cambio: $${change.toFixed(2)})`
-        : "Pago con tarjeta registrado correctamente.",
+      text:
+        paymentType === "efectivo"
+          ? `Se ha cobrado $${finalAmount.toFixed(2)} (Cambio: $${change.toFixed(2)})`
+          : "Pago con tarjeta registrado correctamente.",
       icon: "success",
       timer: 5000,
       showConfirmButton: false,
@@ -74,7 +95,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }
         onClose();
       } else if (e.code === "Space") {
         e.preventDefault();
-        // Alternar entre efectivo y tarjeta
         setPaymentType((prev) => (prev === "efectivo" ? "tarjeta" : "efectivo"));
       }
     };
