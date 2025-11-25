@@ -153,7 +153,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }
             />
              {amountReceived.length > 0 && (
                   <button
-                    className="clear-btn"
+                    className="clear-btn-payment"
                     onClick={() => {
                       setAmountReceived("");
                       inputRef.current?.focus();
