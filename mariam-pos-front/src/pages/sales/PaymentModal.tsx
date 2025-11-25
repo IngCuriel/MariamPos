@@ -3,12 +3,14 @@ import { FaMoneyBillWave, FaCreditCard } from "react-icons/fa";
 import { IoCloseCircleOutline } from "react-icons/io5";
 import Swal from "sweetalert2";
 import type { ConfirmPaymentData } from "../../types/index";
-
+import "../../styles/pages/sales/paymentModal.css";
 interface PaymentModalProps {
   total: number;
   onClose: () => void;
   onConfirm: (confirmData: ConfirmPaymentData) => void;
 }
+
+const bills = [.5, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]; // ← Aquí defines tus billetes
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }) => {
   const [paymentType, setPaymentType] = useState("efectivo");
@@ -32,41 +34,27 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }
       finalAmount = totalNumber;
     }
 
-    // Caso de monto insuficiente
     if (paymentType === "efectivo" && finalAmount < totalNumber) {
-
       Swal.fire({
         title: "💵 Monto insuficiente",
         text: `El monto recibido ($${finalAmount.toFixed(2)}) es menor al total ($${totalNumber.toFixed(2)}).`,
         icon: "warning",
         confirmButtonText: "Entendido",
         confirmButtonColor: "#3085d6",
-        allowOutsideClick: false,
-        allowEnterKey: true,
-        allowEscapeKey: true,
-      
-        // 🔥 ESTA ES LA CLAVE 🔥
-        didClose: () => {
-          Swal.stopTimer && Swal.stopTimer();
-        },
-        returnFocus: false,  // ⛔ evita reenfocar el botón usado
-        focusConfirm: false, // ⛔ evita que enfoque el botón al abrirse
-        didOpen: (popup) => popup.blur(),  // evita autofocus inicial
-        willClose: () => {
-          // ⚠️ evita autofocus al cerrar
-          setTimeout(() => {
-            if (inputRef.current) {
-              inputRef.current.focus();
-              inputRef.current.select();
-            }
-          }, 10);
-        }
+        focusConfirm: false,
+        returnFocus: false,
+      }).then(() => {
+        setTimeout(() => {
+          if (inputRef.current) {
+            inputRef.current.focus();
+            inputRef.current.select();
+          }
+        }, 10);
       });
-      
+
       return;
     }
 
-    // Caso exitoso
     Swal.fire({
       title: "✅ Cobro exitoso",
       text:
@@ -137,6 +125,25 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }
         {paymentType === "efectivo" && (
           <div className="input-section">
             <label>Monto recibido:</label>
+
+            {/* 💵 Botones de billetes */}
+            <div className="bills-grid">
+              {bills.map((b) => (
+                <button
+                  key={b}
+                  className="bill-btn"
+                  onClick={() => {
+                    const newAmount = (parseFloat(amountReceived || "0") + b).toString();
+                    setAmountReceived(newAmount);
+                  }}
+                >
+                  ${b}
+                </button>
+              ))}
+            </div>
+
+            {/* Input opcional */}
+            <div className="input-wrapper">
             <input
               ref={inputRef}
               type="number"
@@ -144,6 +151,18 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }
               value={amountReceived}
               onChange={(e) => setAmountReceived(e.target.value)}
             />
+             {amountReceived.length > 0 && (
+                  <button
+                    className="clear-btn"
+                    onClick={() => {
+                      setAmountReceived("");
+                      inputRef.current?.focus();
+                    }}
+                  >
+                    ❌
+                  </button>
+                )}
+            </div>
             <p className="change-text">Cambio: ${change.toFixed(2)}</p>
           </div>
         )}

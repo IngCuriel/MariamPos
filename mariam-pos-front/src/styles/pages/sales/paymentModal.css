@@ -1,0 +1,51 @@
+.bills-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  
+  .bill-btn {
+    padding: 10px;
+    font-size: 18px;
+    background: #e4ffe4;
+    border: 2px solid #2ecc71;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  
+  .bill-btn:hover {
+    background: #2ecc71;
+    color: white;
+  }
+
+  .input-wrapper {
+    position: relative;
+    width: 100%;
+  }
+  
+  .amount-input {
+    width: 100%;
+    padding: 10px 35px 10px 10px; /* espacio para el botón */
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+  }
+  
+  .clear-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    opacity: 0.7;
+  }
+  
+  .clear-btn:hover {
+    opacity: 1;
+  }
+  

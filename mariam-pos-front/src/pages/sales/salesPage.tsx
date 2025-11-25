@@ -925,9 +925,9 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
           <CategoryProductModal
             onClose={() => {
               setShowCategoryModal(false);
-              setTimeout(() => {
+              /*setTimeout(() => {
                 inputRef.current?.focus();
-              }, 100);
+              }, 100);*/
             }}
             onSelectProduct={handleAdd}
           />

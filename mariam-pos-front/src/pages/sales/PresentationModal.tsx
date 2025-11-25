@@ -1,4 +1,4 @@
-import Swal from 'sweetalert2';
+import Swal from "sweetalert2";
 import type { Product, ProductPresentation } from '../../types/index';
 
 export const PresentationModal = async (product: Product): Promise<{ presentation: ProductPresentation; quantity: number } | null> => {
@@ -6,7 +6,6 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
     return null;
   }
 
-  // Si solo hay una presentación (la base), retornarla directamente
   if (product.presentations.length === 1) {
     return {
       presentation: product.presentations[0],
@@ -14,7 +13,6 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
     };
   }
 
-  // Crear HTML para mostrar las presentaciones como tarjetas
   const presentationsHTML = product.presentations
     .map((pres, index) => {
       const totalPrice = pres.quantity * pres.unitPrice;
@@ -55,7 +53,7 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
     .join('');
 
   const { value: selectedIndex } = await Swal.fire({
-    title: `📦 Selecciona la presentación`,
+    title: ``,
     html: `
       <div style="text-align: center; margin-bottom: 1rem;">
         <h3 style="margin: 0; color: #1f2937; font-size: 1.2rem;">${product.name}</h3>
@@ -85,106 +83,136 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
     cancelButtonText: 'Cancelar (ESC)',
     confirmButtonColor: '#10b981',
     cancelButtonColor: '#ef4444',
+
+    // importante para recibir teclas en container en fase capture
+    keydownListenerCapture: true,
+    allowOutsideClick: false,
+    allowEnterKey: true,
+    allowEscapeKey: true,
+
     didOpen: () => {
-      const quantityInput = document.getElementById('swal-quantity') as HTMLInputElement;
-      const confirmButton = Swal.getConfirmButton();
-      const cards = document.querySelectorAll('.presentation-card');
+      const quantityInput = document.getElementById('swal-quantity') as HTMLInputElement | null;
+      const cards = Array.from(document.querySelectorAll('.presentation-card')) as HTMLElement[];
       let selectedCardIndex = 0;
 
-      if (!quantityInput || !confirmButton || cards.length === 0) return;
+      if (!quantityInput || cards.length === 0) return;
 
-      // Función para actualizar la selección visual
+      // función visual
       const updateSelection = (index: number) => {
         cards.forEach((c, i) => {
-          const cardEl = c as HTMLElement;
           const isDefault = product.presentations![i].isDefault || product.presentations![i].quantity === 1;
-          
           if (i === index) {
-            cardEl.style.border = '2px solid #10b981';
-            cardEl.style.background = '#ecfdf5';
-            cardEl.setAttribute('data-selected', 'true');
+            c.style.border = '2px solid #10b981';
+            c.style.background = '#ecfdf5';
+            c.setAttribute('data-selected', 'true');
           } else {
-            cardEl.style.border = '2px solid #e5e7eb';
-            cardEl.style.background = isDefault ? '#f0f9ff' : '#fff';
-            cardEl.removeAttribute('data-selected');
+            c.style.border = '2px solid #e5e7eb';
+            c.style.background = isDefault ? '#f0f9ff' : '#fff';
+            c.removeAttribute('data-selected');
           }
         });
         selectedCardIndex = index;
       };
 
-      // Seleccionar la primera tarjeta por defecto
+      // seleccionar 1a
       updateSelection(0);
 
-      // Agregar eventos de clic a las tarjetas
+      // click en tarjetas
       cards.forEach((card, index) => {
         card.addEventListener('click', () => {
           updateSelection(index);
+          quantityInput.focus();
+          quantityInput.select();
         });
 
-        // Hover effect
         card.addEventListener('mouseenter', () => {
           if (selectedCardIndex !== index) {
-            (card as HTMLElement).style.border = '2px solid #3b82f6';
-            (card as HTMLElement).style.background = '#f0f9ff';
+            card.style.border = '2px solid #3b82f6';
+            card.style.background = '#f0f9ff';
           }
         });
 
         card.addEventListener('mouseleave', () => {
           if (selectedCardIndex !== index) {
             const isDefault = product.presentations![index].isDefault || product.presentations![index].quantity === 1;
-            (card as HTMLElement).style.border = '2px solid #e5e7eb';
-            (card as HTMLElement).style.background = isDefault ? '#f0f9ff' : '#fff';
+            card.style.border = '2px solid #e5e7eb';
+            card.style.background = isDefault ? '#f0f9ff' : '#fff';
           }
         });
       });
 
-      // Navegación con teclado
+      // --- handler de teclado completo ---
       const handleKeyDown = (e: KeyboardEvent) => {
+        // console para debug
+        // Si no ves este console.log, prueba abrir devtools antes de abrir modal.
+        console.log('PresentationModal keydown ->', e.key);
+
         if (e.key === 'ArrowDown') {
           e.preventDefault();
           const newIndex = Math.min(selectedCardIndex + 1, cards.length - 1);
           updateSelection(newIndex);
-          (cards[newIndex] as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        } else if (e.key === 'ArrowUp') {
+          cards[newIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          return;
+        }
+
+        if (e.key === 'ArrowUp') {
           e.preventDefault();
           const newIndex = Math.max(selectedCardIndex - 1, 0);
           updateSelection(newIndex);
-          (cards[newIndex] as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        } else if (e.key === 'Enter' && document.activeElement === quantityInput) {
+          cards[newIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          return;
+        }
+
+        if (e.key === 'Enter') {
+          // Stop propagation so SweetAlert2 doesn't handle it first
+          e.stopImmediatePropagation();
           e.preventDefault();
-          confirmButton.click();
+
+          // Si el foco está en el input o en el documento, confirmar
+          // uso Swal.clickConfirm() porque es más fiable que click() en algunos setups
+          Swal.clickConfirm();
         }
       };
 
-      document.addEventListener('keydown', handleKeyDown);
+      // agregar listener en container en capture (más fiable)
+      const container = Swal.getContainer();
+      container?.addEventListener('keydown', handleKeyDown, { capture: true });
 
-      // Enfocar el input de cantidad
-      quantityInput.focus();
-      quantityInput.select();
+      // enfocar y seleccionar el input (focus antes de select)
+      setTimeout(() => {
+        quantityInput.focus();
+        quantityInput.select();
+      }, 20);
 
-      // Limpiar listener al cerrar
-      Swal.getContainer()?.addEventListener('hidden', () => {
-        document.removeEventListener('keydown', handleKeyDown);
-      });
+      // limpiar al cerrar el modal
+      const removeHandler = () => {
+        container?.removeEventListener('keydown', handleKeyDown, { capture: true } as EventListenerOptions);
+      };
+
+      // SweetAlert2 dispara eventos propios; usamos 'swal-close' como hook para limpiar
+      const popup = Swal.getPopup();
+      popup?.addEventListener('swal-close', removeHandler);
+      // también limpiar si el container se oculta
+      Swal.getContainer()?.addEventListener('hidden', removeHandler);
     },
+
     preConfirm: () => {
-      const quantityInput = document.getElementById('swal-quantity') as HTMLInputElement;
-      // Buscar la tarjeta seleccionada usando el atributo data-selected
-      const selectedCard = document.querySelector('.presentation-card[data-selected="true"]') as HTMLElement;
-      
+      const quantityInput = document.getElementById('swal-quantity') as HTMLInputElement | null;
+      const selectedCard = document.querySelector('.presentation-card[data-selected="true"]') as HTMLElement | null;
+
       if (!selectedCard || !quantityInput) {
         Swal.showValidationMessage('Por favor selecciona una presentación');
         return false;
       }
 
-      const quantity = parseInt(quantityInput.value) || 1;
+      const quantity = parseInt(quantityInput.value, 10) || 1;
       if (quantity <= 0) {
         Swal.showValidationMessage('La cantidad debe ser mayor a 0');
         quantityInput.focus();
         return false;
       }
 
-      const cardIndex = parseInt(selectedCard.getAttribute('data-index') || '0');
+      const cardIndex = parseInt(selectedCard.getAttribute('data-index') || '0', 10);
       return {
         presentationIndex: cardIndex,
         quantity,
@@ -193,11 +221,10 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
   });
 
   if (selectedIndex && product.presentations) {
-    // SweetAlert2 puede retornar el valor directamente o como objeto
     const result = typeof selectedIndex === 'object' && 'presentationIndex' in selectedIndex
       ? selectedIndex
       : null;
-    
+
     if (result && result.presentationIndex !== undefined) {
       const selectedPresentation = product.presentations[result.presentationIndex];
       if (selectedPresentation) {
@@ -211,4 +238,3 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
 
   return null;
 };
-
