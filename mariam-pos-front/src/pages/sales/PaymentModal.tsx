@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { FaMoneyBillWave, FaCreditCard } from "react-icons/fa";
 import { IoCloseCircleOutline } from "react-icons/io5";
 import Swal from "sweetalert2"; // 👈 para los mensajes visuales
@@ -26,26 +26,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }
     }
   }, [paymentType]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        handleConfirm();
-      } else if (e.key === "Escape") {
-        e.preventDefault();
-        onClose();
-      } else if (e.code === "Space") {
-        e.preventDefault();
-        // Alternar entre efectivo y tarjeta
-        setPaymentType((prev) => (prev === "efectivo" ? "tarjeta" : "efectivo"));
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [paymentType, amountReceived]);
-
-  const handleConfirm = () => {
+  const handleConfirm = useCallback(() => {
     let finalAmount = received;
 
     // ✅ Caso 1: No se ingresó nada → se asume pago exacto
@@ -81,7 +62,26 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }
       amountReceived: finalAmount,
       change,
     });
-  };
+  }, [paymentType, amountReceived, totalNumber, received, change, onConfirm]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleConfirm();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      } else if (e.code === "Space") {
+        e.preventDefault();
+        // Alternar entre efectivo y tarjeta
+        setPaymentType((prev) => (prev === "efectivo" ? "tarjeta" : "efectivo"));
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleConfirm, onClose]);
 
   return (
     <div className="modal-overlay">
@@ -128,9 +128,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }
           </div>
         )}
 
-        <button className="confirm-btn" onClick={handleConfirm}>
-          Confirmar Cobro (Enter)
-        </button>
+        <div className="payment-modal-actions">
+          <button className="cancel-btn-payment" onClick={onClose}>
+            Cancelar (ESC)
+          </button>
+          <button className="confirm-btn" onClick={handleConfirm}>
+            Confirmar Cobro (Enter)
+          </button>
+        </div>
       </div>
     </div>
   );

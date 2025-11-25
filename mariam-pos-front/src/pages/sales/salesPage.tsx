@@ -80,6 +80,28 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       }
     };
  
+  // Función para enfocar el input de búsqueda
+  const focusSearchInput = useCallback(() => {
+    // Usar múltiples intentos para asegurar el focus
+    const attemptFocus = (attempts = 0) => {
+      if (attempts > 10) return; // Máximo 10 intentos
+      
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          // Verificar que realmente tiene el focus
+          if (document.activeElement === inputRef.current) {
+            return; // Éxito
+          }
+          // Si no tiene el focus, intentar de nuevo
+          attemptFocus(attempts + 1);
+        }
+      }, 50 * (attempts + 1));
+    };
+    
+    attemptFocus();
+  }, []);
+
   // Función para agregar producto común directamente
   const handleAddCommonProduct = useCallback(async () => {
     // Crear un producto temporal con código 000000
@@ -97,6 +119,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
 
     const result = await ProductComunModal(commonProduct);
     setProducts([]);
+    
     if (result) {
       const quantity = result.cantidad;
       console.log('Se vendió:', result.nombre, '--Cantidad-', result.cantidad, '-Precio-', result.precio, 'MXN');
@@ -115,15 +138,33 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         title: `${result.nombre} agregado`,
         timer: 2000,
         showConfirmButton: false,
+        didClose: () => {
+          // Esperar a que SweetAlert2 se cierre completamente
+          setTimeout(() => {
+            setSearch("");
+            // Asegurar que ningún botón tenga el focus
+            const activeElement = document.activeElement as HTMLElement;
+            if (activeElement && (activeElement.tagName === 'BUTTON' || activeElement.classList.contains('btn-common-product'))) {
+              activeElement.blur();
+            }
+            focusSearchInput();
+          }, 400);
+        }
       });
     } else {
       console.log('Venta cancelada');
+      // Esperar a que SweetAlert2 se cierre completamente
+      setTimeout(() => {
+        setSearch("");
+        // Asegurar que ningún botón tenga el focus
+        const activeElement = document.activeElement as HTMLElement;
+        if (activeElement && (activeElement.tagName === 'BUTTON' || activeElement.classList.contains('btn-common-product'))) {
+          activeElement.blur();
+        }
+        focusSearchInput();
+      }, 400);
     }
-    setSearch("");
-    setTimeout(() => {
-      inputRef.current?.focus();
-    }, 100);
-  }, []);
+  }, [focusSearchInput]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -676,7 +717,18 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                   />
                   <button
                     className="btn-common-product"
-                    onClick={handleAddCommonProduct}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      // Quitar focus del botón inmediatamente
+                      const button = e.currentTarget;
+                      button.blur();
+                      handleAddCommonProduct();
+                    }}
+                    onMouseDown={(e) => {
+                      // Prevenir que el botón reciba focus al hacer click
+                      e.preventDefault();
+                    }}
                     title="Agregar producto no registrado (F3)"
                   >
                     <span className="btn-icon">➕</span>
@@ -859,7 +911,13 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         {showModal && (
           <PaymentModal
             total={total}
-            onClose={() => setShowModal(false)}
+            onClose={() => {
+              setShowModal(false);
+              // Enfocar el input de búsqueda después de cerrar el modal
+              setTimeout(() => {
+                inputRef.current?.focus();
+              }, 200);
+            }}
             onConfirm={confirmPayment}
           />
         )}

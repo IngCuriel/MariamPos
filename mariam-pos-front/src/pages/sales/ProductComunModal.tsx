@@ -22,6 +22,8 @@ export const ProductComunModal = async (_product: Product) => {
     confirmButtonColor: '#3085d6',
     cancelButtonColor: '#d33',
     focusConfirm: false,
+    allowOutsideClick: false,
+    allowEscapeKey: true,
     didOpen: () => {
       const nameInput = document.getElementById('swal-name') as HTMLInputElement;
       const cantidadInput = document.getElementById('swal-cantidad') as HTMLInputElement;
@@ -87,12 +89,7 @@ export const ProductComunModal = async (_product: Product) => {
   });
 
   if (formValues) {
-    Swal.fire({
-      icon: 'success',
-      title: '📦 Producto agregado al carrito',
-      timer: 2000,
-      showConfirmButton: false,
-    });
+    // No mostrar otro SweetAlert aquí, se maneja en salesPage
     return formValues;
   }
 
