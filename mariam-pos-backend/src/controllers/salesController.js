@@ -300,3 +300,108 @@ export const getSalesByPaymentMethod = async (req, res) => {
     res.status(500).json({ error: 'Error al obtener ventas por método de pago' });
   }
 };
+
+// Ventas por categoría/departamento
+export const getSalesByCategory = async (req, res) => {
+  try {
+    const { range, start, end } = req.query;
+    let where = {};
+    const now = new Date();
+  
+    if (range === "day") {
+      const startDay = new Date();
+      startDay.setHours(0, 0, 0, 0);
+      const endDay = new Date();
+      endDay.setHours(23, 59, 59, 999);
+      where = { createdAt: { gte: startDay, lte: endDay } };
+    } else if (range === "week") {
+      const startWeek = new Date();
+      startWeek.setDate(now.getDate() - 7);
+      where = { createdAt: { gte: startWeek } };
+    } else if (range === "month") {
+      const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      where = { createdAt: { gte: startMonth } };
+    } else if (start && end) {
+      where = { createdAt: { gte: new Date(start), lte: new Date(end) } };
+    }
+
+    const sales = await prisma.sale.findMany({
+      where,
+      include: {
+        details: {
+          include: {
+            product: {
+              include: {
+                category: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Agrupar por categoría
+    const categoryMap = new Map();
+    sales.forEach(sale => {
+      sale.details.forEach(detail => {
+        const categoryName = detail.product?.category?.name || 'Sin categoría';
+        const current = categoryMap.get(categoryName) || { categoryName, total: 0, quantity: 0 };
+        current.total += detail.subTotal;
+        current.quantity += detail.quantity;
+        categoryMap.set(categoryName, current);
+      });
+    });
+
+    const result = Array.from(categoryMap.values()).sort((a, b) => b.total - a.total);
+    res.json(result);
+  } catch (error) {
+    console.error("Error al obtener ventas por categoría:", error);
+    res.status(500).json({ error: 'Error al obtener ventas por categoría' });
+  }
+};
+
+// Ventas por cliente
+export const getSalesByClient = async (req, res) => {
+  try {
+    const { range, start, end } = req.query;
+    let where = {};
+    const now = new Date();
+  
+    if (range === "day") {
+      const startDay = new Date();
+      startDay.setHours(0, 0, 0, 0);
+      const endDay = new Date();
+      endDay.setHours(23, 59, 59, 999);
+      where = { createdAt: { gte: startDay, lte: endDay } };
+    } else if (range === "week") {
+      const startWeek = new Date();
+      startWeek.setDate(now.getDate() - 7);
+      where = { createdAt: { gte: startWeek } };
+    } else if (range === "month") {
+      const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      where = { createdAt: { gte: startMonth } };
+    } else if (start && end) {
+      where = { createdAt: { gte: new Date(start), lte: new Date(end) } };
+    }
+
+    const salesByClient = await prisma.sale.groupBy({
+      by: ['clientName'],
+      _sum: { total: true },
+      _count: { id: true },
+      where,
+      orderBy: { _sum: { total: 'desc' } },
+      take: 20
+    });
+
+    const result = salesByClient.map(item => ({
+      clientName: item.clientName || 'Público en General',
+      total: item._sum.total || 0,
+      count: item._count.id || 0
+    }));
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error al obtener ventas por cliente:", error);
+    res.status(500).json({ error: 'Error al obtener ventas por cliente' });
+  }
+};

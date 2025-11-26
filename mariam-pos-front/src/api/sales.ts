@@ -52,3 +52,17 @@ export const getSalesByPaymentMethod   = async (params:Record<string, string>): 
   return data;
 };
 
+export const getSalesByCategory = async (params:Record<string, string>): Promise<{categoryName: string; total: number; quantity: number}[]> => {
+  const query = new URLSearchParams(params).toString();
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.get(`/sales/by-category?${query}`);
+  return data;
+};
+
+export const getSalesByClient = async (params:Record<string, string>): Promise<{clientName: string; total: number; count: number}[]> => {
+  const query = new URLSearchParams(params).toString();
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.get(`/sales/by-client?${query}`);
+  return data;
+};
+

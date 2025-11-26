@@ -1,5 +1,5 @@
 import express from "express";
- import { createSales, getSales, getSalesById, getSalesByDateRange, getSalesSummary, getDailySales, getTopProducts, getSalesByPaymentMethod} from "../controllers/salesController.js";
+ import { createSales, getSales, getSalesById, getSalesByDateRange, getSalesSummary, getDailySales, getTopProducts, getSalesByPaymentMethod, getSalesByCategory, getSalesByClient} from "../controllers/salesController.js";
 const router = express.Router();
 
 // 🟢 Rutas específicas primero
@@ -8,6 +8,8 @@ router.get("/summary", getSalesSummary)
 router.get("/daily", getDailySales)
 router.get("/top-products", getTopProducts)
 router.get("/by-payment-method", getSalesByPaymentMethod)
+router.get("/by-category", getSalesByCategory)
+router.get("/by-client", getSalesByClient)
 
 // 🟢 Rutas generales después
 router.get("/", getSales);
