@@ -563,11 +563,17 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         };
       });
       
+      // Determinar el método de pago para guardar
+      let paymentMethod = data.paymentType;
+      if (data.paymentType === "mixto") {
+        paymentMethod = `Mixto (Efectivo: $${data.cashAmount?.toFixed(2) || 0}, Tarjeta: $${data.cardAmount?.toFixed(2) || 0})`;
+      }
+
       const sale: Omit<SaleInput, "createdAt"> = {
         folio: "",
         total: total,
         status: "Pagado",
-        paymentMethod: data.paymentType,
+        paymentMethod: paymentMethod,
         clientName: client,
         details,
         branch,
@@ -588,21 +594,47 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       // Actualizar información del turno activo
       await checkActiveShift();
       
+      // Mensaje de éxito con desglose si es pago mixto
+      let successHtml = `
+        <p>La venta se registró correctamente.</p>
+        <p style="margin-top: 10px; color: #059669; font-weight: 600;">
+          Total: ${total.toLocaleString("es-MX", {
+            style: "currency",
+            currency: "MXN",
+          })}
+        </p>
+      `;
+
+      if (data.paymentType === "mixto" && data.cashAmount && data.cardAmount) {
+        successHtml += `
+          <div style="margin-top: 15px; padding: 12px; background: #f3f4f6; border-radius: 8px;">
+            <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 0.9rem;">Desglose de pago:</p>
+            <p style="margin: 4px 0; font-size: 0.9rem;">
+              💵 Efectivo: <strong style="color: #059669;">${data.cashAmount.toLocaleString("es-MX", {
+                style: "currency",
+                currency: "MXN",
+              })}</strong>
+            </p>
+            <p style="margin: 4px 0; font-size: 0.9rem;">
+              💳 Tarjeta: <strong style="color: #3b82f6;">${data.cardAmount.toLocaleString("es-MX", {
+                style: "currency",
+                currency: "MXN",
+              })}</strong>
+            </p>
+          </div>
+        `;
+      }
+
+      successHtml += `
+        <p style="margin-top: 10px; font-size: 0.9rem; color: #6b7280;">
+          El inventario ha sido actualizado automáticamente.
+        </p>
+      `;
+
       Swal.fire({
         icon: "success",
         title: "✅ Venta completada",
-        html: `
-          <p>La venta se registró correctamente.</p>
-          <p style="margin-top: 10px; color: #059669; font-weight: 600;">
-            Total: ${total.toLocaleString("es-MX", {
-              style: "currency",
-              currency: "MXN",
-            })}
-          </p>
-          <p style="margin-top: 10px; font-size: 0.9rem; color: #6b7280;">
-            El inventario ha sido actualizado automáticamente.
-          </p>
-        `,
+        html: successHtml,
         timer: 4000,
         showConfirmButton: false,
       });

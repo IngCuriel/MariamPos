@@ -68,9 +68,11 @@ export interface SaleDetail {
 }
 
 export interface ConfirmPaymentData {
-   paymentType: string;
-   amountReceived: number
-   change: number;
+   paymentType: string; // "efectivo" | "tarjeta" | "mixto"
+   amountReceived: number; // Total recibido (para efectivo) o total (para tarjeta/mixto)
+   change: number; // Cambio (solo aplica a efectivo)
+   cashAmount?: number; // Monto en efectivo (solo para mixto)
+   cardAmount?: number; // Monto en tarjeta (solo para mixto)
 }
 
 // ============================================================

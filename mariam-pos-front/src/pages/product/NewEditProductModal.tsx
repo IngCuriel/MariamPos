@@ -540,175 +540,167 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
            {activeTab === "producto" && (
             <div className="tab-content">
               <form onSubmit={handleSubmit} className="product-form">
-                <div className="form-group">
-                  <label htmlFor="code">Codigo del Producto *</label>
-                  <input
-                    ref={(el) => (inputRefs.current[0] = el  as any)}
-                    type="text"
-                    id="code"
-                    name="code"
-                    value={formData.code}
-                    onChange={handleInputChange}
-                    onKeyDown={handleEnterFocusNext(0)}
-                    className={errors.code ? "error" : ""}
-                    placeholder="Ej: 232323"
-                  />
-                  {errors.code && (
-                    <span className="error-message">{errors.code}</span>
-                  )}
-                </div>
+                {/* Layout en dos columnas */}
+                <div className="product-form-grid">
+                  {/* Columna izquierda - Información del Producto */}
+                  <div className="product-form-left">
+                    <div className="form-group">
+                      <label htmlFor="code">Codigo del Producto *</label>
+                      <input
+                        ref={(el) => (inputRefs.current[0] = el  as any)}
+                        type="text"
+                        id="code"
+                        name="code"
+                        value={formData.code}
+                        onChange={handleInputChange}
+                        onKeyDown={handleEnterFocusNext(0)}
+                        className={errors.code ? "error" : ""}
+                        placeholder="Ej: 232323"
+                      />
+                      {errors.code && (
+                        <span className="error-message">{errors.code}</span>
+                      )}
+                    </div>
 
-                <div className="form-group">
-                  <label htmlFor="name">Nombre del Producto *</label>
-                  <input
-                    ref={(el) => (inputRefs.current[1] = el as any)}
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    onKeyDown={handleEnterFocusNext(1)}
-                    className={errors.name ? "error" : ""}
-                    placeholder="Ej: Manzanas rojas"
-                  />
-                  {errors.name && (
-                    <span className="error-message">{errors.name}</span>
-                  )}
-                </div>
+                    <div className="form-group">
+                      <label htmlFor="name">Nombre del Producto *</label>
+                      <input
+                        ref={(el) => (inputRefs.current[1] = el as any)}
+                        type="text"
+                        id="name"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        onKeyDown={handleEnterFocusNext(1)}
+                        className={errors.name ? "error" : ""}
+                        placeholder="Ej: Manzanas rojas"
+                      />
+                      {errors.name && (
+                        <span className="error-message">{errors.name}</span>
+                      )}
+                    </div>
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="status">Activo*</label>
-                    <input
-                      type="checkbox"
-                      id="status"
-                      name="status"
-                      checked={status === 1}
-                      onChange={() => setStatus(status === 1 ? 0 : 1)}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label> Se vende </label>
-                    <div className="radio-group">
-                      <label>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="status">Activo*</label>
                         <input
-                          type="radio"
-                          name="saleType"
-                          value="Pieza"
-                          checked={saleType === "Pieza"}
-                          onChange={(e) => setSaleType(e.target.value)}
+                          type="checkbox"
+                          id="status"
+                          name="status"
+                          checked={status === 1}
+                          onChange={() => setStatus(status === 1 ? 0 : 1)}
                         />
-                        Por pieza
-                      </label>
-                      <label>
+                      </div>
+                      <div className="form-group">
+                        <label> Se vende </label>
+                        <div className="radio-group">
+                          <label>
+                            <input
+                              type="radio"
+                              name="saleType"
+                              value="Pieza"
+                              checked={saleType === "Pieza"}
+                              onChange={(e) => setSaleType(e.target.value)}
+                            />
+                            Por pieza
+                          </label>
+                          <label>
+                            <input
+                              type="radio"
+                              name="saleType"
+                              value="Granel"
+                              checked={saleType === "Granel"}
+                              onChange={(e) => setSaleType(e.target.value)}
+                            />
+                            A granel
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="category">Categoría *</label>
+                      <select
+                        id="category"
+                        name="category"
+                        value={formData.category}
+                        onChange={handleInputChange}
+                        ref={(el) => (inputRefs.current[2] = el as any)}
+                        onKeyDown={handleEnterFocusNext(2)}
+                        className={errors.category ? "error" : ""}
+                      >
+                        <option value="">Selecciona una categoría</option>
+                        {categories.map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {category.name}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.category && (
+                        <span className="error-message">{errors.category}</span>
+                      )}
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="price">Precio Base (1 Pieza) *</label>
                         <input
-                          type="radio"
-                          name="saleType"
-                          value="Granel"
-                          checked={saleType === "Granel"}
-                          onChange={(e) => setSaleType(e.target.value)}
+                          ref={(el) => (inputRefs.current[3] = el as any)}
+                          type="number"
+                          id="price"
+                          name="price"
+                          value={(() => {
+                            const basePresentation = presentations.find(p => p.isDefault || p.quantity === 1);
+                            return basePresentation ? basePresentation.unitPrice : formData.price;
+                          })()}
+                          onChange={(e) => {
+                            const newPrice = Number(e.target.value);
+                            setFormData(prev => ({ ...prev, price: newPrice }));
+                            // Actualizar la presentación base
+                            setPresentations(prev => prev.map(p => 
+                              (p.isDefault || p.quantity === 1) 
+                                ? { ...p, unitPrice: newPrice }
+                                : p
+                            ));
+                          }}
+                          onKeyDown={handleEnterFocusNext(3)}
+                          className={errors.price ? "error" : ""}
+                          placeholder="0.00"
+                          step="0.01"
+                          min="0"
                         />
-                        A granel
-                      </label>
+                        {errors.price && (
+                          <span className="error-message">{errors.price}</span>
+                        )}
+                        <small className="form-hint">Este es el precio de venta por pieza individual</small>
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor="cost">Costo *</label>
+                        <input
+                          ref={(el) => (inputRefs.current[4] = el as any)}
+                          type="number"
+                          id="cost"
+                          name="cost"
+                          value={formData.cost}
+                          onChange={handleInputChange}
+                          onKeyDown={handleEnterFocusNext(4)}
+                          className={errors.cost ? "error" : ""}
+                          placeholder="0"
+                          min="0"
+                        />
+                        {errors.cost && (
+                          <span className="error-message">{errors.cost}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="form-group">
-                  <label htmlFor="category">Categoría *</label>
-                  <select
-                    id="category"
-                    name="category"
-                    value={formData.category}
-                    onChange={handleInputChange}
-                    ref={(el) => (inputRefs.current[2] = el as any)}
-                    onKeyDown={handleEnterFocusNext(2)}
-                    className={errors.category ? "error" : ""}
-                  >
-                    <option value="">Selecciona una categoría</option>
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.category && (
-                    <span className="error-message">{errors.category}</span>
-                  )}
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="price">Precio Base (1 Pieza) *</label>
-                    <input
-                      ref={(el) => (inputRefs.current[3] = el as any)}
-                      type="number"
-                      id="price"
-                      name="price"
-                      value={(() => {
-                        const basePresentation = presentations.find(p => p.isDefault || p.quantity === 1);
-                        return basePresentation ? basePresentation.unitPrice : formData.price;
-                      })()}
-                      onChange={(e) => {
-                        const newPrice = Number(e.target.value);
-                        setFormData(prev => ({ ...prev, price: newPrice }));
-                        // Actualizar la presentación base
-                        setPresentations(prev => prev.map(p => 
-                          (p.isDefault || p.quantity === 1) 
-                            ? { ...p, unitPrice: newPrice }
-                            : p
-                        ));
-                      }}
-                      onKeyDown={handleEnterFocusNext(3)}
-                      className={errors.price ? "error" : ""}
-                      placeholder="0.00"
-                      step="0.01"
-                      min="0"
-                    />
-                    {errors.price && (
-                      <span className="error-message">{errors.price}</span>
-                    )}
-                    <small className="form-hint">Este es el precio de venta por pieza individual</small>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="cost">Costo *</label>
-                    <input
-                      ref={(el) => (inputRefs.current[4] = el as any)}
-                      type="number"
-                      id="cost"
-                      name="cost"
-                      value={formData.cost}
-                      onChange={handleInputChange}
-                      onKeyDown={handleEnterFocusNext(4)}
-                      className={errors.cost ? "error" : ""}
-                      placeholder="0"
-                      min="0"
-                    />
-                    {errors.cost && (
-                      <span className="error-message">{errors.cost}</span>
-                    )}
-                  </div>
-                </div>
-
-                {/*<div className="form-group">
-                  <label htmlFor="description">Descripción</label>
-                  <textarea
-                    ref={(el) => (inputRefs.current[5] = el as any)}
-                    id="description"
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    onKeyDown={handleEnterFocusNext(5)}
-                    placeholder="Descripción opcional del producto"
-                    rows={3}
-                  />
-                </div>*/}
-
-                {/* Sección de Presentaciones */}
-                <div className="form-group">
-                  <label>Presentaciones de Venta *</label>
-                  <div className="presentations-section">
+                  {/* Columna derecha - Presentaciones de Venta */}
+                  <div className="product-form-right">
+                    <div className="form-group">
+                      <label>Presentaciones de Venta *</label>
+                      <div className="presentations-section">
                     <div className="presentations-list">
                       {presentations.map((presentation, index) => (
                         <div key={index} className="presentation-item">
@@ -908,10 +900,12 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                         )}
                       </div>
                     )}
+                      </div>
+                      {errors.presentations && (
+                        <span className="error-message">{errors.presentations}</span>
+                      )}
+                    </div>
                   </div>
-                  {errors.presentations && (
-                    <span className="error-message">{errors.presentations}</span>
-                  )}
                 </div>
                 <div className="form-actions">
                   <Button

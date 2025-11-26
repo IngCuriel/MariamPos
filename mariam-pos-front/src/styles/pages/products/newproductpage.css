@@ -78,7 +78,6 @@ input[type="radio"] {
 
 .tab-content {
   background: #fff;
-  padding: 1rem;
   border-radius: 0 0 8px 8px;
   animation: fadeIn 0.3s ease;
 }
@@ -369,13 +368,54 @@ input[type="radio"] {
   }
 }
 
+/* Layout de dos columnas para el formulario de producto */
+.product-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.product-form-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.product-form-right {
+  display: flex;
+  flex-direction: column;
+}
+
 /* Estilos para la sección de Presentaciones */
 .presentations-section {
-  margin-top: 1rem;
+  margin-top: 0;
   padding: 1rem;
   background: #f9fafb;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 500px;
+  max-height: calc(98vh - 250px);
+}
+
+.presentations-section::-webkit-scrollbar {
+  width: 8px;
+}
+
+.presentations-section::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.presentations-section::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.presentations-section::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .presentations-list {
@@ -383,6 +423,29 @@ input[type="radio"] {
   flex-direction: column;
   gap: 0.75rem;
   margin-bottom: 1.5rem;
+  flex: 1;
+  overflow-y: auto;
+  max-height: 300px;
+  padding-right: 8px;
+  min-height: 100px;
+}
+
+.presentations-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.presentations-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.presentations-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.presentations-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .presentation-item {
@@ -502,6 +565,7 @@ input[type="radio"] {
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
+  flex-shrink: 0;
 }
 
 .add-presentation-form h4,
@@ -554,4 +618,16 @@ input[type="radio"] {
   font-size: 0.75rem;
   color: #6b7280;
   font-style: italic;
+}
+
+/* Responsive para el grid de dos columnas */
+@media (max-width: 1024px) {
+  .product-form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .presentations-section {
+    min-height: auto;
+    max-height: none;
+  }
 }

@@ -98,7 +98,19 @@ export const closeShift = async (req, res) => {
       const amount = sale.total || 0;
       const method = (sale.paymentMethod || "").toLowerCase();
 
-      if (method.includes("efectivo") || method === "cash") {
+      // Detectar pago mixto
+      if (method.includes("mixto")) {
+        // Extraer montos de efectivo y tarjeta del string
+        // Formato: "Mixto (Efectivo: $X, Tarjeta: $Y)"
+        const cashMatch = method.match(/efectivo[:\s]*\$?([\d.]+)/i);
+        const cardMatch = method.match(/tarjeta[:\s]*\$?([\d.]+)/i);
+        
+        const cashAmount = cashMatch ? parseFloat(cashMatch[1]) : 0;
+        const cardAmount = cardMatch ? parseFloat(cardMatch[1]) : 0;
+        
+        totalCash += cashAmount;
+        totalCard += cardAmount;
+      } else if (method.includes("efectivo") || method === "cash") {
         totalCash += amount;
       } else if (method.includes("tarjeta") || method.includes("card")) {
         totalCard += amount;
@@ -209,7 +221,18 @@ export const getActiveShift = async (req, res) => {
       const amount = sale.total || 0;
       const method = (sale.paymentMethod || "").toLowerCase();
 
-      if (method.includes("efectivo") || method === "cash") {
+      // Detectar pago mixto
+      if (method.includes("mixto")) {
+        // Extraer montos de efectivo y tarjeta del string
+        const cashMatch = method.match(/efectivo[:\s]*\$?([\d.]+)/i);
+        const cardMatch = method.match(/tarjeta[:\s]*\$?([\d.]+)/i);
+        
+        const cashAmount = cashMatch ? parseFloat(cashMatch[1]) : 0;
+        const cardAmount = cardMatch ? parseFloat(cardMatch[1]) : 0;
+        
+        totalCash += cashAmount;
+        totalCard += cardAmount;
+      } else if (method.includes("efectivo") || method === "cash") {
         totalCash += amount;
       } else if (method.includes("tarjeta") || method.includes("card")) {
         totalCard += amount;
@@ -379,11 +402,37 @@ export const getShiftSummary = async (req, res) => {
     const paymentMethods = {};
     shift.sales.forEach((sale) => {
       const method = sale.paymentMethod || "Otros";
-      if (!paymentMethods[method]) {
-        paymentMethods[method] = { count: 0, total: 0 };
+      const methodLower = method.toLowerCase();
+      
+      // Para pagos mixtos, crear entradas separadas para efectivo y tarjeta
+      if (methodLower.includes("mixto")) {
+        const cashMatch = method.match(/efectivo[:\s]*\$?([\d.]+)/i);
+        const cardMatch = method.match(/tarjeta[:\s]*\$?([\d.]+)/i);
+        
+        const cashAmount = cashMatch ? parseFloat(cashMatch[1]) : 0;
+        const cardAmount = cardMatch ? parseFloat(cardMatch[1]) : 0;
+        
+        // Agregar a efectivo
+        if (!paymentMethods["efectivo"]) {
+          paymentMethods["efectivo"] = { count: 0, total: 0 };
+        }
+        paymentMethods["efectivo"].count += 1;
+        paymentMethods["efectivo"].total += cashAmount;
+        
+        // Agregar a tarjeta
+        if (!paymentMethods["tarjeta"]) {
+          paymentMethods["tarjeta"] = { count: 0, total: 0 };
+        }
+        paymentMethods["tarjeta"].count += 1;
+        paymentMethods["tarjeta"].total += cardAmount;
+      } else {
+        // Para otros métodos, mantener el comportamiento original
+        if (!paymentMethods[method]) {
+          paymentMethods[method] = { count: 0, total: 0 };
+        }
+        paymentMethods[method].count += 1;
+        paymentMethods[method].total += sale.total || 0;
       }
-      paymentMethods[method].count += 1;
-      paymentMethods[method].total += sale.total || 0;
     });
 
     // Calcular movimientos de efectivo
