@@ -49,6 +49,7 @@ import salesRouter from "./routes/sales.js";
 import inventoryRouter from "./routes/inventory.js";
 import cashRegisterRouter from "./routes/cashRegister.js";
 import usersRouter from "./routes/users.js";
+import creditsRouter from "./routes/credits.js";
 
 app.use("/api/categories", categoriesRouter); 
 app.use("/api/clients", clientsRouter); 
@@ -56,7 +57,8 @@ app.use("/api/products", productsRouter);
 app.use("/api/sales", salesRouter); 
 app.use("/api/inventory", inventoryRouter);
 app.use("/api/cash-register", cashRegisterRouter);
-app.use("/api/users", usersRouter); 
+app.use("/api/users", usersRouter);
+app.use("/api/credits", creditsRouter); 
 
 // -------------------
 // Iniciar servidor

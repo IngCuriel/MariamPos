@@ -73,6 +73,13 @@ model Client {
    name        String 
    alias       String?  // Alias o apodo para identificar mejor al cliente
    
+   // Campos de crédito
+   allowCredit Boolean  @default(false) // Si el cliente puede comprar a crédito
+   creditLimit Float    @default(0)      // Límite de crédito permitido
+   
+   // Relaciones
+   credits     ClientCredit[] // Créditos pendientes del cliente
+   
    @@index([name])
    @@index([alias])
 }
@@ -101,6 +108,9 @@ model Sale {
 
   // Relación con los detalles
   details       SaleDetail[]
+  
+  // Relación con créditos (si la venta generó un crédito)
+  credit        ClientCredit?
 
   @@index([folio])
   @@index([syncStatus])
@@ -310,4 +320,85 @@ enum UserRole {
 enum UserStatus {
   ACTIVE    // Usuario activo
   INACTIVE  // Usuario inactivo
+}
+
+// ============================================================
+// 💳 MÓDULO DE CRÉDITOS
+// ============================================================
+
+// ------------------------------------------------------------
+// Créditos Pendientes de Clientes
+// ------------------------------------------------------------
+model ClientCredit {
+  id              Int       @id @default(autoincrement())
+  
+  // Relación con cliente
+  clientId        String
+  client          Client    @relation(fields: [clientId], references: [id])
+  
+  // Relación con venta que generó el crédito
+  saleId          Int       @unique
+  sale            Sale      @relation(fields: [saleId], references: [id])
+  
+  // Montos
+  originalAmount  Float     // Monto original del crédito
+  remainingAmount Float     // Monto pendiente por pagar
+  paidAmount      Float     @default(0) // Monto total pagado hasta ahora
+  
+  // Estado
+  status          CreditStatus @default(PENDING) // PENDING, PARTIALLY_PAID, PAID
+  
+  // Fechas
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  paidAt          DateTime? // Fecha en que se pagó completamente
+  
+  // Notas
+  notes           String?
+  
+  // Relación con pagos/abonos
+  payments        CreditPayment[]
+  
+  @@index([clientId])
+  @@index([saleId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ------------------------------------------------------------
+// Abonos/Pagos a Créditos
+// ------------------------------------------------------------
+model CreditPayment {
+  id              Int       @id @default(autoincrement())
+  
+  // Relación con crédito
+  creditId        Int
+  credit          ClientCredit @relation(fields: [creditId], references: [id])
+  
+  // Monto del abono
+  amount          Float
+  
+  // Método de pago
+  paymentMethod   String?   // Efectivo, Tarjeta, etc.
+  
+  // Notas
+  notes           String?
+  
+  // Usuario que registró el pago
+  createdBy       String?
+  
+  // Fecha
+  createdAt       DateTime  @default(now())
+  
+  @@index([creditId])
+  @@index([createdAt])
+}
+
+// ------------------------------------------------------------
+// Enum para estados de crédito
+// ------------------------------------------------------------
+enum CreditStatus {
+  PENDING         // Pendiente de pago
+  PARTIALLY_PAID  // Parcialmente pagado
+  PAID            // Completamente pagado
 }

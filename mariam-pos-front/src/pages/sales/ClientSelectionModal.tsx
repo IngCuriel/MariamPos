@@ -9,7 +9,7 @@ interface ClientSelectionModalProps {
   isOpen: boolean;
   currentClient: string;
   onClose: () => void;
-  onSelect: (clientName: string) => void;
+  onSelect: (clientName: string, client?: Client) => void; // Ahora también devuelve el objeto Client
 }
 
 const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
@@ -77,7 +77,7 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
 
   const handleSelectClient = (client: Client) => {
     const displayName = client.alias ? `${client.name} (${client.alias})` : client.name;
-    onSelect(displayName);
+    onSelect(displayName, client); // Pasar también el objeto Client completo
     onClose();
   };
 

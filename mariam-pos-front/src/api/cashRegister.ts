@@ -149,6 +149,20 @@ export const getCashMovementsByShift = async (
 };
 
 // ============================================================
+// 📌 OBTENER MOVIMIENTOS DE EFECTIVO POR RANGO DE FECHAS
+// ============================================================
+export const getCashMovementsByDateRange = async (
+  startDate: string,
+  endDate: string
+): Promise<CashMovement[]> => {
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.get<CashMovement[]>(
+    `/cash-register/cash-movements/by-date-range?startDate=${startDate}&endDate=${endDate}`
+  );
+  return data;
+};
+
+// ============================================================
 // 📌 ELIMINAR MOVIMIENTO DE EFECTIVO
 // ============================================================
 export const deleteCashMovement = async (

@@ -386,6 +386,57 @@ export default function ShiftHistoryPage({
                 </div>
               </div>
 
+              {/* Créditos y Abonos - Solo si hay información disponible */}
+              {shiftSummary?.creditsInfo && shiftSummary.creditsInfo.creditsCount > 0 && (
+                <div className="details-card">
+                  <h3 className="card-title">💳 Créditos y Abonos</h3>
+                  <div className="info-grid">
+                    <div className="info-item">
+                      <span className="info-label">Créditos Generados:</span>
+                      <span className="info-value" style={{ color: "#dc2626" }}>
+                        {shiftSummary.creditsInfo.creditsCount} crédito(s) - ${shiftSummary.creditsInfo.totalCreditsGenerated.toFixed(2)}
+                      </span>
+                    </div>
+                    {shiftSummary.creditsInfo.paymentsCount > 0 && (
+                      <>
+                        <div className="info-item">
+                          <span className="info-label">Abonos en Efectivo:</span>
+                          <span className="info-value" style={{ color: "#059669" }}>
+                            +${shiftSummary.creditsInfo.totalCreditPaymentsCash.toFixed(2)}
+                          </span>
+                        </div>
+                        {shiftSummary.creditsInfo.totalCreditPaymentsCard > 0 && (
+                          <div className="info-item">
+                            <span className="info-label">Abonos en Tarjeta:</span>
+                            <span className="info-value" style={{ color: "#3b82f6" }}>
+                              ${shiftSummary.creditsInfo.totalCreditPaymentsCard.toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                        {shiftSummary.creditsInfo.totalCreditPaymentsOther > 0 && (
+                          <div className="info-item">
+                            <span className="info-label">Abonos Otros:</span>
+                            <span className="info-value">
+                              ${shiftSummary.creditsInfo.totalCreditPaymentsOther.toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                        <div className="info-item">
+                          <span className="info-label">Total Abonos:</span>
+                          <span className="info-value" style={{ fontWeight: "600" }}>
+                            {shiftSummary.creditsInfo.paymentsCount} abono(s) - ${(
+                              shiftSummary.creditsInfo.totalCreditPaymentsCash +
+                              shiftSummary.creditsInfo.totalCreditPaymentsCard +
+                              shiftSummary.creditsInfo.totalCreditPaymentsOther
+                            ).toFixed(2)}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Cierre de turno - Solo si está cerrado */}
               {selectedShift.status === "CLOSED" && (
                 <div className="details-card closing-card">
@@ -403,6 +454,14 @@ export default function ShiftHistoryPage({
                         ${selectedShift.totalCash.toFixed(2)}
                       </span>
                     </div>
+                    {shiftSummary?.creditsInfo && shiftSummary.creditsInfo.totalCreditPaymentsCash > 0 && (
+                      <div className="closing-item">
+                        <span className="closing-label">Abonos en Efectivo:</span>
+                        <span className="closing-value" style={{ color: "#059669" }}>
+                          +${shiftSummary.creditsInfo.totalCreditPaymentsCash.toFixed(2)}
+                        </span>
+                      </div>
+                    )}
                     {cashMovements.length > 0 && (
                       <div className="closing-item">
                         <span className="closing-label">Movimientos Netos:</span>

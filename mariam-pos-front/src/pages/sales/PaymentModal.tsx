@@ -3,16 +3,20 @@ import { FaMoneyBillWave, FaCreditCard, FaGift } from "react-icons/fa";
 import { IoCloseCircleOutline } from "react-icons/io5";
 import Swal from "sweetalert2";
 import type { ConfirmPaymentData } from "../../types/index";
+import { getClientCreditSummary } from "../../api/credits";
 import "../../styles/pages/sales/paymentModal.css";
+import type { Client } from "../../types/index";
+
 interface PaymentModalProps {
   total: number;
+  client?: Client | null; // Información del cliente para validar crédito
   onClose: () => void;
   onConfirm: (confirmData: ConfirmPaymentData) => void;
 }
 
 const bills = [2000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, .50]; // ← Aquí defines tus billetes
 
-const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }) => {
+const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, onClose, onConfirm }) => {
   const [paymentType, setPaymentType] = useState("efectivo");
   const [amountReceived, setAmountReceived] = useState<string>("");
   const [cashAmount, setCashAmount] = useState<string>("");
@@ -50,7 +54,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }
     }
   }, [paymentType]);
 
-  const handleConfirm = useCallback(() => {
+  const handleConfirm = useCallback(async () => {
     if (paymentType === "mixto") {
       // Validar pago mixto
       if (totalMixed === 0) {
@@ -117,6 +121,111 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }
     }
 
     if (paymentType === "efectivo" && finalAmount < totalNumber) {
+      const missingAmount = totalNumber - finalAmount;
+      
+      // Validar si el cliente puede usar crédito
+      if (client && client.allowCredit && client.creditLimit) {
+        try {
+          // Obtener créditos pendientes del cliente
+          const creditSummary = await getClientCreditSummary(client.id);
+          const currentPending = creditSummary.totalPending || 0;
+          const availableCredit = client.creditLimit - currentPending;
+          
+          if (missingAmount <= availableCredit) {
+            // El cliente puede usar crédito
+            const { value: useCredit } = await Swal.fire({
+              title: "💳 Monto insuficiente",
+              html: `
+                <p>El monto recibido ($${finalAmount.toFixed(2)}) es menor al total ($${totalNumber.toFixed(2)}).</p>
+                <p style="margin-top: 10px;"><strong>Faltante: $${missingAmount.toFixed(2)}</strong></p>
+                <p style="margin-top: 10px;">
+                  El cliente tiene crédito disponible (Límite: $${client.creditLimit.toFixed(2)}, Pendiente: $${currentPending.toFixed(2)}, Disponible: $${availableCredit.toFixed(2)})
+                </p>
+                <p style="margin-top: 10px; color: #059669; font-weight: 600;">
+                  ¿Desea finalizar la venta y registrar el faltante como crédito?
+                </p>
+              `,
+              icon: "question",
+              showCancelButton: true,
+              confirmButtonText: "Sí, usar crédito",
+              cancelButtonText: "Cancelar",
+              confirmButtonColor: "#059669",
+              cancelButtonColor: "#6b7280",
+              focusConfirm: false,
+              returnFocus: false,
+            });
+
+            if (useCredit) {
+              // Finalizar con crédito
+              Swal.fire({
+                title: "✅ Venta con crédito",
+                html: `
+                  <p>La venta se completará con:</p>
+                  <p style="margin-top: 10px;">
+                    💵 Pagado: <strong>$${finalAmount.toFixed(2)}</strong><br/>
+                    💳 A crédito: <strong>$${missingAmount.toFixed(2)}</strong>
+                  </p>
+                `,
+                icon: "success",
+                timer: 3000,
+                showConfirmButton: false,
+              });
+
+              onConfirm({
+                paymentType,
+                amountReceived: finalAmount,
+                change: 0,
+                creditAmount: missingAmount,
+              });
+              return;
+            } else {
+              // El usuario canceló, volver al input
+              setTimeout(() => {
+                if (inputRef.current) {
+                  inputRef.current.focus();
+                  inputRef.current.select();
+                }
+              }, 10);
+              return;
+            }
+          } else {
+            // El faltante excede el crédito disponible
+            Swal.fire({
+              title: "❌ Crédito insuficiente",
+              html: `
+                <p>El monto recibido ($${finalAmount.toFixed(2)}) es menor al total ($${totalNumber.toFixed(2)}).</p>
+                <p style="margin-top: 10px;"><strong>Faltante: $${missingAmount.toFixed(2)}</strong></p>
+                <p style="margin-top: 10px; color: #dc2626;">
+                  El faltante ($${missingAmount.toFixed(2)}) excede el crédito disponible ($${availableCredit.toFixed(2)}).
+                </p>
+                <p style="margin-top: 10px;">
+                  Límite de crédito: $${client.creditLimit.toFixed(2)}<br/>
+                  Crédito pendiente: $${currentPending.toFixed(2)}<br/>
+                  Crédito disponible: $${availableCredit.toFixed(2)}
+                </p>
+              `,
+              icon: "error",
+              confirmButtonText: "Entendido",
+              confirmButtonColor: "#dc2626",
+              focusConfirm: false,
+              returnFocus: false,
+            }).then(() => {
+              setTimeout(() => {
+                if (inputRef.current) {
+                  inputRef.current.focus();
+                  inputRef.current.select();
+                }
+              }, 10);
+            });
+            return;
+          }
+        } catch (error) {
+          console.error("Error al obtener créditos del cliente:", error);
+          // Si hay error, mostrar mensaje normal
+        }
+      }
+      
+      // Si no tiene crédito o hubo error, mostrar mensaje normal
       Swal.fire({
         title: "💵 Monto insuficiente",
         text: `El monto recibido ($${finalAmount.toFixed(2)}) es menor al total ($${totalNumber.toFixed(2)}).`,
@@ -153,7 +262,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }
       amountReceived: finalAmount,
       change,
     });
-  }, [paymentType, amountReceived, totalNumber, received, change, onConfirm, cashReceived, cardReceived, totalMixed]);
+  }, [paymentType, amountReceived, totalNumber, received, change, onConfirm, cashReceived, cardReceived, totalMixed, client]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

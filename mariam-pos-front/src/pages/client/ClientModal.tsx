@@ -12,6 +12,8 @@ const ClientModal:React.FC<ClientModalProps> = ({isOpen, onClose, onSave})=> {
     const [formData, setFormData] = useState({
        name: '',
        alias: '',
+       allowCredit: false,
+       creditLimit: 0,
      });
     
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -20,16 +22,19 @@ const ClientModal:React.FC<ClientModalProps> = ({isOpen, onClose, onSave})=> {
         setFormData({
             name: '',
             alias: '',
+            allowCredit: false,
+            creditLimit: 0,
         });
         
         setErrors({});
       }, [isOpen]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
+        const { name, value, type } = e.target;
+        const checked = (e.target as HTMLInputElement).checked;
         setFormData(prev => ({
         ...prev,
-        [name]: value
+        [name]: type === 'checkbox' ? checked : value
         }));
     };    
 
@@ -50,6 +55,8 @@ const ClientModal:React.FC<ClientModalProps> = ({isOpen, onClose, onSave})=> {
             const clientData: Omit<Client, 'id'> = {
                 name: formData.name.trim(),
                 alias: formData.alias.trim() || undefined,
+                allowCredit: formData.allowCredit,
+                creditLimit: formData.allowCredit ? parseFloat(formData.creditLimit.toString()) || 0 : 0,
             };
             
             onSave(clientData);
@@ -94,6 +101,41 @@ const ClientModal:React.FC<ClientModalProps> = ({isOpen, onClose, onSave})=> {
                         El alias ayuda a identificar mejor al cliente si hay nombres repetidos
                     </small>
                 </div>
+                <div className="form-group">
+                    <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+                        <input
+                            type="checkbox"
+                            id="allowCredit"
+                            name="allowCredit"
+                            checked={formData.allowCredit}
+                            onChange={handleInputChange}
+                            style={{ width: "18px", height: "18px", cursor: "pointer" }}
+                        />
+                        <span>Permitir compras a crédito</span>
+                    </label>
+                    <small style={{ display: "block", marginTop: "4px", fontSize: "0.8rem", color: "#6b7280", marginLeft: "26px" }}>
+                        Si está habilitado, el cliente podrá finalizar ventas con faltante registrándolo como crédito
+                    </small>
+                </div>
+                {formData.allowCredit && (
+                    <div className="form-group">
+                        <label htmlFor="creditLimit">Límite de crédito*</label>
+                        <input
+                            type="number"
+                            id="creditLimit"
+                            name="creditLimit"
+                            value={formData.creditLimit}
+                            onChange={handleInputChange}
+                            min="0"
+                            step="0.01"
+                            placeholder="Ej: 100.00"
+                            required={formData.allowCredit}
+                        />
+                        <small style={{ display: "block", marginTop: "4px", fontSize: "0.8rem", color: "#6b7280" }}>
+                            Monto máximo que el cliente puede deber en créditos pendientes
+                        </small>
+                    </div>
+                )}
                 <div className="form-actions">
                     <Button
                         type="button"

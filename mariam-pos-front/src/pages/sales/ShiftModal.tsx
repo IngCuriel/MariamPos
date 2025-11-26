@@ -45,6 +45,7 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [cashMovements, setCashMovements] = useState<CashMovement[]>([]);
   const [isMobile, setIsMobile] = useState(false);
+  const [creditsInfo, setCreditsInfo] = useState<any>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Detectar si es móvil
@@ -108,6 +109,24 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
       }, 100);
     }
   }, [mode]);
+
+  // Cargar información de créditos cuando hay turno activo y está en modo cerrar
+  useEffect(() => {
+    const loadCreditsInfo = async () => {
+      if (activeShift && mode === "close") {
+        try {
+          const summary = await getShiftSummary(activeShift.id);
+          setCreditsInfo(summary.creditsInfo);
+        } catch (error) {
+          console.error("Error al cargar información de créditos:", error);
+          setCreditsInfo(null);
+        }
+      } else {
+        setCreditsInfo(null);
+      }
+    };
+    loadCreditsInfo();
+  }, [activeShift, mode]);
 
   const handleOpenShift = async () => {
     if (!initialCash || parseFloat(initialCash) < 0) {
@@ -227,11 +246,13 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
       const summary = await getShiftSummary(activeShift.id);
       console.log('summary resumen de turno', summary);
       // Calcular efectivo esperado correctamente
-      // Fondo inicial + Ventas en efectivo + Neto de movimientos
+      // Fondo inicial + Ventas en efectivo + Neto de movimientos + Abonos en efectivo
       // Siempre calcular localmente para asegurar precisión
-      const ventasEfectivo = summary.paymentMethods?.efectivo?.total || summary.totals?.totalCash || 0;
+      const ventasEfectivo = summary.paymentMethods?.efectivo?.total || summary.paymentMethods?.Efectivo?.total || summary.totals?.totalCash || 0;
+      const ventasTarjeta = summary.paymentMethods?.tarjeta?.total || summary.paymentMethods?.Tarjeta?.total || summary.totals?.totalCard || 0;
       const netoMovimientos = summary.cashMovementsSummary?.neto || 0;
-      const expectedCash = summary.shift.initialCash + ventasEfectivo + netoMovimientos;
+      const abonosEfectivo = summary.creditsInfo?.totalCreditPaymentsCash || 0;
+      const expectedCash = summary.shift.initialCash + ventasEfectivo + netoMovimientos + abonosEfectivo;
       
       // Construir HTML de movimientos si existen
       let movementsHtml = "";
@@ -312,7 +333,7 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
                 <div style="margin-bottom: 12px;">
                   <span style="color: #6b7280; font-size: 0.95rem;">Ventas en Tarjeta:</span>
                   <p style="margin: 4px 0; font-size: 1.1rem; font-weight: 600; color: #3b82f6;">
-                    $${summary.paymentMethods?.tarjeta?.total.toFixed(2)||0}
+                    $${ventasTarjeta.toFixed(2)}
                   </p>
                 </div>
                 <div style="margin-bottom: 12px;">
@@ -348,9 +369,39 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
                 $${expectedCash.toFixed(2)}
               </p>
               <p style="margin: 8px 0 0 0; font-size: 0.9rem; color: #6b7280;">
-                (Fondo: $${summary.shift.initialCash.toFixed(2)} + Ventas: $${ventasEfectivo.toFixed(2)} ${netoMovimientos !== 0 ? `+ Movimientos: ${netoMovimientos >= 0 ? '+' : ''}$${netoMovimientos.toFixed(2)}` : ''})
+                (Fondo: $${summary.shift.initialCash.toFixed(2)} + Ventas: $${ventasEfectivo.toFixed(2)} ${netoMovimientos !== 0 ? `+ Movimientos: ${netoMovimientos >= 0 ? '+' : ''}$${netoMovimientos.toFixed(2)}` : ''}${abonosEfectivo > 0 ? ` + Abonos: +$${abonosEfectivo.toFixed(2)}` : ''})
               </p>
             </div>
+            ${summary.creditsInfo && summary.creditsInfo.creditsCount > 0 ? `
+            <div style="padding: 15px; background: #fef3c7; border-radius: 8px; border: 2px solid #f59e0b; margin-bottom: 15px;">
+              <span style="color: #92400e; font-size: 1rem; font-weight: 600;">
+                💳 Créditos y Abonos:
+              </span>
+              <div style="margin-top: 10px; font-size: 0.9rem;">
+                <p style="margin: 4px 0; color: #92400e;">
+                  <strong>Créditos Generados:</strong> ${summary.creditsInfo.creditsCount} crédito(s) - <span style="color: #dc2626;">$${summary.creditsInfo.totalCreditsGenerated.toFixed(2)}</span>
+                </p>
+                ${summary.creditsInfo.paymentsCount > 0 ? `
+                  <p style="margin: 4px 0; color: #92400e;">
+                    <strong>Abonos Recibidos:</strong> ${summary.creditsInfo.paymentsCount} abono(s)
+                  </p>
+                  <p style="margin: 4px 0; color: #92400e;">
+                    - En Efectivo: <span style="color: #059669; font-weight: 600;">+$${summary.creditsInfo.totalCreditPaymentsCash.toFixed(2)}</span>
+                  </p>
+                  ${summary.creditsInfo.totalCreditPaymentsCard > 0 ? `
+                    <p style="margin: 4px 0; color: #92400e;">
+                      - En Tarjeta: <span style="color: #3b82f6; font-weight: 600;">$${summary.creditsInfo.totalCreditPaymentsCard.toFixed(2)}</span>
+                    </p>
+                  ` : ''}
+                  ${summary.creditsInfo.totalCreditPaymentsOther > 0 ? `
+                    <p style="margin: 4px 0; color: #92400e;">
+                      - Otros: <span style="font-weight: 600;">$${summary.creditsInfo.totalCreditPaymentsOther.toFixed(2)}</span>
+                    </p>
+                  ` : ''}
+                ` : '<p style="margin: 4px 0; color: #92400e; font-style: italic;">Sin abonos registrados</p>'}
+              </div>
+            </div>
+            ` : ''}
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
               <div>
                 <span style="color: #6b7280; font-size: 0.95rem;">Total de Ventas:</span>
@@ -512,13 +563,14 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
     return null;
   }
 
-  // Calcular efectivo esperado incluyendo movimientos
+  // Calcular efectivo esperado incluyendo movimientos y abonos
   const totalCashMovements = cashMovements.reduce(
     (sum, m) => sum + (m.type === "ENTRADA" ? m.amount : -m.amount),
     0
   );
+  const abonosEfectivo = creditsInfo?.totalCreditPaymentsCash || 0;
   const expectedCash = activeShift.expectedCash ?? 
-    (activeShift.initialCash + activeShift.totalCash + totalCashMovements);
+    (activeShift.initialCash + activeShift.totalCash + totalCashMovements + abonosEfectivo);
   const difference =
     finalCash && parseFloat(finalCash) >= 0
       ? parseFloat(finalCash) - expectedCash
@@ -679,7 +731,45 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
               }}>
                 ${expectedCash.toFixed(2)}
               </p>
+              <p style={{ margin: "4px 0 0 0", fontSize: "0.75rem", color: "#6b7280" }}>
+                (Fondo: ${activeShift.initialCash.toFixed(2)} + Ventas: ${activeShift.totalCash.toFixed(2)} ${totalCashMovements !== 0 ? `+ Mov: ${totalCashMovements >= 0 ? '+' : ''}${totalCashMovements.toFixed(2)}` : ''}${abonosEfectivo > 0 ? ` + Abonos: +${abonosEfectivo.toFixed(2)}` : ''})
+              </p>
             </div>
+            {creditsInfo && creditsInfo.creditsCount > 0 && (
+              <div style={{ 
+                padding: "12px", 
+                background: "#fef3c7", 
+                borderRadius: "8px", 
+                border: "2px solid #f59e0b", 
+                marginTop: "10px" 
+              }}>
+                <span style={{ color: "#92400e", fontSize: "0.9rem", fontWeight: "600" }}>
+                  💳 Créditos y Abonos:
+                </span>
+                <div style={{ marginTop: "6px", fontSize: "0.85rem", color: "#92400e" }}>
+                  <p style={{ margin: "2px 0" }}>
+                    <strong>Créditos:</strong> {creditsInfo.creditsCount} - <span style={{ color: "#dc2626" }}>${creditsInfo.totalCreditsGenerated.toFixed(2)}</span>
+                  </p>
+                  {creditsInfo.paymentsCount > 0 && (
+                    <>
+                      <p style={{ margin: "2px 0" }}>
+                        <strong>Abonos:</strong> {creditsInfo.paymentsCount} abono(s)
+                      </p>
+                      {creditsInfo.totalCreditPaymentsCash > 0 && (
+                        <p style={{ margin: "2px 0", color: "#059669" }}>
+                          - Efectivo: +${creditsInfo.totalCreditPaymentsCash.toFixed(2)}
+                        </p>
+                      )}
+                      {creditsInfo.totalCreditPaymentsCard > 0 && (
+                        <p style={{ margin: "2px 0", color: "#3b82f6" }}>
+                          - Tarjeta: ${creditsInfo.totalCreditPaymentsCard.toFixed(2)}
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Columna derecha - Inputs */}

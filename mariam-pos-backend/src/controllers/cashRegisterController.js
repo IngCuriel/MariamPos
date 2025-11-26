@@ -138,8 +138,63 @@ export const closeShift = async (req, res) => {
       }
     });
 
-    // Calcular efectivo esperado (fondo inicial + ventas en efectivo + movimientos)
-    const expectedCash = shift.initialCash + totalCash + totalCashMovements;
+    // Obtener IDs de las ventas del turno
+    const saleIds = sales.map(sale => sale.id);
+
+    // Obtener créditos generados durante el turno (ventas del turno que tienen crédito)
+    const creditsGenerated = await prisma.clientCredit.findMany({
+      where: {
+        saleId: { in: saleIds },
+      },
+      include: {
+        client: true,
+        sale: true,
+      },
+    });
+
+    // Calcular total de créditos generados
+    const totalCreditsGenerated = creditsGenerated.reduce((sum, credit) => sum + credit.originalAmount, 0);
+
+    // Obtener abonos recibidos durante el turno
+    // Los abonos se consideran si fueron creados durante el turno
+    const creditIds = creditsGenerated.map(credit => credit.id);
+    const creditPayments = await prisma.creditPayment.findMany({
+      where: {
+        creditId: { in: creditIds },
+        createdAt: {
+          gte: shift.startTime,
+          lte: shift.endTime || new Date(),
+        },
+      },
+      include: {
+        credit: {
+          include: {
+            sale: true,
+            client: true,
+          },
+        },
+      },
+    });
+
+    // Calcular abonos en efectivo (se suman al efectivo esperado)
+    let totalCreditPaymentsCash = 0;
+    let totalCreditPaymentsCard = 0;
+    let totalCreditPaymentsOther = 0;
+
+    creditPayments.forEach((payment) => {
+      const method = (payment.paymentMethod || "").toLowerCase();
+      if (method.includes("efectivo") || method === "cash" || !payment.paymentMethod) {
+        // Si no se especifica método, asumimos efectivo
+        totalCreditPaymentsCash += payment.amount;
+      } else if (method.includes("tarjeta") || method.includes("card")) {
+        totalCreditPaymentsCard += payment.amount;
+      } else {
+        totalCreditPaymentsOther += payment.amount;
+      }
+    });
+
+    // Calcular efectivo esperado (fondo inicial + ventas en efectivo + movimientos + abonos en efectivo)
+    const expectedCash = shift.initialCash + totalCash + totalCashMovements + totalCreditPaymentsCash;
 
     // Calcular diferencia
     const difference = parseFloat(finalCash) - expectedCash;
@@ -161,7 +216,22 @@ export const closeShift = async (req, res) => {
       },
     });
 
-    res.json(updatedShift);
+    // Incluir información de créditos y abonos en la respuesta
+    const response = {
+      ...updatedShift,
+      creditsInfo: {
+        totalCreditsGenerated,
+        totalCreditPaymentsCash,
+        totalCreditPaymentsCard,
+        totalCreditPaymentsOther,
+        creditsCount: creditsGenerated.length,
+        paymentsCount: creditPayments.length,
+        credits: creditsGenerated,
+        payments: creditPayments,
+      },
+    };
+
+    res.json(response);
   } catch (error) {
     console.error("Error al cerrar turno:", error);
     res.status(500).json({ error: "Error al cerrar turno de caja" });
@@ -264,15 +334,68 @@ export const getActiveShift = async (req, res) => {
       }
     });
 
+    // Obtener IDs de las ventas del turno
+    const saleIds = shift.sales.map(sale => sale.id);
+
+    // Obtener créditos generados durante el turno
+    const creditsGenerated = await prisma.clientCredit.findMany({
+      where: {
+        saleId: { in: saleIds },
+      },
+      include: {
+        client: true,
+        sale: true,
+      },
+    });
+
+    // Calcular total de créditos generados
+    const totalCreditsGenerated = creditsGenerated.reduce((sum, credit) => sum + credit.originalAmount, 0);
+
+    // Obtener abonos recibidos durante el turno
+    const creditIds = creditsGenerated.map(credit => credit.id);
+    const creditPayments = await prisma.creditPayment.findMany({
+      where: {
+        creditId: { in: creditIds },
+        createdAt: {
+          gte: shift.startTime,
+        },
+      },
+      include: {
+        credit: {
+          include: {
+            sale: true,
+            client: true,
+          },
+        },
+      },
+    });
+
+    // Calcular abonos en efectivo
+    let totalCreditPaymentsCash = 0;
+    creditPayments.forEach((payment) => {
+      const method = (payment.paymentMethod || "").toLowerCase();
+      if (method.includes("efectivo") || method === "cash" || !payment.paymentMethod) {
+        totalCreditPaymentsCash += payment.amount;
+      }
+    });
+
     // Actualizar totales en memoria (no en BD hasta cerrar)
-    // El efectivo esperado incluye: fondo inicial + ventas en efectivo + movimientos
+    // El efectivo esperado incluye: fondo inicial + ventas en efectivo + movimientos + abonos en efectivo
     const shiftWithTotals = {
       ...shift,
       totalCash,
       totalCard,
       totalTransfer,
       totalOther,
-      expectedCash: shift.initialCash + totalCash + totalCashMovements,
+      expectedCash: shift.initialCash + totalCash + totalCashMovements + totalCreditPaymentsCash,
+      creditsInfo: {
+        totalCreditsGenerated,
+        totalCreditPaymentsCash,
+        creditsCount: creditsGenerated.length,
+        paymentsCount: creditPayments.length,
+        credits: creditsGenerated,
+        payments: creditPayments,
+      },
     };
 
     res.json(shiftWithTotals);
@@ -474,12 +597,65 @@ export const getShiftSummary = async (req, res) => {
       }
     });
 
+    // Obtener IDs de las ventas del turno
+    const saleIds = shift.sales.map(sale => sale.id);
+
+    // Obtener créditos generados durante el turno
+    const creditsGenerated = await prisma.clientCredit.findMany({
+      where: {
+        saleId: { in: saleIds },
+      },
+      include: {
+        client: true,
+        sale: true,
+      },
+    });
+
+    // Calcular total de créditos generados
+    const totalCreditsGenerated = creditsGenerated.reduce((sum, credit) => sum + credit.originalAmount, 0);
+
+    // Obtener abonos recibidos durante el turno
+    const creditIds = creditsGenerated.map(credit => credit.id);
+    const creditPayments = await prisma.creditPayment.findMany({
+      where: {
+        creditId: { in: creditIds },
+        createdAt: {
+          gte: shift.startTime,
+          lte: shift.endTime || new Date(),
+        },
+      },
+      include: {
+        credit: {
+          include: {
+            sale: true,
+            client: true,
+          },
+        },
+      },
+    });
+
+    // Calcular abonos en efectivo, tarjeta y otros
+    let totalCreditPaymentsCash = 0;
+    let totalCreditPaymentsCard = 0;
+    let totalCreditPaymentsOther = 0;
+
+    creditPayments.forEach((payment) => {
+      const method = (payment.paymentMethod || "").toLowerCase();
+      if (method.includes("efectivo") || method === "cash" || !payment.paymentMethod) {
+        totalCreditPaymentsCash += payment.amount;
+      } else if (method.includes("tarjeta") || method.includes("card")) {
+        totalCreditPaymentsCard += payment.amount;
+      } else {
+        totalCreditPaymentsOther += payment.amount;
+      }
+    });
+
     // Calcular ventas en efectivo basándose en las ventas actuales
     const ventasEfectivo = paymentMethods["efectivo"]?.total || paymentMethods["Efectivo"]?.total || 0;
 
-    // Calcular efectivo esperado (incluye movimientos)
+    // Calcular efectivo esperado (incluye movimientos y abonos en efectivo)
     // Siempre calcular basándose en valores actuales, no en valores almacenados
-    const calculatedExpectedCash = shift.initialCash + ventasEfectivo + totalCashMovements;
+    const calculatedExpectedCash = shift.initialCash + ventasEfectivo + totalCashMovements + totalCreditPaymentsCash;
 
     const summary = {
       shift: {
@@ -514,6 +690,16 @@ export const getShiftSummary = async (req, res) => {
         totalEntradas: movements.filter(m => m.type === "ENTRADA").reduce((sum, m) => sum + m.amount, 0),
         totalSalidas: movements.filter(m => m.type === "SALIDA").reduce((sum, m) => sum + m.amount, 0),
         neto: totalCashMovements,
+      },
+      creditsInfo: {
+        totalCreditsGenerated,
+        totalCreditPaymentsCash,
+        totalCreditPaymentsCard,
+        totalCreditPaymentsOther,
+        creditsCount: creditsGenerated.length,
+        paymentsCount: creditPayments.length,
+        credits: creditsGenerated,
+        payments: creditPayments,
       },
     };
 
@@ -650,6 +836,49 @@ export const getCashMovementsByShift = async (req, res) => {
   } catch (error) {
     console.error("Error al obtener movimientos de efectivo:", error);
     res.status(500).json({ error: "Error al obtener movimientos de efectivo" });
+  }
+};
+
+// ============================================================
+// 📌 OBTENER MOVIMIENTOS DE EFECTIVO POR RANGO DE FECHAS
+// ============================================================
+export const getCashMovementsByDateRange = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({ error: "Debe proporcionar startDate y endDate" });
+    }
+
+    const start = new Date(`${startDate}T00:00:00.000`);
+    const end = new Date(`${endDate}T23:59:59.999`);
+
+    const movements = await prisma.cashMovement.findMany({
+      where: {
+        createdAt: {
+          gte: start,
+          lte: end,
+        },
+      },
+      include: {
+        shift: {
+          select: {
+            id: true,
+            shiftNumber: true,
+            branch: true,
+            cashRegister: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    res.json(movements);
+  } catch (error) {
+    console.error("Error al obtener movimientos por rango de fechas:", error);
+    res.status(500).json({ error: "Error al obtener movimientos por rango de fechas" });
   }
 };
 

@@ -40,6 +40,8 @@ export interface Client {
   id: string;
   name: string;
   alias?: string;
+  allowCredit?: boolean; // Si el cliente puede comprar a crédito
+  creditLimit?: number;  // Límite de crédito permitido
 }
 
 // Representa una venta con su lista de detalles
@@ -69,11 +71,12 @@ export interface SaleDetail {
 }
 
 export interface ConfirmPaymentData {
-   paymentType: string; // "efectivo" | "tarjeta" | "mixto"
+   paymentType: string; // "efectivo" | "tarjeta" | "mixto" | "regalo"
    amountReceived: number; // Total recibido (para efectivo) o total (para tarjeta/mixto)
    change: number; // Cambio (solo aplica a efectivo)
    cashAmount?: number; // Monto en efectivo (solo para mixto)
    cardAmount?: number; // Monto en tarjeta (solo para mixto)
+   creditAmount?: number; // Monto a crédito (si hay faltante y se permite crédito)
 }
 
 // ============================================================
@@ -230,6 +233,16 @@ export interface ShiftSummary {
     totalSalidas: number;
     neto: number;
   };
+  creditsInfo?: {
+    totalCreditsGenerated: number;
+    totalCreditPaymentsCash: number;
+    totalCreditPaymentsCard: number;
+    totalCreditPaymentsOther: number;
+    creditsCount: number;
+    paymentsCount: number;
+    credits?: ClientCredit[];
+    payments?: CreditPayment[];
+  };
 }
 
 // ============================================================
@@ -278,6 +291,60 @@ export interface CreateCashMovementInput {
   type: CashMovementType;
   amount: number;
   reason?: string;
+  notes?: string;
+  createdBy?: string;
+}
+
+// ============================================================
+// 💳 MÓDULO DE CRÉDITOS
+// ============================================================
+
+// Estados de crédito
+export type CreditStatus = 'PENDING' | 'PARTIALLY_PAID' | 'PAID';
+
+// Representa un crédito pendiente de un cliente
+export interface ClientCredit {
+  id: number;
+  clientId: string;
+  client?: Client;
+  saleId: number;
+  sale?: Sale;
+  originalAmount: number; // Monto original del crédito
+  remainingAmount: number; // Monto pendiente por pagar
+  paidAmount: number; // Monto total pagado hasta ahora
+  status: CreditStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  paidAt?: Date;
+  notes?: string;
+  payments?: CreditPayment[];
+}
+
+// Representa un abono/pago a un crédito
+export interface CreditPayment {
+  id: number;
+  creditId: number;
+  credit?: ClientCredit;
+  amount: number;
+  paymentMethod?: string;
+  notes?: string;
+  createdBy?: string;
+  createdAt: Date;
+}
+
+// DTO para crear un crédito
+export interface CreateCreditInput {
+  clientId: string;
+  saleId: number;
+  amount: number;
+  notes?: string;
+}
+
+// DTO para registrar un abono
+export interface CreateCreditPaymentInput {
+  creditId: number;
+  amount: number;
+  paymentMethod?: string;
   notes?: string;
   createdBy?: string;
 }

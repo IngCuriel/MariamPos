@@ -1,7 +1,9 @@
 import  { useEffect, useState } from "react";
 import "../../styles/pages/sales/daySalesModal.css";
-import type {Sale} from '../../types/index'
+import type {Sale, ClientCredit, CreditPayment, CashMovement} from '../../types/index'
 import { getSalesByDateRange} from '../../api/sales'
+import { getCreditsByDateRange, getCreditPaymentsByDateRange } from '../../api/credits'
+import { getCashMovementsByDateRange } from '../../api/cashRegister'
 import DatePicker, { registerLocale } from "react-datepicker";
 import {es} from "date-fns/locale/es";
 
@@ -23,6 +25,9 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [sales, setSales] = useState<Sale[]>([])
   const [dateToday, setDateToday] = useState<Date>(new Date())
+  const [credits, setCredits] = useState<ClientCredit[]>([])
+  const [creditPayments, setCreditPayments] = useState<CreditPayment[]>([])
+  const [cashMovements, setCashMovements] = useState<CashMovement[]>([])
 
    useEffect(() => { 
     if(isOpen) {
@@ -33,6 +38,9 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
       const start = localDate;
       const end = localDate;
       fetchSalesByDateRange(start, end);
+      fetchCreditsByDateRange(start, end);
+      fetchCreditPaymentsByDateRange(start, end);
+      fetchCashMovementsByDateRange(start, end);
     }
   }, [dateToday, isOpen]);
 
@@ -92,12 +100,72 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
     }
   );
 
+  // Calcular resumen de créditos y abonos
+  const resumenCreditos = {
+    totalCreditsGenerated: credits.reduce((sum, credit) => sum + (credit.originalAmount || 0), 0),
+    creditsCount: credits.length,
+    totalPaymentsCash: creditPayments
+      .filter(p => p.paymentMethod?.toLowerCase().includes("efectivo"))
+      .reduce((sum, p) => sum + (p.amount || 0), 0),
+    totalPaymentsCard: creditPayments
+      .filter(p => p.paymentMethod?.toLowerCase().includes("tarjeta"))
+      .reduce((sum, p) => sum + (p.amount || 0), 0),
+    totalPaymentsOther: creditPayments
+      .filter(p => {
+        const method = p.paymentMethod?.toLowerCase() || "";
+        return !method.includes("efectivo") && !method.includes("tarjeta");
+      })
+      .reduce((sum, p) => sum + (p.amount || 0), 0),
+    paymentsCount: creditPayments.length,
+  };
+
+  // Calcular resumen de movimientos de efectivo
+  const resumenMovimientos = {
+    totalEntradas: cashMovements
+      .filter(m => m.type === "ENTRADA")
+      .reduce((sum, m) => sum + (m.amount || 0), 0),
+    totalSalidas: cashMovements
+      .filter(m => m.type === "SALIDA")
+      .reduce((sum, m) => sum + (m.amount || 0), 0),
+    neto: cashMovements.reduce((sum, m) => {
+      return sum + (m.type === "ENTRADA" ? (m.amount || 0) : -(m.amount || 0));
+    }, 0),
+    movementsCount: cashMovements.length,
+  };
+
   const fetchSalesByDateRange = async(startDate:string, endDate:string ) =>{
      try {
         const fetchSales = await getSalesByDateRange(startDate, endDate)
         setSales(fetchSales);
      } catch (error) {
       console.log('Error', error);
+     }
+  }
+
+  const fetchCreditsByDateRange = async(startDate:string, endDate:string ) =>{
+     try {
+        const fetchCredits = await getCreditsByDateRange(startDate, endDate)
+        setCredits(fetchCredits);
+     } catch (error) {
+      console.log('Error al obtener créditos:', error);
+     }
+  }
+
+  const fetchCreditPaymentsByDateRange = async(startDate:string, endDate:string ) =>{
+     try {
+        const fetchPayments = await getCreditPaymentsByDateRange(startDate, endDate)
+        setCreditPayments(fetchPayments);
+     } catch (error) {
+      console.log('Error al obtener abonos:', error);
+     }
+  }
+
+  const fetchCashMovementsByDateRange = async(startDate:string, endDate:string ) =>{
+     try {
+        const fetchMovements = await getCashMovementsByDateRange(startDate, endDate)
+        setCashMovements(fetchMovements);
+     } catch (error) {
+      console.log('Error al obtener movimientos:', error);
      }
   }
 
@@ -545,67 +613,176 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
       {isOpen && (
         <div className="modal-overlay">
           <div className="modal-container-day-sales">
-            <div className="summary-header">
-              <h2 className="modal-title">Resumen de Ventas del Día</h2>
-              <div className="summary-totals">
-                <div className="summary-item efectivo">
-                  <span className="summary-icon">💵</span>
-                  <span className="summary-label">Efectivo:</span>
-                  <span className="summary-amount">
-                    {resumen.totalEfectivo.toLocaleString("es-MX", {
-                      style: "currency",
-                      currency: "MXN",
-                    })}
-                  </span>
-                </div>
-                <div className="summary-item tarjeta">
-                  <span className="summary-icon">💳</span>
-                  <span className="summary-label">Tarjeta:</span>
-                  <span className="summary-amount">
-                    {resumen.totalTarjeta.toLocaleString("es-MX", {
-                      style: "currency",
-                      currency: "MXN",
-                    })}
-                  </span>
-                </div>
-                <div className="summary-item regalo">
-                  <span className="summary-icon">🎁</span>
-                  <span className="summary-label">Regalo:</span>
-                  <span className="summary-amount">
-                    {resumen.totalRegalo.toLocaleString("es-MX", {
-                      style: "currency",
-                      currency: "MXN",
-                    })}
-                  </span>
-                </div>
-                {resumen.totalOtros > 0 && (
-                  <div className="summary-item otros">
-                    <span className="summary-icon">📋</span>
-                    <span className="summary-label">Otros:</span>
+            <h2 className="modal-title">Resumen de Ventas del Día</h2>
+            <div className="modal-content">
+              {/* Left column - Summary totals */}
+              <div className="summary-column">
+                <div className="summary-totals">
+                  <div className="summary-item efectivo">
+                    <span className="summary-icon">💵</span>
+                    <span className="summary-label">Efectivo:</span>
                     <span className="summary-amount">
-                      {resumen.totalOtros.toLocaleString("es-MX", {
+                      {resumen.totalEfectivo.toLocaleString("es-MX", {
                         style: "currency",
                         currency: "MXN",
                       })}
                     </span>
                   </div>
-                )}
-                <div className="summary-item total">
-                  <span className="summary-icon">💰</span>
-                  <span className="summary-label">Total General:</span>
-                  <span className="summary-amount total-amount">
-                    {resumen.totalGeneral.toLocaleString("es-MX", {
-                      style: "currency",
-                      currency: "MXN",
-                    })}
-                  </span>
+                  <div className="summary-item tarjeta">
+                    <span className="summary-icon">💳</span>
+                    <span className="summary-label">Tarjeta:</span>
+                    <span className="summary-amount">
+                      {resumen.totalTarjeta.toLocaleString("es-MX", {
+                        style: "currency",
+                        currency: "MXN",
+                      })}
+                    </span>
+                  </div>
+                  <div className="summary-item regalo">
+                    <span className="summary-icon">🎁</span>
+                    <span className="summary-label">Regalo:</span>
+                    <span className="summary-amount">
+                      {resumen.totalRegalo.toLocaleString("es-MX", {
+                        style: "currency",
+                        currency: "MXN",
+                      })}
+                    </span>
+                  </div>
+                  {resumen.totalOtros > 0 && (
+                    <div className="summary-item otros">
+                      <span className="summary-icon">📋</span>
+                      <span className="summary-label">Otros:</span>
+                      <span className="summary-amount">
+                        {resumen.totalOtros.toLocaleString("es-MX", {
+                          style: "currency",
+                          currency: "MXN",
+                        })}
+                      </span>
+                    </div>
+                  )}
+                  <div className="summary-item total">
+                    <span className="summary-icon">💰</span>
+                    <span className="summary-label">Total General:</span>
+                    <span className="summary-amount total-amount">
+                      {resumen.totalGeneral.toLocaleString("es-MX", {
+                        style: "currency",
+                        currency: "MXN",
+                      })}
+                    </span>
+                  </div>
                 </div>
+                
+                {/* Resumen de Créditos y Abonos */}
+                {(resumenCreditos.creditsCount > 0 || resumenCreditos.paymentsCount > 0) && (
+                  <div className="summary-totals credits-section">
+                    <div className="summary-item credit-generated">
+                      <span className="summary-icon">💳</span>
+                      <span className="summary-label">Créditos Generados:</span>
+                      <span className="summary-amount" style={{ color: "#dc2626" }}>
+                        {resumenCreditos.creditsCount} - {resumenCreditos.totalCreditsGenerated.toLocaleString("es-MX", {
+                          style: "currency",
+                          currency: "MXN",
+                        })}
+                      </span>
+                    </div>
+                    {resumenCreditos.paymentsCount > 0 && (
+                      <>
+                        {resumenCreditos.totalPaymentsCash > 0 && (
+                          <div className="summary-item credit-payment-cash">
+                            <span className="summary-icon">💵</span>
+                            <span className="summary-label">Abonos Efectivo:</span>
+                            <span className="summary-amount" style={{ color: "#059669" }}>
+                              +{resumenCreditos.totalPaymentsCash.toLocaleString("es-MX", {
+                                style: "currency",
+                                currency: "MXN",
+                              })}
+                            </span>
+                          </div>
+                        )}
+                        {resumenCreditos.totalPaymentsCard > 0 && (
+                          <div className="summary-item credit-payment-card">
+                            <span className="summary-icon">💳</span>
+                            <span className="summary-label">Abonos Tarjeta:</span>
+                            <span className="summary-amount" style={{ color: "#3b82f6" }}>
+                              {resumenCreditos.totalPaymentsCard.toLocaleString("es-MX", {
+                                style: "currency",
+                                currency: "MXN",
+                              })}
+                            </span>
+                          </div>
+                        )}
+                        {resumenCreditos.totalPaymentsOther > 0 && (
+                          <div className="summary-item credit-payment-other">
+                            <span className="summary-icon">📋</span>
+                            <span className="summary-label">Abonos Otros:</span>
+                            <span className="summary-amount">
+                              {resumenCreditos.totalPaymentsOther.toLocaleString("es-MX", {
+                                style: "currency",
+                                currency: "MXN",
+                              })}
+                            </span>
+                          </div>
+                        )}
+                        <div className="summary-item credit-payment-total">
+                          <span className="summary-icon">📊</span>
+                          <span className="summary-label">Total Abonos:</span>
+                          <span className="summary-amount" style={{ fontWeight: "600" }}>
+                            {resumenCreditos.paymentsCount} - {(resumenCreditos.totalPaymentsCash + resumenCreditos.totalPaymentsCard + resumenCreditos.totalPaymentsOther).toLocaleString("es-MX", {
+                              style: "currency",
+                              currency: "MXN",
+                            })}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Resumen de Movimientos de Efectivo */}
+                {resumenMovimientos.movementsCount > 0 && (
+                  <div className="summary-totals movements-section">
+                    <div className="summary-item movement-entrada">
+                      <span className="summary-icon">💰</span>
+                      <span className="summary-label">Entradas:</span>
+                      <span className="summary-amount" style={{ color: "#059669" }}>
+                        +{resumenMovimientos.totalEntradas.toLocaleString("es-MX", {
+                          style: "currency",
+                          currency: "MXN",
+                        })}
+                      </span>
+                    </div>
+                    <div className="summary-item movement-salida">
+                      <span className="summary-icon">💸</span>
+                      <span className="summary-label">Salidas:</span>
+                      <span className="summary-amount" style={{ color: "#dc2626" }}>
+                        -{resumenMovimientos.totalSalidas.toLocaleString("es-MX", {
+                          style: "currency",
+                          currency: "MXN",
+                        })}
+                      </span>
+                    </div>
+                    <div className="summary-item movement-neto">
+                      <span className="summary-icon">📊</span>
+                      <span className="summary-label">Neto Movimientos:</span>
+                      <span className="summary-amount" style={{ 
+                        color: resumenMovimientos.neto >= 0 ? "#059669" : "#dc2626",
+                        fontWeight: "600"
+                      }}>
+                        {resumenMovimientos.neto >= 0 ? "+" : ""}{resumenMovimientos.neto.toLocaleString("es-MX", {
+                          style: "currency",
+                          currency: "MXN",
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>                            
-            <div className="modal-content">
-              {/* Left column - sales list */}
-              <div className="sales-list">
-                 <div className="date-filter-section">
+
+              {/* Right column - Sales list and details */}
+              <div className="sales-details-column">
+                {/* Left sub-column - Sales list */}
+                <div className="sales-list">
+                  <div className="date-filter-section">
                     <label className="datepicker-label">Del día:</label>
                     <DatePicker
                       selected={dateToday}
@@ -618,61 +795,68 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
                       <span className="folio-label">Total de folios:</span>
                       <span className="folio-number">{sales.length}</span>
                     </div>
-                 </div>
-                { sales.length > 0 ? (
-                  <div className="table-container">
-                    <table className="sales-table">
-                      <thead>
-                        <tr>
-                          <th>Folio</th>
-                          <th>Total</th>
-                          <th>Método</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sales.map((sale) => (
-                          <tr
-                            key={sale.id}
-                            className={selectedSale?.id === sale.id ? "selected" : ""}
-                            onClick={() => setSelectedSale(sale)}
-                          >
-                            <td className="folio-cell">{sale.id}</td>
-                            <td className="total-cell">
-                              {sale.total.toLocaleString("es-MX", {
-                                style: "currency",
-                                currency: "MXN",
-                              })}
-                            </td>
-                            <td className="method-cell">
-                              <span className={`method-badge ${getMethodClass(sale.paymentMethod)}`}>
-                                {getMethodIcon(sale.paymentMethod)} {getMethodLabel(sale.paymentMethod)}
-                              </span>
-                            </td>
-                            <td className="status-cell">
-                              <span className={`status-badge ${sale.status?.toLowerCase() === 'pagado' ? 'pagado' : 'pendiente'}`}>
-                                {sale.status}
-                              </span>
-                            </td>
+                  </div>
+                  { sales.length > 0 ? (
+                    <div className="table-container">
+                      <table className="sales-table">
+                        <thead>
+                          <tr>
+                            <th>Folio</th>
+                            <th>Total</th>
+                            <th>Método</th>
+                            <th>Status</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="no-sales-message">
-                    <p className="no-selection">No se encontraron ventas en la fecha seleccionada</p>
-                  </div>
-                )}
-              </div>
-               {/* Right column - sale details */}
-               {/* Componente visual del ticket */}
-              {selectedSale!==null ? 
-                 <div   className="sale-details" style={{ marginTop: "20px" }}>
+                        </thead>
+                        <tbody>
+                          {sales.map((sale) => (
+                            <tr
+                              key={sale.id}
+                              className={selectedSale?.id === sale.id ? "selected" : ""}
+                              onClick={() => setSelectedSale(sale)}
+                            >
+                              <td className="folio-cell">{sale.id}</td>
+                              <td className="total-cell">
+                                {sale.total.toLocaleString("es-MX", {
+                                  style: "currency",
+                                  currency: "MXN",
+                                })}
+                              </td>
+                              <td className="method-cell">
+                                <span className={`method-badge ${getMethodClass(sale.paymentMethod)}`}>
+                                  {getMethodIcon(sale.paymentMethod)} {getMethodLabel(sale.paymentMethod)}
+                                </span>
+                              </td>
+                              <td className="status-cell">
+                                <span className={`status-badge ${sale.status?.toLowerCase() === 'pagado' ? 'pagado' : 'pendiente'}`}>
+                                  {sale.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="no-sales-message">
+                      <p className="no-selection">No se encontraron ventas en la fecha seleccionada</p>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Right sub-column - Sale details */}
+                <div className="sale-details-wrapper">
+                  {selectedSale!==null ? 
+                    <div className="sale-details">
                       <Ticket sale={selectedSale}/>
-                 </div>  
-                 : (<p className="no-selection">Selecciona un venta</p>)
-              }
+                    </div>  
+                    : (
+                      <div className="no-selection-container">
+                        <p className="no-selection">Selecciona una venta</p>
+                      </div>
+                    )
+                  }
+                </div>
+              </div>
             </div>
 
             {/* Footer buttons */}
