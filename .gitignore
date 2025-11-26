@@ -1,101 +1,38 @@
-# ===================================
-# 🌐 Node.js / JavaScript / TypeScript
-# ===================================
+# Dependencies
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-package-lock.json
-yarn.lock
-.pnpm-debug.log*
+mariam-pos-front/node_modules/
+mariam-pos-backend/node_modules/
 
-# ===================================
-# ⚙️ Compilaciones y builds
-# ===================================
-dist_electron/
+# Build outputs
 dist/
-build/
-.cache/
-.next/
-out/
-.temp/
-.tmp/
-coverage/
-.DS_Store
-*.log
-*.tmp
+dist_electron/
+dist_client/
+mariam-pos-front/dist/
 
-# ===================================
-# 🧩 IDEs y editores
-# ===================================
+# Logs
+*.log
+mariam-pos-*.log
+*-log.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*.bak
-*.orig
 
-# ===================================
-# 🧱 OS-specific
-# ===================================
-Thumbs.db
-ehthumbs.db
-Desktop.ini
+# Temporary files
+package-server.json
+main-server.js
+*.tmp
 
-# ===================================
-# 🧠 Electron / App compilada
-# ===================================
-/release/
-*.asar
-*.exe
-*.dmg
-*.app
-*.msi
-*.deb
-*.rpm
-*.snap
-
-# ===================================
-# 🗂️ Prisma / Base de datos local
-# ===================================
+# Database (no incluir en git)
 *.db
 *.db-journal
-/prisma/migrations/dev.db
-/mariam-pos-backend/prisma/dev.db
-/mariam-pos-backend/prisma/database.db
 
-# ===================================
-# ⚛️ Frontend React
-# ===================================
-/mariam-pos-front/node_modules/
-/mariam-pos-front/dist/
-/mariam-pos-front/.env.local
-/mariam-pos-front/.env.development.local
-/mariam-pos-front/.env.test.local
-/mariam-pos-front/.env.production.local
-
-# ===================================
-# 🧠 Backend Node.js
-# ===================================
-/mariam-pos-backend/node_modules/
-/mariam-pos-backend/dist/
-/mariam-pos-backend/.env
-/mariam-pos-backend/.env.local
-/mariam-pos-backend/.env.production
-/mariam-pos-backend/prisma/dev.db
-/mariam-pos-backend/prisma/database.db
-
-# ===================================
-# 📦 Root (Electron)
-# ===================================
-/node_modules/
-/dist/
-/out/
-/release/
-/MariamPos-win32-x64/
-/MariamPos-linux-x64/
-/MariamPos-darwin-x64/
+# Environment
 .env
-
-consultas-ventas.sql
+.env.local

@@ -51,6 +51,10 @@ import cashRegisterRouter from "./routes/cashRegister.js";
 import usersRouter from "./routes/users.js";
 import creditsRouter from "./routes/credits.js";
 import syncRouter from "./routes/sync.js";
+import healthRouter from "./routes/health.js";
+
+// Health check (sin /api para facilitar detección)
+app.use("/health", healthRouter);
 
 app.use("/api/categories", categoriesRouter); 
 app.use("/api/clients", clientsRouter); 
@@ -66,7 +70,10 @@ app.use("/api/sync", syncRouter);
 // Iniciar servidor
 // -------------------
 const PORT = 3001; // puerto fijo
-app.listen(PORT, "127.0.0.1", () => {
-  console.log(`Servidor corriendo en http://127.0.0.1:${PORT}`);
+// Escuchar en todas las interfaces de red (0.0.0.0) para permitir conexiones desde otros dispositivos
+const HOST = process.env.HOST || "0.0.0.0";
+app.listen(PORT, HOST, () => {
+  console.log(`🖥️  Servidor corriendo en http://${HOST === "0.0.0.0" ? "localhost" : HOST}:${PORT}`);
+  console.log(`🌐 Accesible desde la red local en: http://[IP-DE-ESTA-MAQUINA]:${PORT}`);
   startSyncLoop();//   🔁 activa sincronización automática
 });

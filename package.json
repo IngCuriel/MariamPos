@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder"
+    "dist": "electron-builder",
+    "build:client": "node build-client.js",
+    "dist:client": "npm run build:client"
   },
   "build": {
     "appId": "com.mariam.pos",

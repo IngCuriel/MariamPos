@@ -1,0 +1,72 @@
+{
+  "name": "MariamPOS-Client",
+  "version": "1.0.0",
+  "description": "MariamPOS - Cliente (Solo Frontend)",
+  "main": "main-client.js",
+  "type": "module",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux",
+    "dist:mac": "electron-builder --mac"
+  },
+  "build": {
+    "appId": "com.mariam.pos.client",
+    "productName": "MariamPOS Cliente",
+    "directories": {
+      "output": "dist_client"
+    },
+    "files": [
+      "main-client.js",
+      "package-client.json",
+      "mariam-pos-front/dist/**/*",
+      "assets/**/*",
+      "!**/node_modules/**",
+      "!mariam-pos-backend/**"
+    ],
+    "extraResources": [
+      {
+        "from": "mariam-pos-front/dist/",
+        "to": "mariam-pos-front/dist/"
+      }
+    ],
+    "icon": "assets/icon.ico",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64", "ia32"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Office"
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.business"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MariamPOS Cliente"
+    }
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.6.0"
+  }
+}
+

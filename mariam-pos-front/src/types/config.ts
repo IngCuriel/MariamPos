@@ -1,5 +1,8 @@
 export interface Config  { 
-  apiUrl: string,
-  sucursal : string,
-  caja: string
+  mode?: "server" | "client" | "auto";
+  apiUrl: string;
+  serverUrl?: string;
+  sucursal: string;
+  caja: string;
+  autoDetect?: boolean;
 }

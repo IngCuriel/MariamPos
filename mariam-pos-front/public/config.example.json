@@ -2,7 +2,8 @@
   "mode": "auto",
   "apiUrl": "http://127.0.0.1:3001/api",
   "serverUrl": "http://192.168.1.100:3001/api",
-  "sucursal": "Sucursal Principal",
+  "sucursal": "Sucursal Test",
   "caja": "Caja 1",
   "autoDetect": true
 }
+
