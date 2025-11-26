@@ -4,6 +4,7 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import CategoryModal from '../components/CategoryModal';
 import type { Category } from '../types';
+import '../styles/pages/categories/categoriesPage.css';
 
 interface CategoriesPageProps {
   onBack: () => void;
@@ -66,35 +67,35 @@ const CategoriesPage: React.FC<CategoriesPageProps> = ({
   };
 
   return (
-    <div className="app">
-      <div className="categories-container">
+    <div className="categories-page">
+      <div className="categories-page-container">
         <Header
-          title="Gestión de Categorías"
+          title="📂 Gestión de Categorías"
           onBack={onBack}
           backText="← Volver a Productos"
-          className="categories-header"
+          className="categories-page-header"
         />
         
-        <div className="categories-content">
+        <div className="categories-page-content">
           {/* Barra de búsqueda */}
-          <Card className="search-card">
-            <div className="search-section">
-              <div className="search-group">
+          <Card className="categories-search-card">
+            <div className="categories-search-section">
+              <div className="categories-search-group">
                 <label htmlFor="search">Buscar categoría:</label>
                 <input
                   type="text"
-                  ref={inputRef} // 👈 referencia aquí
+                  ref={inputRef}
                   id="search"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Nombre o descripción..."
-                  className="search-input"
+                  className="categories-search-input"
                 />
               </div>
               <Button
                 variant="success"
                 onClick={handleAddNew}
-                className="add-category-btn"
+                className="categories-add-btn"
               >
                 ➕ Agregar Categoría
               </Button>
@@ -123,7 +124,13 @@ const CategoriesPage: React.FC<CategoriesPageProps> = ({
                         <p className="category-description">{category.description}</p>
                       )}
                       <p className="category-date">
-                        Creada: {new Date(category?.createdAt).toLocaleString('es-MX')}
+                        {new Date(category?.createdAt).toLocaleString('es-MX', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
                       </p>
                     </div>
                   </div>

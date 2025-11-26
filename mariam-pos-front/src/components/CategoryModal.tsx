@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Button from './Button';
 import Card from './Card';
 import type { Category } from '../types';
+import '../styles/components/categoryModal.css';
 
 interface CategoryModalProps {
   isOpen: boolean;
@@ -96,16 +97,16 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay category-modal-overlay">
-      <div className="modal-container category-modal-container">
-        <Card className="modal-card">
-          <div className="modal-header">
+    <div className="category-modal-overlay">
+      <div className="category-modal-container">
+        <Card className="category-modal-card">
+          <div className="category-modal-header">
             <h2>{title}</h2>
-            <button className="close-btn" onClick={onClose}>×</button>
+            <button className="category-modal-close-btn" onClick={onClose}>×</button>
           </div>
           
           <form onSubmit={handleSubmit} className="category-form">
-            <div className="form-group">
+            <div className="category-form-group">
               <label htmlFor="name">Nombre de la Categoría *</label>
               <input
                 type="text"
@@ -116,10 +117,10 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
                 className={errors.name ? 'error' : ''}
                 placeholder="Ej: Frutas"
               />
-              {errors.name && <span className="error-message">{errors.name}</span>}
+              {errors.name && <span className="category-error-message">{errors.name}</span>}
             </div>
 
-            <div className="form-group">
+            <div className="category-form-group">
               <label htmlFor="description">Descripción</label>
               <textarea
                 id="description"
@@ -131,33 +132,33 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
               />
             </div>
 
-            <div className="form-group">
-              <label className="checkbox-label">
+            <div className="category-form-group">
+              <label className="category-checkbox-label">
                 <input
                   type="checkbox"
                   name="showInPOS"
                   checked={formData.showInPOS}
                   onChange={handleCheckboxChange}
-                  className="checkbox-input"
+                  className="category-checkbox-input"
                 />
-                <span className="checkbox-text">Mostrar en POS</span>
+                <span className="category-checkbox-text">Mostrar en POS</span>
               </label>
-              <p className="checkbox-hint">Si está activado, esta categoría aparecerá en el punto de venta</p>
+              <p className="category-checkbox-hint">Si está activado, esta categoría aparecerá en el punto de venta</p>
             </div>
 
-            <div className="form-actions">
+            <div className="category-form-actions">
               <Button
                 type="button"
                 variant="secondary"
                 onClick={onClose}
-                className="cancel-btn"
+                className="category-cancel-btn"
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
                 variant="success"
-                className="save-btn"
+                className="category-save-btn"
               >
                 {category ? 'Actualizar' : 'Crear'} Categoría
               </Button>

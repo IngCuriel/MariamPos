@@ -1,0 +1,278 @@
+/* ===== MODAL DE CATEGORÍA - ESTILOS ESPECÍFICOS ===== */
+/* Estos estilos solo afectan al CategoryModal, no a otros componentes */
+
+.category-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  z-index: 1000;
+  padding: 1rem;
+  padding-top: 2rem;
+  backdrop-filter: blur(4px);
+  overflow-y: auto;
+}
+
+.category-modal-container {
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.category-modal-card {
+  padding: 0;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* ===== HEADER DEL MODAL ===== */
+.category-modal-header {
+  padding: 1.5rem;
+  border-bottom: 2px solid #e5e7eb;
+  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.category-modal-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.category-modal-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 2rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.category-modal-close-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* ===== FORMULARIO ===== */
+.category-form {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.category-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.category-form-group label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.category-form-group input[type="text"],
+.category-form-group textarea {
+  padding: 0.75rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.category-form-group input[type="text"]:focus,
+.category-form-group textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.category-form-group input.error,
+.category-form-group textarea.error {
+  border-color: #ef4444;
+}
+
+.category-form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+}
+
+.category-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.category-checkbox-label:hover {
+  background: #f3f4f6;
+  border-color: #667eea;
+}
+
+.category-checkbox-input {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+.category-checkbox-text {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.category-checkbox-hint {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+  margin-left: 0;
+  padding-left: 2.5rem;
+}
+
+.category-error-message {
+  font-size: 0.85rem;
+  color: #ef4444;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+/* ===== ACCIONES DEL FORMULARIO ===== */
+.category-form-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding-top: 1.25rem;
+  border-top: 2px solid #e5e7eb;
+  margin-top: 0.5rem;
+}
+
+.category-form-actions button {
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.category-cancel-btn {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.category-cancel-btn:hover {
+  background: #e5e7eb;
+}
+
+.category-save-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.category-save-btn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
+}
+
+/* ===== SCROLLBAR PERSONALIZADO ===== */
+.category-modal-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.category-modal-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.category-modal-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.category-modal-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .category-modal-overlay {
+    padding: 0.5rem;
+    padding-top: 1rem;
+  }
+
+  .category-modal-container {
+    max-width: 95%;
+    max-height: 95vh;
+    border-radius: 12px;
+  }
+
+  .category-modal-header {
+    padding: 1.25rem;
+  }
+
+  .category-modal-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .category-form {
+    padding: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .category-modal-overlay {
+    padding: 0.25rem;
+    padding-top: 0.5rem;
+  }
+
+  .category-modal-container {
+    max-width: 100%;
+    border-radius: 8px;
+  }
+
+  .category-form-actions {
+    flex-direction: column;
+  }
+
+  .category-form-actions button {
+    width: 100%;
+  }
+}
+

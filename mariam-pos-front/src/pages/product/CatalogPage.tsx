@@ -161,39 +161,44 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack }) => {
       let data = null;
       if (product.id > 0) {
         data = await updateProduct(product);
-        handleCloseForm()
+        // Para edición, el modal se cierra desde NewEditProductModal
       } else {
         data = await createProduct(product);
-        handleCloseForm()
-       }
-      // 🔔 Notificación de éxito
-      Swal.fire({
-        icon: "success",
-        title: product.id ? "Producto actualizado" : "Producto creado",
-        text: `${product.name} ha sido ${
-          product.id ? "actualizado" : "creado"
-        } correctamente.`,
-        timer: 2000,
-        showConfirmButton: false,
-      });
-      setProducts((prevProducts) =>
-        prevProducts.map((p) =>
-          p.id === product.id ? { ...p, ...product } : p
-        )
-      );
+        // Para nuevo producto, el modal pregunta si quiere agregar otro desde NewEditProductModal
+      }
+      
+      // Actualizar la lista de productos
+      if (product.id > 0) {
+        // Actualizar producto existente
+        setProducts((prevProducts) =>
+          prevProducts.map((p) =>
+            p.id === product.id ? { ...p, ...product } : p
+          )
+        );
+      } else {
+        // Agregar nuevo producto a la lista
+        if (data) {
+          setProducts((prevProducts) => [data, ...prevProducts]);
+        }
+      }
+      
+      // No cerrar aquí, el modal maneja el cierre según si es nuevo o edición
+      
       console.log("data", data);
+      return data;
     } catch (err:any) {
-            // 🔔 Notificación de éxito
+      // 🔔 Notificación de error
       Swal.fire({
         icon: "error",
-        title: err?.response?.data?.error || 'Ocurrio un error intentar más tarde',
+        title: err?.response?.data?.error || 'Ocurrió un error, intenta más tarde',
         text: ``,
         timer: 3000,
         showConfirmButton: false,
       });
-      console.error(err.response.data.error);
+      console.error(err.response?.data?.error || err);
+      throw err; // Re-lanzar el error para que NewEditProductModal lo maneje
     } finally {
-      inputRef.current?.focus();
+      // No enfocar aquí, el modal maneja el enfoque
     }
   };
 

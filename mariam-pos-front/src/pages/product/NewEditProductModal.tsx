@@ -4,6 +4,7 @@ import Card from "../../components/Card";
 import type { Product, Category, ProductPresentation } from "../../types/index";
 import jsPDF from "jspdf";
 import JsBarcode from "jsbarcode";
+import Swal from "sweetalert2";
 
 import { getCategories } from "../../api/categories";
 
@@ -260,7 +261,7 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
     return Object.keys(newErrors).length === 0 && allPresentationsValid;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (validateForm()) {
@@ -290,7 +291,78 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
         } : undefined,
         trackInventory: trackInventory
       };
-      onSave(productToSave);
+      
+      // Guardar el producto (esperar a que termine)
+      try {
+        await onSave(productToSave);
+        
+        // Si es un nuevo producto (no tiene id o id es 0), preguntar si quiere agregar otro
+        const isNewProduct = !product || product.id === 0;
+        
+        if (isNewProduct) {
+          const result = await Swal.fire({
+            icon: "success",
+            title: "¡Producto creado!",
+            text: `${productToSave.name} ha sido creado correctamente.`,
+            showCancelButton: true,
+            confirmButtonText: "Agregar otro",
+            cancelButtonText: "Cerrar",
+            confirmButtonColor: "#10b981",
+            cancelButtonColor: "#6b7280",
+          });
+          
+          if (result.isConfirmed) {
+            // Limpiar formulario para agregar otro producto
+            setFormData({
+              id: 0,
+              code: "",
+              name: "",
+              status: 1,
+              price: 0,
+              saleType: "Pieza",
+              cost: 0,
+              icon: "",
+              description: "",
+              category: "",
+            });
+            setStatus(1);
+            setSaleType("Pieza");
+            setTrackInventory(false);
+            setInitialStock(0);
+            setMinStock(0);
+            setPresentations([{
+              name: "Pieza",
+              quantity: 1,
+              unitPrice: 0,
+              isDefault: true,
+            }]);
+            setErrors({});
+            setPresentationErrors({});
+            setEditingPresentationIndex(null);
+            setNewPresentation({
+              name: "",
+              quantity: 1,
+              unitPrice: 0,
+            });
+            setActiveTab("producto");
+            
+            // Enfocar el primer input
+            setTimeout(() => {
+              inputRefs.current[0]?.focus();
+              inputRefs.current[0]?.select();
+            }, 100);
+          } else {
+            // Cerrar el modal
+            onClose();
+          }
+        } else {
+          // Si es edición, cerrar el modal directamente
+          onClose();
+        }
+      } catch (error) {
+        // El error ya se maneja en CatalogPage.handleSave
+        console.error("Error al guardar producto:", error);
+      }
     }
   };
 

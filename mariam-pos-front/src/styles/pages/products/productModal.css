@@ -11,10 +11,12 @@
   background: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   z-index: 1000;
   padding: 1rem;
+  padding-top: 2rem;
   backdrop-filter: blur(4px);
+  overflow-y: auto;
 }
 
 .product-modal-container {
