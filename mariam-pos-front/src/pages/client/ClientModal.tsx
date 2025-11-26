@@ -11,6 +11,7 @@ interface ClientModalProps {
 const ClientModal:React.FC<ClientModalProps> = ({isOpen, onClose, onSave})=> {
     const [formData, setFormData] = useState({
        name: '',
+       alias: '',
      });
     
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -18,6 +19,7 @@ const ClientModal:React.FC<ClientModalProps> = ({isOpen, onClose, onSave})=> {
     useEffect(() => {
         setFormData({
             name: '',
+            alias: '',
         });
         
         setErrors({});
@@ -46,7 +48,8 @@ const ClientModal:React.FC<ClientModalProps> = ({isOpen, onClose, onSave})=> {
         e.preventDefault();
         if (validateForm()) {
             const clientData: Omit<Client, 'id'> = {
-                name: formData.name.trim()
+                name: formData.name.trim(),
+                alias: formData.alias.trim() || undefined,
             };
             
             onSave(clientData);
@@ -76,6 +79,20 @@ const ClientModal:React.FC<ClientModalProps> = ({isOpen, onClose, onSave})=> {
                         placeholder="Ej: Eleazar Curiel Monjaraz"
                     />
                     {errors.name && <span className="error-message">{errors.name}</span>}
+                </div>
+                <div className="form-group">
+                    <label htmlFor="alias">Alias (Opcional)</label>
+                    <input
+                        type="text"
+                        id="alias"
+                        name="alias"
+                        value={formData.alias}
+                        onChange={handleInputChange}
+                        placeholder="Ej: Eleazar, Don Eleazar, etc."
+                    />
+                    <small style={{ display: "block", marginTop: "4px", fontSize: "0.8rem", color: "#6b7280" }}>
+                        El alias ayuda a identificar mejor al cliente si hay nombres repetidos
+                    </small>
                 </div>
                 <div className="form-actions">
                     <Button

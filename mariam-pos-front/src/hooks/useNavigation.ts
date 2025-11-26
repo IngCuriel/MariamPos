@@ -19,6 +19,7 @@ export const useNavigation = () => {
   const gotoClients = () => setCurrentView('client');
   const gotoReport = () => setCurrentView('report');
   const goToInventory = () => setCurrentView('inventory');
+  const goToUsers = () => setCurrentView('users');
 
   return {
     currentView,
@@ -34,5 +35,6 @@ export const useNavigation = () => {
     gotoClients,
     gotoReport,
     goToInventory,
+    goToUsers,
   };
 };

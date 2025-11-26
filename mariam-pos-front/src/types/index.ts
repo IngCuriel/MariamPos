@@ -1,6 +1,6 @@
 // Tipos principales de la aplicación
 
-export type ViewType = 'main' | 'help' | 'pos' | 'products' | 'new-product' | 'catalog' | 'categories' | 'sales' |'client' | 'report' | 'inventory';
+export type ViewType = 'main' | 'help' | 'pos' | 'products' | 'new-product' | 'catalog' | 'categories' | 'sales' |'client' | 'report' | 'inventory' | 'users';
 
 // Representa una presentación de un producto (ej: 1 pieza, 1 cono, 1 six)
 export interface ProductPresentation {
@@ -38,7 +38,8 @@ export interface Category {
 
 export interface Client {
   id: string;
-  name: string
+  name: string;
+  alias?: string;
 }
 
 // Representa una venta con su lista de detalles
@@ -248,6 +249,27 @@ export interface CashMovement {
   notes?: string;
   createdBy?: string;
   createdAt: Date;
+}
+
+// ============================================================
+// 👤 MÓDULO DE USUARIOS/CAJEROS
+// ============================================================
+
+export type UserRole = "ADMIN" | "MANAGER" | "CASHIER" | "SUPERVISOR";
+export type UserStatus = "ACTIVE" | "INACTIVE";
+
+export interface User {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  username?: string;
+  role: UserRole;
+  status: UserStatus;
+  branch?: string;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // DTO para crear un movimiento de efectivo

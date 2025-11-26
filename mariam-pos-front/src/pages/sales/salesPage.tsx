@@ -23,6 +23,7 @@ import CategoryProductModal from "./CategoryProductModal";
 import QuickAddCalculator from "./QuickAddCalculator";
 import ShiftModal from "./ShiftModal";
 import CashMovementModal from "./CashMovementModal";
+import ClientSelectionModal from "./ClientSelectionModal";
 import type { ProductPresentation } from "../../types";
 
 interface SalesPageProps {
@@ -41,7 +42,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
 
   const [branch, _setBranch] = useState(localStorage.getItem('sucursal') || 'Procesar Venta');
   const [cashRegister, _setCashRegister] = useState(localStorage.getItem('caja') || 'Caja 1');
-  const [client, _setClient] = useState("Publico en General");
+  const [client, setClient] = useState("Publico en General");
 
   const [cart, setCart] = useState<ItemCart[]>(() => {
     // Leer el carrito guardado si existe
@@ -54,6 +55,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
   const [showCalculator, setShowCalculator] = useState(false);
   const [showShiftModal, setShowShiftModal] = useState(false);
   const [showCashMovementModal, setShowCashMovementModal] = useState(false);
+  const [showClientModal, setShowClientModal] = useState(false);
   const [activeShift, setActiveShift] = useState<CashRegisterShift | null>(null);
   const [productCounter, setProductCounter] = useState(1);
 
@@ -1007,7 +1009,25 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
 
           {/* 🔹 Lado derecho: cart */}
           <div className="venta-right">
-            <button className="btn-finalizar">👤 Cliente: {client}</button>
+            <button
+              className="btn-finalizar"
+              onClick={() => setShowClientModal(true)}
+              style={{
+                cursor: "pointer",
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = "0.8";
+                e.currentTarget.style.transform = "scale(1.02)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = "1";
+                e.currentTarget.style.transform = "scale(1)";
+              }}
+              title="Click para cambiar cliente"
+            >
+              👤 Cliente: {client}
+            </button>
             <div className="table-scroll">
               <table className="venta-table">
                 <thead>
@@ -1181,6 +1201,25 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
               checkActiveShift(); // Recargar turno después de crear movimiento
             }}
             onFocusSearchInput={focusSearchInput}
+          />
+        )}
+        {showClientModal && (
+          <ClientSelectionModal
+            isOpen={showClientModal}
+            currentClient={client}
+            onClose={() => {
+              setShowClientModal(false);
+              setTimeout(() => {
+                inputRef.current?.focus();
+              }, 100);
+            }}
+            onSelect={(clientName) => {
+              setClient(clientName);
+              setShowClientModal(false);
+              setTimeout(() => {
+                inputRef.current?.focus();
+              }, 100);
+            }}
           />
         )}
       </div>

@@ -86,6 +86,7 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
                 <tr>
                   <th>*id</th>
                   <th>Nombre</th>
+                  <th>Alias</th>
                 </tr>
               </thead>
               <tbody>
@@ -93,6 +94,7 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
                   <tr key={client.id}>
                     <td>{client.id}</td>
                     <td>{client.name}</td>
+                    <td>{client.alias || '-'}</td>
                   </tr>
                 ))}
               </tbody>

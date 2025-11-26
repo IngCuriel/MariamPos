@@ -9,9 +9,10 @@ interface POSPageProps {
   onClientClick:() => void;
   onReportClick:() => void;
   onInventoryClick:() => void;
+  onUsersClick?:() => void;
 }
 
-const POSPage: React.FC<POSPageProps> = ({ onBack, onProductsClick, onSalesClick, onClientClick, onReportClick, onInventoryClick}) => {
+const POSPage: React.FC<POSPageProps> = ({ onBack, onProductsClick, onSalesClick, onClientClick, onReportClick, onInventoryClick, onUsersClick}) => {
   return (
     <div className="app">
       <div className="pos-container">
@@ -68,6 +69,15 @@ const POSPage: React.FC<POSPageProps> = ({ onBack, onProductsClick, onSalesClick
                 <h3>📊 Reportes</h3>
                 <p>Ver estadísticas</p>
               </Card>
+              {onUsersClick && (
+                <Card variant="feature" 
+                      className="feature-card"
+                      onClick={onUsersClick}
+                      hoverable>
+                  <h3>👤 Cajeros</h3>
+                  <p>Gestionar cajeros</p>
+                </Card>
+              )}
             </div>
           </div>
         </div>

@@ -71,6 +71,10 @@ model Category {
 model Client {
    id          String   @id @default(uuid())
    name        String 
+   alias       String?  // Alias o apodo para identificar mejor al cliente
+   
+   @@index([name])
+   @@index([alias])
 }
 
 model Sale {
@@ -271,4 +275,39 @@ model CashMovement {
 enum CashMovementType {
   ENTRADA  // Entrada de efectivo a la caja
   SALIDA   // Salida de efectivo de la caja
+}
+
+// ============================================================
+// 👤 MÓDULO DE USUARIOS/CAJEROS
+// ============================================================
+
+model User {
+  id          String   @id @default(uuid())
+  name        String   // Nombre completo del cajero
+  email       String?  @unique // Email (opcional, para futuras autenticaciones)
+  phone       String?  // Teléfono
+  username    String?  @unique // Nombre de usuario (opcional)
+  role        UserRole @default(CASHIER) // Rol del usuario
+  status      UserStatus @default(ACTIVE) // Estado: activo o inactivo
+  branch      String?  // Sucursal asignada
+  notes       String?  // Notas adicionales
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([status])
+  @@index([role])
+  @@index([email])
+}
+
+enum UserRole {
+  ADMIN      // Administrador
+  MANAGER    // Gerente
+  CASHIER    // Cajero
+  SUPERVISOR // Supervisor
+}
+
+enum UserStatus {
+  ACTIVE    // Usuario activo
+  INACTIVE  // Usuario inactivo
 }

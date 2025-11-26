@@ -11,6 +11,7 @@ import ReportPage from './pages/report/ReportPage';
 import SalesPage from './pages/sales/salesPage';
 import ClientPage from './pages/client/ClientPage';
 import InventoryPage from './pages/inventory/InventoryPage';
+import UsersPage from './pages/users/UsersPage';
 import './styles/index.css';
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
     gotoClients,
     gotoReport,
     goToInventory,
+    goToUsers,
   } = useNavigation();
   
   const { categories, addCategory, updateCategory, deleteCategory } = useCategories();
@@ -36,7 +38,7 @@ function App() {
       case 'help':
         return <HelpPage onBack={goToMain} />;
       case 'pos':
-        return <POSPage onBack={goToMain} onProductsClick={goToProducts} onSalesClick={goToSales} onClientClick={gotoClients} onReportClick={gotoReport} onInventoryClick={goToInventory} />;
+        return <POSPage onBack={goToMain} onProductsClick={goToProducts} onSalesClick={goToSales} onClientClick={gotoClients} onReportClick={gotoReport} onInventoryClick={goToInventory} onUsersClick={goToUsers} />;
       case 'products':
         return (
           <ProductsPage 
@@ -78,6 +80,8 @@ function App() {
         return <ReportPage onBack={goToPOS} />;
       case 'inventory':
         return <InventoryPage onBack={goToPOS} />;
+      case 'users':
+        return <UsersPage onBack={goToPOS} />;
       default:
         return <HomePage onHelpClick={goToHelp} onPOSClick={goToPOS} />;
     }
