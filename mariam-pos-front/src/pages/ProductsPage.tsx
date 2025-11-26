@@ -48,7 +48,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({
               >
                 <div className="button-icon">📋</div>
                 <div className="button-content">
-                  <h2>Productos</h2>
+                  <h2>Catálogo</h2>
                   <p>Consultar todos los productos disponibles</p>
                 </div>
               </Card>

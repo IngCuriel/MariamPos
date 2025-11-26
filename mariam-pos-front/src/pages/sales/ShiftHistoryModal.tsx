@@ -553,7 +553,7 @@ export default function ShiftHistoryModal({
                   </div>
 
                   {/* Estadísticas para turnos cerrados */}
-                  {selectedShift.status !== "OPEN" && shiftSummary && (
+                  {/*selectedShift.status !== "OPEN" && shiftSummary && (
                     <div
                       style={{
                         backgroundColor: "#f3f4f6",
@@ -580,7 +580,7 @@ export default function ShiftHistoryModal({
                         </p>
                       </div>
                     </div>
-                  )}
+                  )*/}
                 </div>
               ) : (
                 <p className="no-selection">Selecciona un turno</p>

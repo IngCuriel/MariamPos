@@ -170,16 +170,18 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
     if (!activeShift) return;
 
     try {
+      console.log('activeShift.id', activeShift.id);
       const summary = await getShiftSummary(activeShift.id);
-      const expectedCash = summary.shift.initialCash + summary.totals.totalCash;
+      console.log('summary resumen de turno', summary);
+      const expectedCash = summary.shift.initialCash + summary.paymentMethods.efectivo.total;
 
       Swal.fire({
         title: "📊 Resumen del Turno",
         html: `
           <div style="text-align: left; margin-top: 15px;">
             <p><strong>Fondo Inicial:</strong> $${summary.shift.initialCash.toFixed(2)}</p>
-            <p><strong>Ventas en Efectivo:</strong> $${summary.totals.totalCash.toFixed(2)}</p>
-            <p><strong>Ventas en Tarjeta:</strong> $${summary.totals.totalCard.toFixed(2)}</p>
+            <p><strong>Ventas en Efectivo:</strong> $${summary.paymentMethods?.efectivo?.total.toFixed(2)||0}</p>
+            <p><strong>Ventas en Tarjeta:</strong> $${summary.paymentMethods?.tarjeta?.total.toFixed(2)||0}</p>
             <p><strong>Ventas en Transferencia:</strong> $${summary.totals.totalTransfer.toFixed(2)}</p>
             <p><strong>Otros:</strong> $${summary.totals.totalOther.toFixed(2)}</p>
             <hr style="margin: 10px 0;">
