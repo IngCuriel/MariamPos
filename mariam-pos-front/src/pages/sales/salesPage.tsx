@@ -289,12 +289,20 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
     }
 
     // 👇 PRIMERO: Verificar si el producto tiene presentaciones
+    let granelDataFromPresentation: { cantidad: number; precio: number } | undefined;
     if (product.presentations && product.presentations.length > 0) {
       const presentationResult = await PresentationModal(product);
       if (presentationResult) {
         selectedPresentation = presentationResult.presentation;
         presentationQuantity = presentationResult.quantity;
-        quantity = selectedPresentation.quantity * presentationQuantity; // Total de unidades
+        
+        // Si tiene datos granel, usarlos
+        if (presentationResult.granelData) {
+          granelDataFromPresentation = presentationResult.granelData;
+          quantity = granelDataFromPresentation.cantidad;
+        } else {
+          quantity = selectedPresentation.quantity * presentationQuantity; // Total de unidades
+        }
         
         // 🏭 Validar stock después de seleccionar presentación
         if (product.trackInventory && product.id !== 1) {
@@ -353,7 +361,8 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
     }
 
     // Si no tiene presentaciones o ya se seleccionó una, continuar con el flujo normal
-    if (addCart && product.saleType === 'Granel') {
+    // Solo abrir GranelModal si NO se ingresaron datos granel en el PresentationModal
+    if (addCart && product.saleType === 'Granel' && !product.presentations?.length) {
          const result = await GranelModal(product);
           if (result) {
             quantity = result.cantidad;
@@ -389,18 +398,31 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         }
     }
     if (addCart) {
-      // Calcular el precio según la presentación seleccionada
-      const finalPrice = selectedPresentation 
-        ? selectedPresentation.unitPrice 
-        : product.price;
+      // Calcular el precio según la presentación seleccionada o datos granel
+      let finalPrice: number;
+      let finalQuantity: number = quantity;
+      
+      if (granelDataFromPresentation) {
+        console.log('granelDataFromPresentation', granelDataFromPresentation);
+        // Para productos granel con presentación base, guardar el precio total
+        // y la cantidad granel (kg, L, etc.)
+        // El precio total se guarda directamente, no se divide
+        finalPrice = granelDataFromPresentation.precio; // Precio total ingresado
+        finalQuantity = granelDataFromPresentation.cantidad; // Cantidad granel (kg, L, etc.)
+      } else if (selectedPresentation) {
+        finalPrice = selectedPresentation.unitPrice;
+        finalQuantity = selectedPresentation.quantity * presentationQuantity;
+      } else {
+        finalPrice = product.price;
+      }
 
       // Crear el item del carrito
       const cartItem: ItemCart = {
         ...product,
-        quantity,
-        price: finalPrice, // Precio unitario de la presentación
+        quantity: finalQuantity,
+        price: finalPrice, // Para granel con presentación base, este es el precio total
         selectedPresentation,
-        presentationQuantity,
+        presentationQuantity: granelDataFromPresentation ? finalQuantity : presentationQuantity,
       };
 
       setCart((prev) => {
@@ -429,9 +451,21 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                (!selectedPresentation && !item.selectedPresentation));
             
             if (isSameItem) {
+              console.log('isSameItem', isSameItem);
+              // Para productos granel con presentación base, sumar cantidades y precios totales
+              if (granelDataFromPresentation) {
+                const totalCantidad = item.quantity + finalQuantity;
+                const totalPrecio = item.price + finalPrice;
+                return {
+                  ...item,
+                  quantity: totalCantidad,
+                  price: totalPrecio, // Suma de precios totales
+                };
+              }
+              
               return { 
                 ...item, 
-                quantity: item.quantity + quantity,
+                quantity: item.quantity + finalQuantity,
                 presentationQuantity: item.presentationQuantity 
                   ? (item.presentationQuantity + presentationQuantity)
                   : presentationQuantity,
@@ -485,12 +519,17 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
     }));
   };
 
-  // Calcular total considerando presentaciones
+  // Calcular total considerando presentaciones y productos granel
   const total = cart.reduce((acc, item) => {
     // Si tiene presentación seleccionada, calcular: cantidad de presentaciones * precio unitario * unidades por presentación
     if (item.selectedPresentation && item.presentationQuantity) {
       const totalUnits = item.selectedPresentation.quantity * item.presentationQuantity;
       return acc + (item.selectedPresentation.unitPrice * totalUnits);
+    }
+    // Para productos granel con presentación base, el price ya es el precio total
+    if (item.saleType === 'Granel' && item.selectedPresentation) {
+      // El precio ya es el total ingresado por el usuario
+      return acc + item.price;
     }
     // Si no tiene presentación, usar el cálculo normal
     return acc + (item.price * item.quantity);
@@ -534,20 +573,40 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       };
 
       const details: SaleDetailInput[] = cart.map((item) => {
-        // Calcular subtotal según presentación
-        const subtotal = item.selectedPresentation && item.presentationQuantity
-          ? item.selectedPresentation.unitPrice * item.selectedPresentation.quantity * item.presentationQuantity
-          : item.price * item.quantity;
+        // Calcular subtotal según presentación o producto granel
+        let subtotal: number;
+        if (item.selectedPresentation && item.presentationQuantity) {
+          // Presentación normal
+          subtotal = item.selectedPresentation.unitPrice * item.selectedPresentation.quantity * item.presentationQuantity;
+        } else if (item.saleType === 'Granel' && item.selectedPresentation) {
+          // Producto granel con presentación base - el price ya es el total
+          subtotal = item.price;
+        } else {
+          // Sin presentación
+          subtotal = item.price * item.quantity;
+        }
         
         // Nombre del producto con presentación si aplica
-        const productName = item.selectedPresentation
-          ? `${item.name} (${item.presentationQuantity}x ${item.selectedPresentation.name})`
-          : item.name;
+        let productName: string;
+        if (item.saleType === 'Granel' && item.selectedPresentation) {
+          // Para granel con presentación base, mostrar cantidad granel
+          productName = `${item.name} (${item.quantity} ${item.selectedPresentation.name || 'unidades'})`;
+        } else if (item.selectedPresentation && item.presentationQuantity) {
+          productName = `${item.name} (${item.presentationQuantity}x ${item.selectedPresentation.name})`;
+        } else {
+          productName = item.name;
+        }
         
         // Precio unitario usado
-        const unitPrice = item.selectedPresentation
-          ? item.selectedPresentation.unitPrice
-          : item.price;
+        let unitPrice: number;
+        if (item.saleType === 'Granel' && item.selectedPresentation) {
+          // Para granel, calcular precio unitario (precio total / cantidad)
+          unitPrice = item.quantity > 0 ? item.price / item.quantity : item.price;
+        } else if (item.selectedPresentation) {
+          unitPrice = item.selectedPresentation.unitPrice;
+        } else {
+          unitPrice = item.price;
+        }
         
         // Cantidad total de unidades
         const totalQuantity = item.selectedPresentation && item.presentationQuantity

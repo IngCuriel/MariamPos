@@ -1,7 +1,7 @@
 import Swal from "sweetalert2";
 import type { Product, ProductPresentation } from '../../types/index';
 
-export const PresentationModal = async (product: Product): Promise<{ presentation: ProductPresentation; quantity: number } | null> => {
+export const PresentationModal = async (product: Product): Promise<{ presentation: ProductPresentation; quantity: number; granelData?: { cantidad: number; precio: number } } | null> => {
   if (!product.presentations || product.presentations.length === 0) {
     return null;
   }
@@ -12,6 +12,9 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
       quantity: 1,
     };
   }
+
+  // Verificar si es producto a granel con múltiples presentaciones
+  const isGranel = product.saleType === 'Granel';
 
   const presentationsHTML = product.presentations
     .map((pres, index) => {
@@ -62,7 +65,7 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
       <div id="presentations-container" style="max-height: 400px; overflow-y: auto; padding: 0.5rem;">
         ${presentationsHTML}
       </div>
-      <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+      <div id="presentation-quantity-field" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
         <label for="swal-quantity" style="display: block; font-weight: 600; margin-bottom: 0.5rem; text-align: left;">Cantidad de presentaciones:</label>
         <input 
           id="swal-quantity" 
@@ -75,6 +78,36 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
           style="width: 70%;"
         >
       </div>
+      ${isGranel ? `
+      <div id="granel-fields" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; display: none;">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div>
+            <label for="swal-granel-cantidad" style="display: block; font-weight: 600; margin-bottom: 0.5rem; text-align: left;">Cantidad (kg, L, etc.):</label>
+            <input 
+              id="swal-granel-cantidad" 
+              type="number" 
+              value="1" 
+              step="0.01" 
+              min="0.01"
+              class="swal2-input" 
+              placeholder="Ejemplo: 0.5"
+            >
+          </div>
+          <div>
+            <label for="swal-granel-precio" style="display: block; font-weight: 600; margin-bottom: 0.5rem; text-align: left;">Precio por unidad o total:</label>
+            <input 
+              id="swal-granel-precio" 
+              type="number" 
+              value="${product.price}" 
+              step="0.01" 
+              min="0"
+              class="swal2-input" 
+              placeholder="Ejemplo: 25.00"
+            >
+          </div>
+        </div>
+      </div>
+      ` : ''}
     `,
     width: '600px',
     focusConfirm: false,
@@ -92,8 +125,13 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
 
     didOpen: () => {
       const quantityInput = document.getElementById('swal-quantity') as HTMLInputElement | null;
+      const presentationQuantityField = document.getElementById('presentation-quantity-field') as HTMLElement | null;
       const cards = Array.from(document.querySelectorAll('.presentation-card')) as HTMLElement[];
+      const granelFields = document.getElementById('granel-fields') as HTMLElement | null;
+      const granelCantidadInput = document.getElementById('swal-granel-cantidad') as HTMLInputElement | null;
+      const granelPrecioInput = document.getElementById('swal-granel-precio') as HTMLInputElement | null;
       let selectedCardIndex = 0;
+      let isBaseSelected = false;
 
       if (!quantityInput || cards.length === 0) return;
 
@@ -112,6 +150,40 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
           }
         });
         selectedCardIndex = index;
+        
+        // Verificar si la presentación seleccionada es la base y si es producto a granel
+        if (isGranel && granelFields && presentationQuantityField && granelCantidadInput && granelPrecioInput) {
+          const selectedPres = product.presentations![index];
+          const wasBaseSelected = isBaseSelected;
+          isBaseSelected = selectedPres.isDefault || selectedPres.quantity === 1;
+          
+          if (isBaseSelected) {
+            // Mostrar campos granel y ocultar campo de cantidad de presentaciones
+            granelFields.style.display = 'block';
+            presentationQuantityField.style.display = 'none';
+            // Inicializar valores con el precio de la presentación base seleccionada
+            const precioBase = selectedPres.unitPrice;
+            // Si ya había campos granel visibles, mantener la cantidad y recalcular el precio
+            // Si no, inicializar con 1
+            const cantidadActual = wasBaseSelected ? (parseFloat(granelCantidadInput.value) || 1) : 1;
+            granelCantidadInput.value = cantidadActual.toString();
+            granelPrecioInput.value = (cantidadActual * precioBase).toFixed(2);
+            // Enfocar el input de cantidad
+            setTimeout(() => {
+              granelCantidadInput.focus();
+              granelCantidadInput.select();
+            }, 50);
+          } else {
+            // Ocultar campos granel y mostrar campo de cantidad de presentaciones
+            granelFields.style.display = 'none';
+            presentationQuantityField.style.display = 'block';
+            // Enfocar el input de cantidad de presentaciones
+            setTimeout(() => {
+              quantityInput?.focus();
+              quantityInput?.select();
+            }, 50);
+          }
+        }
       };
 
       // seleccionar 1a
@@ -121,8 +193,7 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
       cards.forEach((card, index) => {
         card.addEventListener('click', () => {
           updateSelection(index);
-          quantityInput.focus();
-          quantityInput.select();
+          // El updateSelection ya maneja el enfoque según el tipo de presentación
         });
 
         card.addEventListener('mouseenter', () => {
@@ -180,9 +251,89 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
 
       // enfocar y seleccionar el input (focus antes de select)
       setTimeout(() => {
-        quantityInput.focus();
-        quantityInput.select();
+        // Si es granel y la primera presentación es base, enfocar el input de cantidad granel
+        if (isGranel && granelFields && granelCantidadInput && granelPrecioInput && presentationQuantityField) {
+          const firstPres = product.presentations![0];
+          if (firstPres.isDefault || firstPres.quantity === 1) {
+            granelFields.style.display = 'block';
+            presentationQuantityField.style.display = 'none';
+            isBaseSelected = true;
+            // Inicializar con el precio de la presentación base
+            const precioBase = firstPres.unitPrice;
+            granelCantidadInput.value = '1';
+            granelPrecioInput.value = precioBase.toString();
+            granelCantidadInput.focus();
+            granelCantidadInput.select();
+          } else {
+            granelFields.style.display = 'none';
+            presentationQuantityField.style.display = 'block';
+            quantityInput.focus();
+            quantityInput.select();
+          }
+        } else {
+          quantityInput.focus();
+          quantityInput.select();
+        }
       }, 20);
+
+      // Cálculo automático para campos granel (similar a GranelModal)
+      if (isGranel && granelCantidadInput && granelPrecioInput) {
+        // Función para obtener el precio unitario de la presentación actual
+        const getCurrentUnitPrice = () => {
+          const selectedPres = product.presentations![selectedCardIndex];
+          return selectedPres ? selectedPres.unitPrice : product.price;
+        };
+
+        // Cálculo automático cuando cambia la cantidad
+        granelCantidadInput.addEventListener('input', () => {
+          const cantidad = parseFloat(granelCantidadInput.value);
+          if (!isNaN(cantidad) && cantidad > 0) {
+            const precioUnitario = getCurrentUnitPrice();
+            const nuevoPrecio = cantidad * precioUnitario;
+            granelPrecioInput.value = nuevoPrecio.toFixed(2);
+          }
+        });
+
+        // Cálculo automático cuando cambia el precio total
+        granelPrecioInput.addEventListener('input', () => {
+          const precioTotal = parseFloat(granelPrecioInput.value);
+          if (!isNaN(precioTotal) && precioTotal > 0) {
+            const precioUnitario = getCurrentUnitPrice();
+            const nuevaCantidad = precioTotal / precioUnitario;
+            granelCantidadInput.value = nuevaCantidad.toFixed(6);
+          }
+        });
+
+        // Actualizar precio cuando cambia la presentación seleccionada
+        const updateGranelPriceOnSelectionChange = () => {
+          if (isBaseSelected && granelCantidadInput && granelPrecioInput) {
+            const cantidad = parseFloat(granelCantidadInput.value) || 1;
+            const precioUnitario = getCurrentUnitPrice();
+            const nuevoPrecio = cantidad * precioUnitario;
+            granelPrecioInput.value = nuevoPrecio.toFixed(2);
+          }
+        };
+
+        // Guardar referencia para actualizar cuando cambie la selección
+        (window as any).__updateGranelPrice = updateGranelPriceOnSelectionChange;
+
+        // Navegación con Enter entre campos granel
+        granelCantidadInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            granelPrecioInput?.focus();
+            granelPrecioInput?.select();
+          }
+        });
+
+        granelPrecioInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            const confirmButton = Swal.getConfirmButton();
+            confirmButton?.click();
+          }
+        });
+      }
 
       // limpiar al cerrar el modal
       const removeHandler = () => {
@@ -199,9 +350,48 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
     preConfirm: () => {
       const quantityInput = document.getElementById('swal-quantity') as HTMLInputElement | null;
       const selectedCard = document.querySelector('.presentation-card[data-selected="true"]') as HTMLElement | null;
+      const granelCantidadInput = document.getElementById('swal-granel-cantidad') as HTMLInputElement | null;
+      const granelPrecioInput = document.getElementById('swal-granel-precio') as HTMLInputElement | null;
 
-      if (!selectedCard || !quantityInput) {
+      if (!selectedCard) {
         Swal.showValidationMessage('Por favor selecciona una presentación');
+        return false;
+      }
+
+      const cardIndex = parseInt(selectedCard.getAttribute('data-index') || '0', 10);
+      const selectedPres = product.presentations![cardIndex];
+      const isBase = selectedPres.isDefault || selectedPres.quantity === 1;
+
+      // Validar campos granel si es producto a granel y se seleccionó la base
+      if (isGranel && isBase && granelCantidadInput && granelPrecioInput) {
+        const granelCantidad = parseFloat(granelCantidadInput.value);
+        const granelPrecio = parseFloat(granelPrecioInput.value);
+
+        if (!granelCantidad || granelCantidad <= 0) {
+          Swal.showValidationMessage('Por favor ingresa una cantidad válida (kg, L, etc.)');
+          granelCantidadInput.focus();
+          return false;
+        }
+
+        if (!granelPrecio || granelPrecio <= 0) {
+          Swal.showValidationMessage('Por favor ingresa un precio válido');
+          granelPrecioInput.focus();
+          return false;
+        }
+
+        return {
+          presentationIndex: cardIndex,
+          quantity: 1, // Para granel con base, siempre es 1 presentación
+          granelData: {
+            cantidad: granelCantidad,
+            precio: granelPrecio,
+          },
+        };
+      }
+
+      // Validar cantidad de presentaciones para presentaciones no base
+      if (!quantityInput) {
+        Swal.showValidationMessage('Error: campo de cantidad no encontrado');
         return false;
       }
 
@@ -212,7 +402,6 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
         return false;
       }
 
-      const cardIndex = parseInt(selectedCard.getAttribute('data-index') || '0', 10);
       return {
         presentationIndex: cardIndex,
         quantity,
@@ -228,10 +417,17 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
     if (result && result.presentationIndex !== undefined) {
       const selectedPresentation = product.presentations[result.presentationIndex];
       if (selectedPresentation) {
-        return {
+        const returnValue: { presentation: ProductPresentation; quantity: number; granelData?: { cantidad: number; precio: number } } = {
           presentation: selectedPresentation,
           quantity: result.quantity || 1,
         };
+
+        // Incluir datos granel si existen
+        if ('granelData' in result && result.granelData) {
+          returnValue.granelData = result.granelData as { cantidad: number; precio: number };
+        }
+
+        return returnValue;
       }
     }
   }
