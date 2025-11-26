@@ -290,13 +290,50 @@ export const getSalesByPaymentMethod = async (req, res) => {
     } else if (start && end) {
       where = { createdAt: { gte: new Date(start), lte: new Date(end) } };
     }
-    const salesByMethod = await prisma.sale.groupBy({
-      by: ['paymentMethod'],
-      _sum: { total: true },
-      where
+
+    // Obtener todas las ventas para poder agrupar los mixtos manualmente
+    const sales = await prisma.sale.findMany({
+      where,
+      select: {
+        paymentMethod: true,
+        total: true
+      }
     });
+
+    // Agrupar manualmente para unificar los pagos mixtos
+    const methodMap = new Map();
+    
+    sales.forEach(sale => {
+      const method = sale.paymentMethod || 'Sin método';
+      const methodLower = method.toLowerCase();
+      
+      // Detectar si es un pago mixto
+      let normalizedMethod = method;
+      if (methodLower.includes('mixto')) {
+        normalizedMethod = 'Mixto';
+      } else {
+        // Normalizar otros métodos comunes
+        if (methodLower.includes('efectivo') && !methodLower.includes('mixto')) {
+          normalizedMethod = 'Efectivo';
+        } else if (methodLower.includes('tarjeta') && !methodLower.includes('mixto')) {
+          normalizedMethod = 'Tarjeta';
+        } else if (methodLower.includes('regalo')) {
+          normalizedMethod = 'Regalo';
+        }
+      }
+      
+      // Agregar o actualizar el total
+      const current = methodMap.get(normalizedMethod) || { paymentMethod: normalizedMethod, _sum: { total: 0 } };
+      current._sum.total += sale.total || 0;
+      methodMap.set(normalizedMethod, current);
+    });
+
+    // Convertir a array y ordenar por total descendente
+    const salesByMethod = Array.from(methodMap.values()).sort((a, b) => b._sum.total - a._sum.total);
+    
     res.json(salesByMethod);
   } catch (error) {
+    console.error("Error al obtener ventas por método de pago:", error);
     res.status(500).json({ error: 'Error al obtener ventas por método de pago' });
   }
 };
