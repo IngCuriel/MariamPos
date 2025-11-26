@@ -22,6 +22,7 @@ import { PresentationModal } from "./PresentationModal";
 import CategoryProductModal from "./CategoryProductModal";
 import QuickAddCalculator from "./QuickAddCalculator";
 import ShiftModal from "./ShiftModal";
+import CashMovementModal from "./CashMovementModal";
 import type { ProductPresentation } from "../../types";
 
 interface SalesPageProps {
@@ -52,6 +53,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const [showShiftModal, setShowShiftModal] = useState(false);
+  const [showCashMovementModal, setShowCashMovementModal] = useState(false);
   const [activeShift, setActiveShift] = useState<CashRegisterShift | null>(null);
   const [productCounter, setProductCounter] = useState(1);
 
@@ -787,22 +789,42 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
               </span>
             )}
           </div>
-          <button
-            onClick={() => setShowShiftModal(true)}
-            style={{
-              padding: "8px 16px",
-              backgroundColor: activeShift ? "#dc2626" : "#059669",
-              color: "white",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-              fontWeight: "600",
-              fontSize: "0.9rem",
-            }}
-            title={activeShift ? "Cerrar Turno (F4)" : "Abrir Turno (F4)"}
-          >
-            {activeShift ? "🔴 Cerrar Turno" : "🟢 Abrir Turno"}
-          </button>
+          <div style={{ display: "flex", gap: "10px" }}>
+            {activeShift && (
+              <button
+                onClick={() => setShowCashMovementModal(true)}
+                style={{
+                  padding: "8px 16px",
+                  backgroundColor: "#3b82f6",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                  fontSize: "0.9rem",
+                }}
+                title="Movimientos de Efectivo"
+              >
+                💰 Movimientos
+              </button>
+            )}
+            <button
+              onClick={() => setShowShiftModal(true)}
+              style={{
+                padding: "8px 16px",
+                backgroundColor: activeShift ? "#dc2626" : "#059669",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontWeight: "600",
+                fontSize: "0.9rem",
+              }}
+              title={activeShift ? "Cerrar Turno (F4)" : "Abrir Turno (F4)"}
+            >
+              {activeShift ? "🔴 Cerrar Turno" : "🟢 Abrir Turno"}
+            </button>
+          </div>
         </div>
 
         <div className="venta-main">
@@ -1055,6 +1077,19 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
               setActiveShift(null);
               setShowShiftModal(false);
             }}
+          />
+        )}
+        {showCashMovementModal && activeShift && (
+          <CashMovementModal
+            shift={activeShift}
+            onClose={() => {
+              setShowCashMovementModal(false);
+              checkActiveShift(); // Recargar turno para actualizar cálculos
+            }}
+            onMovementCreated={() => {
+              checkActiveShift(); // Recargar turno después de crear movimiento
+            }}
+            onFocusSearchInput={focusSearchInput}
           />
         )}
       </div>

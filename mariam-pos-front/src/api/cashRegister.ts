@@ -4,6 +4,8 @@ import type {
   OpenShiftInput,
   CloseShiftInput,
   ShiftSummary,
+  CashMovement,
+  CreateCashMovementInput,
 } from "../types/index";
 
 // ============================================================
@@ -117,5 +119,42 @@ export const cancelShift = async (
     `/cash-register/shifts/${shiftId}`
   );
   return data;
+};
+
+// ============================================================
+// 📌 REGISTRAR MOVIMIENTO DE EFECTIVO
+// ============================================================
+export const createCashMovement = async (
+  input: CreateCashMovementInput
+): Promise<CashMovement> => {
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.post<CashMovement>(
+    "/cash-register/cash-movements",
+    input
+  );
+  return data;
+};
+
+// ============================================================
+// 📌 OBTENER MOVIMIENTOS DE EFECTIVO DE UN TURNO
+// ============================================================
+export const getCashMovementsByShift = async (
+  shiftId: number
+): Promise<CashMovement[]> => {
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.get<CashMovement[]>(
+    `/cash-register/shifts/${shiftId}/cash-movements`
+  );
+  return data;
+};
+
+// ============================================================
+// 📌 ELIMINAR MOVIMIENTO DE EFECTIVO
+// ============================================================
+export const deleteCashMovement = async (
+  movementId: number
+): Promise<void> => {
+  const clientAxios = await getAxiosClient();
+  await clientAxios.delete(`/cash-register/cash-movements/${movementId}`);
 };
 

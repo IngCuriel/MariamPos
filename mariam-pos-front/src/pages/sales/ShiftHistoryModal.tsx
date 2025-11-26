@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import "../../styles/pages/sales/daySalesModal.css";
-import type { CashRegisterShift, ShiftSummary } from "../../types/index";
-import { getShiftsByDateRange, getShiftSummary } from "../../api/cashRegister";
+import type { CashRegisterShift, ShiftSummary, CashMovement } from "../../types/index";
+import { getShiftsByDateRange, getShiftSummary, getCashMovementsByShift } from "../../api/cashRegister";
 import DatePicker, { registerLocale } from "react-datepicker";
 import { es } from "date-fns/locale/es";
 import "react-datepicker/dist/react-datepicker.css";
@@ -25,6 +25,7 @@ export default function ShiftHistoryModal({
     null
   );
   const [shiftSummary, setShiftSummary] = useState<ShiftSummary | null>(null);
+  const [cashMovements, setCashMovements] = useState<CashMovement[]>([]);
   const [shifts, setShifts] = useState<CashRegisterShift[]>([]);
   const [startDate, setStartDate] = useState<Date>(
     new Date(new Date().setDate(new Date().getDate() - 7))
@@ -76,6 +77,15 @@ export default function ShiftHistoryModal({
   const handleSelectShift = async (shift: CashRegisterShift) => {
     setSelectedShift(shift);
     
+    // Cargar movimientos de efectivo siempre
+    try {
+      const movements = await getCashMovementsByShift(shift.id);
+      setCashMovements(movements);
+    } catch (error) {
+      console.error("Error al cargar movimientos:", error);
+      setCashMovements([]);
+    }
+    
     // Si el turno está abierto, no intentar cargar el resumen completo
     // ya que no tiene datos de cierre
     if (shift.status === "OPEN") {
@@ -86,6 +96,10 @@ export default function ShiftHistoryModal({
     try {
       const summary = await getShiftSummary(shift.id);
       setShiftSummary(summary);
+      // Si el summary incluye movimientos, usarlos
+      if (summary.cashMovements) {
+        setCashMovements(summary.cashMovements);
+      }
     } catch (error) {
       console.error("Error al cargar resumen:", error);
       setShiftSummary(null);
@@ -95,6 +109,7 @@ export default function ShiftHistoryModal({
   const closeModal = () => {
     setSelectedShift(null);
     setShiftSummary(null);
+    setCashMovements([]);
     setIsOpen(false);
     if (onClose) {
       setTimeout(() => {
@@ -361,6 +376,24 @@ export default function ShiftHistoryModal({
                           <strong>Efectivo en Ventas:</strong> $
                           {selectedShift.totalCash.toFixed(2)}
                         </p>
+                        {cashMovements.length > 0 && (
+                          <>
+                            <p style={{ marginTop: "8px", color: "#059669", fontWeight: "600" }}>
+                              <strong>💰 Entradas:</strong> $
+                              {cashMovements
+                                .filter((m) => m.type === "ENTRADA")
+                                .reduce((sum, m) => sum + m.amount, 0)
+                                .toFixed(2)}
+                            </p>
+                            <p style={{ color: "#dc2626", fontWeight: "600" }}>
+                              <strong>💸 Salidas:</strong> $
+                              {cashMovements
+                                .filter((m) => m.type === "SALIDA")
+                                .reduce((sum, m) => sum + m.amount, 0)
+                                .toFixed(2)}
+                            </p>
+                          </>
+                        )}
                         <p style={{ 
                           fontWeight: "600", 
                           color: "#059669",
@@ -369,7 +402,14 @@ export default function ShiftHistoryModal({
                           borderTop: "1px solid #d1d5db"
                         }}>
                           <strong>Efectivo Esperado:</strong> $
-                          {(selectedShift.initialCash + selectedShift.totalCash).toFixed(2)}
+                          {(
+                            selectedShift.initialCash + 
+                            selectedShift.totalCash + 
+                            cashMovements.reduce(
+                              (sum, m) => sum + (m.type === "ENTRADA" ? m.amount : -m.amount),
+                              0
+                            )
+                          ).toFixed(2)}
                         </p>
                       </div>
                     </div>
@@ -468,7 +508,262 @@ export default function ShiftHistoryModal({
                           </p>
                         </div>
                       )}
+
+                      {/* Movimientos de Efectivo */}
+                      {cashMovements.length > 0 && (
+                        <div
+                          style={{
+                            backgroundColor: "#f3f4f6",
+                            padding: "15px",
+                            borderRadius: "8px",
+                            marginBottom: "15px",
+                          }}
+                        >
+                          <h4 style={{ marginTop: 0, marginBottom: "10px" }}>
+                            💰 Movimientos de Efectivo ({cashMovements.length})
+                          </h4>
+                          <div
+                            style={{
+                              maxHeight: "200px",
+                              overflowY: "auto",
+                              fontSize: "0.85rem",
+                            }}
+                          >
+                            {cashMovements.map((movement) => (
+                              <div
+                                key={movement.id}
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "flex-start",
+                                  padding: "8px 0",
+                                  borderBottom: "1px solid #e5e7eb",
+                                }}
+                              >
+                                <div style={{ flex: 1 }}>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: "8px",
+                                      marginBottom: "4px",
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        color:
+                                          movement.type === "ENTRADA"
+                                            ? "#059669"
+                                            : "#dc2626",
+                                        fontWeight: "600",
+                                        fontSize: "0.9rem",
+                                      }}
+                                    >
+                                      {movement.type === "ENTRADA" ? "💰 +" : "💸 -"}
+                                      ${movement.amount.toFixed(2)}
+                                    </span>
+                                  </div>
+                                  <div style={{ color: "#6b7280", fontSize: "0.8rem" }}>
+                                    <p style={{ margin: "2px 0" }}>
+                                      <strong>Razón:</strong> {movement.reason || "Sin razón"}
+                                    </p>
+                                    {movement.notes && (
+                                      <p style={{ margin: "2px 0", fontStyle: "italic" }}>
+                                        {movement.notes}
+                                      </p>
+                                    )}
+                                    <p style={{ margin: "2px 0", fontSize: "0.75rem" }}>
+                                      {formatDate(movement.createdAt)}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {shiftSummary?.cashMovementsSummary && (
+                            <div
+                              style={{
+                                marginTop: "10px",
+                                paddingTop: "10px",
+                                borderTop: "2px solid #d1d5db",
+                              }}
+                            >
+                              <p style={{ fontSize: "0.85rem", margin: "4px 0" }}>
+                                <strong>Total Entradas:</strong>{" "}
+                                <span style={{ color: "#059669" }}>
+                                  +${shiftSummary.cashMovementsSummary.totalEntradas.toFixed(2)}
+                                </span>
+                              </p>
+                              <p style={{ fontSize: "0.85rem", margin: "4px 0" }}>
+                                <strong>Total Salidas:</strong>{" "}
+                                <span style={{ color: "#dc2626" }}>
+                                  -${shiftSummary.cashMovementsSummary.totalSalidas.toFixed(2)}
+                                </span>
+                              </p>
+                              <p
+                                style={{
+                                  fontSize: "0.85rem",
+                                  fontWeight: "600",
+                                  margin: "4px 0",
+                                }}
+                              >
+                                <strong>Neto Movimientos:</strong>{" "}
+                                <span
+                                  style={{
+                                    color:
+                                      shiftSummary.cashMovementsSummary.neto >= 0
+                                        ? "#059669"
+                                        : "#dc2626",
+                                  }}
+                                >
+                                  {shiftSummary.cashMovementsSummary.neto >= 0 ? "+" : ""}
+                                  ${shiftSummary.cashMovementsSummary.neto.toFixed(2)}
+                                </span>
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </>
+                  )}
+
+                  {/* Mostrar movimientos para turnos abiertos también */}
+                  {selectedShift.status === "OPEN" && cashMovements.length > 0 && (
+                    <div
+                      style={{
+                        backgroundColor: "#f3f4f6",
+                        padding: "15px",
+                        borderRadius: "8px",
+                        marginBottom: "15px",
+                      }}
+                    >
+                      <h4 style={{ marginTop: 0, marginBottom: "10px" }}>
+                        💰 Movimientos de Efectivo ({cashMovements.length})
+                      </h4>
+                      <div
+                        style={{
+                          maxHeight: "200px",
+                          overflowY: "auto",
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        {cashMovements.map((movement) => (
+                          <div
+                            key={movement.id}
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "flex-start",
+                              padding: "8px 0",
+                              borderBottom: "1px solid #e5e7eb",
+                            }}
+                          >
+                            <div style={{ flex: 1 }}>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "8px",
+                                  marginBottom: "4px",
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    color:
+                                      movement.type === "ENTRADA"
+                                        ? "#059669"
+                                        : "#dc2626",
+                                    fontWeight: "600",
+                                    fontSize: "0.9rem",
+                                  }}
+                                >
+                                  {movement.type === "ENTRADA" ? "💰 +" : "💸 -"}
+                                  ${movement.amount.toFixed(2)}
+                                </span>
+                              </div>
+                              <div style={{ color: "#6b7280", fontSize: "0.8rem" }}>
+                                <p style={{ margin: "2px 0" }}>
+                                  <strong>Razón:</strong> {movement.reason || "Sin razón"}
+                                </p>
+                                {movement.notes && (
+                                  <p style={{ margin: "2px 0", fontStyle: "italic" }}>
+                                    {movement.notes}
+                                  </p>
+                                )}
+                                <p style={{ margin: "2px 0", fontSize: "0.75rem" }}>
+                                  {formatDate(movement.createdAt)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div
+                        style={{
+                          marginTop: "10px",
+                          paddingTop: "10px",
+                          borderTop: "2px solid #d1d5db",
+                        }}
+                      >
+                        <p style={{ fontSize: "0.85rem", margin: "4px 0" }}>
+                          <strong>Total Entradas:</strong>{" "}
+                          <span style={{ color: "#059669" }}>
+                            +$
+                            {cashMovements
+                              .filter((m) => m.type === "ENTRADA")
+                              .reduce((sum, m) => sum + m.amount, 0)
+                              .toFixed(2)}
+                          </span>
+                        </p>
+                        <p style={{ fontSize: "0.85rem", margin: "4px 0" }}>
+                          <strong>Total Salidas:</strong>{" "}
+                          <span style={{ color: "#dc2626" }}>
+                            -$
+                            {cashMovements
+                              .filter((m) => m.type === "SALIDA")
+                              .reduce((sum, m) => sum + m.amount, 0)
+                              .toFixed(2)}
+                          </span>
+                        </p>
+                        <p
+                          style={{
+                            fontSize: "0.85rem",
+                            fontWeight: "600",
+                            margin: "4px 0",
+                          }}
+                        >
+                          <strong>Neto Movimientos:</strong>{" "}
+                          <span
+                            style={{
+                              color:
+                                cashMovements.reduce(
+                                  (sum, m) =>
+                                    sum + (m.type === "ENTRADA" ? m.amount : -m.amount),
+                                  0
+                                ) >= 0
+                                  ? "#059669"
+                                  : "#dc2626",
+                            }}
+                          >
+                            {cashMovements.reduce(
+                              (sum, m) =>
+                                sum + (m.type === "ENTRADA" ? m.amount : -m.amount),
+                              0
+                            ) >= 0
+                              ? "+"
+                              : ""}
+                            $
+                            {cashMovements
+                              .reduce(
+                                (sum, m) =>
+                                  sum + (m.type === "ENTRADA" ? m.amount : -m.amount),
+                                0
+                              )
+                              .toFixed(2)}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
                   )}
 
                   {/* Totales por método de pago - siempre visible */}

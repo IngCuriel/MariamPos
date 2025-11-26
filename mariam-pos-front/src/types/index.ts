@@ -221,5 +221,40 @@ export interface ShiftSummary {
     count: number;
     total: number;
   }>;
+  cashMovements?: CashMovement[];
+  cashMovementsSummary?: {
+    totalEntradas: number;
+    totalSalidas: number;
+    neto: number;
+  };
+}
+
+// ============================================================
+// 💵 MÓDULO DE MOVIMIENTOS DE EFECTIVO
+// ============================================================
+
+// Tipos de movimiento de efectivo
+export type CashMovementType = 'ENTRADA' | 'SALIDA';
+
+// Representa un movimiento de efectivo (entrada o salida)
+export interface CashMovement {
+  id: number;
+  shiftId: number;
+  type: CashMovementType;
+  amount: number;
+  reason?: string;
+  notes?: string;
+  createdBy?: string;
+  createdAt: Date;
+}
+
+// DTO para crear un movimiento de efectivo
+export interface CreateCashMovementInput {
+  shiftId: number;
+  type: CashMovementType;
+  amount: number;
+  reason?: string;
+  notes?: string;
+  createdBy?: string;
 }
 

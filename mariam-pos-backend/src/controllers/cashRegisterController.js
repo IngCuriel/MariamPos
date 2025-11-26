@@ -73,6 +73,7 @@ export const closeShift = async (req, res) => {
       where: { id: parseInt(id) },
       include: {
         sales: true,
+        cashMovements: true,
       },
     });
 
@@ -111,8 +112,18 @@ export const closeShift = async (req, res) => {
       }
     });
 
-    // Calcular efectivo esperado
-    const expectedCash = shift.initialCash + totalCash;
+    // Calcular movimientos de efectivo (entradas y salidas)
+    let totalCashMovements = 0;
+    shift.cashMovements.forEach((movement) => {
+      if (movement.type === "ENTRADA") {
+        totalCashMovements += movement.amount;
+      } else if (movement.type === "SALIDA") {
+        totalCashMovements -= movement.amount;
+      }
+    });
+
+    // Calcular efectivo esperado (fondo inicial + ventas en efectivo + movimientos)
+    const expectedCash = shift.initialCash + totalCash + totalCashMovements;
 
     // Calcular diferencia
     const difference = parseFloat(finalCash) - expectedCash;
@@ -169,6 +180,15 @@ export const getActiveShift = async (req, res) => {
             createdAt: true,
           },
         },
+        cashMovements: {
+          select: {
+            id: true,
+            type: true,
+            amount: true,
+            reason: true,
+            createdAt: true,
+          },
+        },
       },
       orderBy: {
         startTime: "desc",
@@ -203,14 +223,25 @@ export const getActiveShift = async (req, res) => {
       }
     });
 
+    // Calcular movimientos de efectivo (entradas y salidas)
+    let totalCashMovements = 0;
+    shift.cashMovements.forEach((movement) => {
+      if (movement.type === "ENTRADA") {
+        totalCashMovements += movement.amount;
+      } else if (movement.type === "SALIDA") {
+        totalCashMovements -= movement.amount;
+      }
+    });
+
     // Actualizar totales en memoria (no en BD hasta cerrar)
+    // El efectivo esperado incluye: fondo inicial + ventas en efectivo + movimientos
     const shiftWithTotals = {
       ...shift,
       totalCash,
       totalCard,
       totalTransfer,
       totalOther,
-      expectedCash: shift.initialCash + totalCash,
+      expectedCash: shift.initialCash + totalCash + totalCashMovements,
     };
 
     res.json(shiftWithTotals);
@@ -331,6 +362,7 @@ export const getShiftSummary = async (req, res) => {
             },
           },
         },
+        cashMovements: true,
       },
     });
 
@@ -354,6 +386,24 @@ export const getShiftSummary = async (req, res) => {
       paymentMethods[method].total += sale.total || 0;
     });
 
+    // Calcular movimientos de efectivo
+    let totalCashMovements = 0;
+    const movements = shift.cashMovements || [];
+    movements.forEach((movement) => {
+      if (movement.type === "ENTRADA") {
+        totalCashMovements += movement.amount;
+      } else if (movement.type === "SALIDA") {
+        totalCashMovements -= movement.amount;
+      }
+    });
+
+    // Calcular ventas en efectivo basándose en las ventas actuales
+    const ventasEfectivo = paymentMethods["efectivo"]?.total || paymentMethods["Efectivo"]?.total || 0;
+
+    // Calcular efectivo esperado (incluye movimientos)
+    // Siempre calcular basándose en valores actuales, no en valores almacenados
+    const calculatedExpectedCash = shift.initialCash + ventasEfectivo + totalCashMovements;
+
     const summary = {
       shift: {
         id: shift.id,
@@ -366,15 +416,15 @@ export const getShiftSummary = async (req, res) => {
         status: shift.status,
         initialCash: shift.initialCash,
         finalCash: shift.finalCash,
-        expectedCash: shift.expectedCash,
+        expectedCash: calculatedExpectedCash, // Valor calculado basado en ventas actuales
         difference: shift.difference,
         notes: shift.notes,
       },
       totals: {
-        totalCash: shift.totalCash,
-        totalCard: shift.totalCard,
-        totalTransfer: shift.totalTransfer,
-        totalOther: shift.totalOther,
+        totalCash: ventasEfectivo, // Usar valor calculado de las ventas actuales
+        totalCard: paymentMethods["tarjeta"]?.total || paymentMethods["Tarjeta"]?.total || 0,
+        totalTransfer: paymentMethods["transferencia"]?.total || paymentMethods["Transferencia"]?.total || 0,
+        totalOther: paymentMethods["Otros"]?.total || 0,
       },
       statistics: {
         totalSales,
@@ -382,6 +432,12 @@ export const getShiftSummary = async (req, res) => {
         averageTicket,
       },
       paymentMethods,
+      cashMovements: movements, // Incluir movimientos en el summary
+      cashMovementsSummary: {
+        totalEntradas: movements.filter(m => m.type === "ENTRADA").reduce((sum, m) => sum + m.amount, 0),
+        totalSalidas: movements.filter(m => m.type === "SALIDA").reduce((sum, m) => sum + m.amount, 0),
+        neto: totalCashMovements,
+      },
     };
 
     res.json(summary);
@@ -434,6 +490,127 @@ export const cancelShift = async (req, res) => {
   } catch (error) {
     console.error("Error al cancelar turno:", error);
     res.status(500).json({ error: "Error al cancelar turno" });
+  }
+};
+
+// ============================================================
+// 📌 REGISTRAR MOVIMIENTO DE EFECTIVO (ENTRADA O SALIDA)
+// ============================================================
+export const createCashMovement = async (req, res) => {
+  try {
+    const { shiftId, type, amount, reason, notes, createdBy } = req.body;
+
+    // Validaciones
+    if (!shiftId || !type || amount === undefined) {
+      return res.status(400).json({
+        error: "Faltan datos requeridos: shiftId, type, amount",
+      });
+    }
+
+    if (type !== "ENTRADA" && type !== "SALIDA") {
+      return res.status(400).json({
+        error: "El tipo debe ser ENTRADA o SALIDA",
+      });
+    }
+
+    if (amount <= 0) {
+      return res.status(400).json({
+        error: "El monto debe ser mayor a 0",
+      });
+    }
+
+    // Verificar que el turno existe y está abierto
+    const shift = await prisma.cashRegisterShift.findUnique({
+      where: { id: parseInt(shiftId) },
+    });
+
+    if (!shift) {
+      return res.status(404).json({ error: "Turno no encontrado" });
+    }
+
+    if (shift.status !== "OPEN") {
+      return res.status(400).json({
+        error: "Solo se pueden registrar movimientos en turnos abiertos",
+      });
+    }
+
+    // Crear el movimiento
+    const movement = await prisma.cashMovement.create({
+      data: {
+        shiftId: parseInt(shiftId),
+        type,
+        amount: parseFloat(amount),
+        reason: reason || null,
+        notes: notes || null,
+        createdBy: createdBy || null,
+      },
+    });
+
+    res.status(201).json(movement);
+  } catch (error) {
+    console.error("Error al registrar movimiento de efectivo:", error);
+    res.status(500).json({ error: "Error al registrar movimiento de efectivo" });
+  }
+};
+
+// ============================================================
+// 📌 OBTENER MOVIMIENTOS DE EFECTIVO DE UN TURNO
+// ============================================================
+export const getCashMovementsByShift = async (req, res) => {
+  try {
+    const { shiftId } = req.params;
+
+    const movements = await prisma.cashMovement.findMany({
+      where: {
+        shiftId: parseInt(shiftId),
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    res.json(movements);
+  } catch (error) {
+    console.error("Error al obtener movimientos de efectivo:", error);
+    res.status(500).json({ error: "Error al obtener movimientos de efectivo" });
+  }
+};
+
+// ============================================================
+// 📌 ELIMINAR MOVIMIENTO DE EFECTIVO
+// ============================================================
+export const deleteCashMovement = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Verificar que el movimiento existe
+    const movement = await prisma.cashMovement.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        shift: true,
+      },
+    });
+
+    if (!movement) {
+      return res.status(404).json({ error: "Movimiento no encontrado" });
+    }
+
+    // Solo permitir eliminar si el turno está abierto
+    if (movement.shift.status !== "OPEN") {
+      return res.status(400).json({
+        error: "Solo se pueden eliminar movimientos de turnos abiertos",
+      });
+    }
+
+    // Eliminar el movimiento
+    await prisma.cashMovement.delete({
+      where: { id: parseInt(id) },
+    });
+
+    res.json({ message: "Movimiento eliminado correctamente" });
+  } catch (error) {
+    console.error("Error al eliminar movimiento de efectivo:", error);
+    res.status(500).json({ error: "Error al eliminar movimiento de efectivo" });
   }
 };
 

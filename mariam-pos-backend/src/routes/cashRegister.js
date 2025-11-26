@@ -7,6 +7,9 @@ import {
   getShiftsByDateRange,
   getShiftSummary,
   cancelShift,
+  createCashMovement,
+  getCashMovementsByShift,
+  deleteCashMovement,
 } from "../controllers/cashRegisterController.js";
 
 const router = express.Router();
@@ -21,6 +24,11 @@ router.get("/shifts/:id/summary", getShiftSummary);
 router.post("/shifts/open", openShift);
 router.post("/shifts/:id/close", closeShift);
 router.delete("/shifts/:id", cancelShift);
+
+// 🟢 Rutas de movimientos de efectivo
+router.post("/cash-movements", createCashMovement);
+router.get("/shifts/:shiftId/cash-movements", getCashMovementsByShift);
+router.delete("/cash-movements/:id", deleteCashMovement);
 
 export default router;
 

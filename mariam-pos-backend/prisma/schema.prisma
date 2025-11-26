@@ -224,6 +224,9 @@ model CashRegisterShift {
   // Relación con ventas
   sales           Sale[]
   
+  // Relación con movimientos de efectivo
+  cashMovements   CashMovement[]
+  
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   
@@ -239,4 +242,33 @@ enum ShiftStatus {
   OPEN      // Turno abierto
   CLOSED    // Turno cerrado
   CANCELLED // Turno cancelado
+}
+
+// ------------------------------------------------------------
+// Movimientos de Efectivo (Entradas y Salidas)
+// ------------------------------------------------------------
+model CashMovement {
+  id              Int       @id @default(autoincrement())
+  shiftId         Int       // Relación con el turno
+  shift           CashRegisterShift @relation(fields: [shiftId], references: [id])
+  
+  type            CashMovementType // ENTRADA o SALIDA
+  amount          Float     // Monto del movimiento
+  reason          String?   // Razón del movimiento (ej: "Pago a proveedor", "Cobro recibido")
+  notes           String?   // Notas adicionales
+  
+  createdBy       String?   // Usuario que creó el movimiento
+  createdAt       DateTime  @default(now())
+  
+  @@index([shiftId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// ------------------------------------------------------------
+// Enum para tipos de movimiento de efectivo
+// ------------------------------------------------------------
+enum CashMovementType {
+  ENTRADA  // Entrada de efectivo a la caja
+  SALIDA   // Salida de efectivo de la caja
 }

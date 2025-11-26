@@ -6,11 +6,13 @@ import {
   closeShift,
   getActiveShift,
   getShiftSummary,
+  getCashMovementsByShift,
 } from "../../api/cashRegister";
 import type {
   CashRegisterShift,
   OpenShiftInput,
   CloseShiftInput,
+  CashMovement,
 } from "../../types/index";
 import "../../styles/pages/sales/paymentModal.css";
 
@@ -39,7 +41,19 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
   const [notes, setNotes] = useState<string>("");
   const [activeShift, setActiveShift] = useState<CashRegisterShift | null>(null);
   const [loading, setLoading] = useState(false);
+  const [cashMovements, setCashMovements] = useState<CashMovement[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Detectar si es móvil
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Verificar si hay turno activo al montar
   useEffect(() => {
@@ -52,9 +66,20 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
       if (shift) {
         setActiveShift(shift);
         setMode("close");
+        // Cargar movimientos de efectivo
+        loadCashMovements(shift.id);
       }
     } catch (error) {
       console.error("Error al verificar turno activo:", error);
+    }
+  };
+
+  const loadCashMovements = async (shiftId: number) => {
+    try {
+      const movements = await getCashMovementsByShift(shiftId);
+      setCashMovements(movements);
+    } catch (error) {
+      console.error("Error al cargar movimientos:", error);
     }
   };
 
@@ -173,26 +198,147 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
       console.log('activeShift.id', activeShift.id);
       const summary = await getShiftSummary(activeShift.id);
       console.log('summary resumen de turno', summary);
-      const expectedCash = summary.shift.initialCash + summary.paymentMethods.efectivo.total;
+      // Calcular efectivo esperado correctamente
+      // Fondo inicial + Ventas en efectivo + Neto de movimientos
+      // Siempre calcular localmente para asegurar precisión
+      const ventasEfectivo = summary.paymentMethods?.efectivo?.total || summary.totals?.totalCash || 0;
+      const netoMovimientos = summary.cashMovementsSummary?.neto || 0;
+      const expectedCash = summary.shift.initialCash + ventasEfectivo + netoMovimientos;
+      
+      // Construir HTML de movimientos si existen
+      let movementsHtml = "";
+      if (summary.cashMovements && summary.cashMovements.length > 0) {
+        movementsHtml = `
+          <hr style="margin: 15px 0;">
+          <p style="font-weight: 600; margin-bottom: 8px;">Movimientos de Efectivo:</p>
+          <div style="max-height: 200px; overflow-y: auto; font-size: 0.85rem;">
+            ${summary.cashMovements.map((m: any) => `
+              <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #e5e7eb;">
+                <div>
+                  <span style="color: ${m.type === 'ENTRADA' ? '#059669' : '#dc2626'}; font-weight: 600;">
+                    ${m.type === 'ENTRADA' ? '💰 +' : '💸 -'}$${m.amount.toFixed(2)}
+                  </span>
+                  <span style="color: #6b7280; margin-left: 8px;">${m.reason || 'Sin razón'}</span>
+                </div>
+                <span style="color: #9ca3af; font-size: 0.8rem;">
+                  ${new Date(m.createdAt).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            `).join('')}
+          </div>
+          ${summary.cashMovementsSummary ? `
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 2px solid #d1d5db;">
+              <p style="font-size: 0.85rem;">
+                <strong>Total Entradas:</strong> <span style="color: #059669;">+$${summary.cashMovementsSummary.totalEntradas.toFixed(2)}</span>
+              </p>
+              <p style="font-size: 0.85rem;">
+                <strong>Total Salidas:</strong> <span style="color: #dc2626;">-$${summary.cashMovementsSummary.totalSalidas.toFixed(2)}</span>
+              </p>
+              <p style="font-size: 0.85rem; font-weight: 600;">
+                <strong>Neto Movimientos:</strong> 
+                <span style="color: ${summary.cashMovementsSummary.neto >= 0 ? '#059669' : '#dc2626'};">
+                  ${summary.cashMovementsSummary.neto >= 0 ? '+' : ''}$${summary.cashMovementsSummary.neto.toFixed(2)}
+                </span>
+              </p>
+            </div>
+          ` : ''}
+        `;
+      }
 
       Swal.fire({
-        title: "📊 Resumen del Turno",
+        title: "📊 Resumen Completo del Turno",
         html: `
-          <div style="text-align: left; margin-top: 15px;">
-            <p><strong>Fondo Inicial:</strong> $${summary.shift.initialCash.toFixed(2)}</p>
-            <p><strong>Ventas en Efectivo:</strong> $${summary.paymentMethods?.efectivo?.total.toFixed(2)||0}</p>
-            <p><strong>Ventas en Tarjeta:</strong> $${summary.paymentMethods?.tarjeta?.total.toFixed(2)||0}</p>
-            <p><strong>Ventas en Transferencia:</strong> $${summary.totals.totalTransfer.toFixed(2)}</p>
-            <p><strong>Otros:</strong> $${summary.totals.totalOther.toFixed(2)}</p>
-            <hr style="margin: 10px 0;">
-            <p><strong>Total Esperado en Efectivo:</strong> $${expectedCash.toFixed(2)}</p>
-            <p><strong>Total de Ventas:</strong> $${summary.statistics.totalAmount.toFixed(2)}</p>
-            <p><strong>Número de Ventas:</strong> ${summary.statistics.totalSales}</p>
-            <p><strong>Ticket Promedio:</strong> $${summary.statistics.averageTicket.toFixed(2)}</p>
+          <div style="text-align: left; margin-top: 15px; font-size: 1.05rem; max-width: 100%;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+              <div>
+                <div style="margin-bottom: 12px;">
+                  <span style="color: #6b7280; font-size: 0.95rem;">Fondo Inicial:</span>
+                  <p style="margin: 4px 0; font-size: 1.2rem; font-weight: 700; color: #1f2937;">
+                    $${summary.shift.initialCash.toFixed(2)}
+                  </p>
+                </div>
+                <div style="margin-bottom: 12px;">
+                  <span style="color: #6b7280; font-size: 0.95rem;">Ventas en Efectivo:</span>
+                  <p style="margin: 4px 0; font-size: 1.2rem; font-weight: 700; color: #059669;">
+                    $${ventasEfectivo.toFixed(2)}
+                  </p>
+                </div>
+                ${summary.cashMovementsSummary ? `
+                  <div style="margin-bottom: 12px; padding: 10px; background: #f3f4f6; border-radius: 8px;">
+                    <p style="margin: 4px 0; color: #059669; font-weight: 600; font-size: 1rem;">
+                      <strong>💰 Entradas:</strong> +$${summary.cashMovementsSummary.totalEntradas.toFixed(2)}
+                    </p>
+                    <p style="margin: 4px 0; color: #dc2626; font-weight: 600; font-size: 1rem;">
+                      <strong>💸 Salidas:</strong> -$${summary.cashMovementsSummary.totalSalidas.toFixed(2)}
+                    </p>
+                    <p style="margin: 4px 0; font-weight: 600; font-size: 1rem;">
+                      <strong>Neto:</strong> 
+                      <span style="color: ${summary.cashMovementsSummary.neto >= 0 ? '#059669' : '#dc2626'};">
+                        ${summary.cashMovementsSummary.neto >= 0 ? '+' : ''}$${summary.cashMovementsSummary.neto.toFixed(2)}
+                      </span>
+                    </p>
+                  </div>
+                ` : ''}
+              </div>
+              <div>
+                <div style="margin-bottom: 12px;">
+                  <span style="color: #6b7280; font-size: 0.95rem;">Ventas en Tarjeta:</span>
+                  <p style="margin: 4px 0; font-size: 1.1rem; font-weight: 600; color: #3b82f6;">
+                    $${summary.paymentMethods?.tarjeta?.total.toFixed(2)||0}
+                  </p>
+                </div>
+                <div style="margin-bottom: 12px;">
+                  <span style="color: #6b7280; font-size: 0.95rem;">Ventas en Transferencia:</span>
+                  <p style="margin: 4px 0; font-size: 1.1rem; font-weight: 600; color: #8b5cf6;">
+                    $${summary.totals.totalTransfer.toFixed(2)}
+                  </p>
+                </div>
+                <div style="margin-bottom: 12px;">
+                  <span style="color: #6b7280; font-size: 0.95rem;">Otros:</span>
+                  <p style="margin: 4px 0; font-size: 1.1rem; font-weight: 600; color: #6b7280;">
+                    $${summary.totals.totalOther.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <hr style="margin: 15px 0; border-color: #d1d5db;">
+            <div style="padding: 15px; background: #dbeafe; border-radius: 8px; border: 2px solid #3b82f6; margin-bottom: 15px;">
+              <span style="color: #1e40af; font-size: 1rem; font-weight: 600;">
+                Total Esperado en Efectivo:
+              </span>
+              <p style="margin: 8px 0 0 0; font-size: 1.5rem; font-weight: 700; color: #1e40af;">
+                $${expectedCash.toFixed(2)}
+              </p>
+              <p style="margin: 8px 0 0 0; font-size: 0.9rem; color: #6b7280;">
+                (Fondo: $${summary.shift.initialCash.toFixed(2)} + Ventas: $${ventasEfectivo.toFixed(2)} ${netoMovimientos !== 0 ? `+ Movimientos: ${netoMovimientos >= 0 ? '+' : ''}$${netoMovimientos.toFixed(2)}` : ''})
+              </p>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+              <div>
+                <span style="color: #6b7280; font-size: 0.95rem;">Total de Ventas:</span>
+                <p style="margin: 4px 0; font-size: 1.1rem; font-weight: 600; color: #1f2937;">
+                  $${summary.statistics.totalAmount.toFixed(2)}
+                </p>
+              </div>
+              <div>
+                <span style="color: #6b7280; font-size: 0.95rem;">Número de Ventas:</span>
+                <p style="margin: 4px 0; font-size: 1.1rem; font-weight: 600; color: #1f2937;">
+                  ${summary.statistics.totalSales}
+                </p>
+              </div>
+            </div>
+            <div style="margin-bottom: 15px;">
+              <span style="color: #6b7280; font-size: 0.95rem;">Ticket Promedio:</span>
+              <p style="margin: 4px 0; font-size: 1.1rem; font-weight: 600; color: #1f2937;">
+                $${summary.statistics.averageTicket.toFixed(2)}
+              </p>
+            </div>
+            ${movementsHtml}
           </div>
         `,
-        width: "500px",
+        width: isMobile ? "95%" : "800px",
         confirmButtonText: "Cerrar",
+        confirmButtonColor: "#3b82f6",
       });
     } catch (error) {
       console.error("Error al cargar resumen:", error);
@@ -283,7 +429,13 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
     return null;
   }
 
-  const expectedCash = activeShift.initialCash + activeShift.totalCash;
+  // Calcular efectivo esperado incluyendo movimientos
+  const totalCashMovements = cashMovements.reduce(
+    (sum, m) => sum + (m.type === "ENTRADA" ? m.amount : -m.amount),
+    0
+  );
+  const expectedCash = activeShift.expectedCash ?? 
+    (activeShift.initialCash + activeShift.totalCash + totalCashMovements);
   const difference =
     finalCash && parseFloat(finalCash) >= 0
       ? parseFloat(finalCash) - expectedCash
@@ -291,143 +443,260 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
 
   return (
     <div className="modal-overlay">
-      <div className="modal-container" style={{ maxWidth: "600px" }}>
+      <div className="modal-container" style={{ 
+        maxWidth: "1000px", 
+        width: "98%",
+        maxHeight: "98vh",
+        overflowY: "auto",
+        padding: "20px"
+      }}>
         <button className="close-btn" onClick={onClose}>
-          <IoCloseCircleOutline size={32} />
+          <IoCloseCircleOutline size={28} />
         </button>
 
-        <h2 className="modal-title">🔴 Cerrar Turno de Caja</h2>
+        <h2 className="modal-title" style={{ fontSize: "1.5rem", marginBottom: "12px", marginTop: "0" }}>
+          🔴 Cerrar Turno de Caja
+        </h2>
 
-        <div style={{ marginBottom: "20px", textAlign: "center" }}>
-          <p style={{ fontSize: "0.9rem", color: "#6b7280" }}>
+        <div style={{ marginBottom: "15px", textAlign: "center" }}>
+          <p style={{ fontSize: "0.95rem", color: "#6b7280", fontWeight: "600", margin: "2px 0" }}>
             {activeShift.shiftNumber}
           </p>
-          <p style={{ fontSize: "0.9rem", color: "#6b7280" }}>
+          <p style={{ fontSize: "0.9rem", color: "#6b7280", margin: "2px 0" }}>
             {branch} - {cashRegister}
           </p>
         </div>
 
-        <div
-          style={{
-            backgroundColor: "#f3f4f6",
-            padding: "15px",
-            borderRadius: "8px",
-            marginBottom: "20px",
-          }}
-        >
-          <h3 style={{ marginTop: 0, marginBottom: "10px" }}>Resumen del Turno</h3>
-          <div style={{ textAlign: "left", fontSize: "0.9rem" }}>
-            <p>
-              <strong>Fondo Inicial:</strong> $
-              {activeShift.initialCash.toFixed(2)}
-            </p>
-            <p>
-              <strong>Ventas en Efectivo:</strong> $
-              {activeShift.totalCash.toFixed(2)}
-            </p>
-            <p>
-              <strong>Ventas en Tarjeta:</strong> $
-              {activeShift.totalCard.toFixed(2)}
-            </p>
-            <p>
-              <strong>Ventas en Transferencia:</strong> $
-              {activeShift.totalTransfer.toFixed(2)}
-            </p>
-            <p>
-              <strong>Otros:</strong> ${activeShift.totalOther.toFixed(2)}
-            </p>
-            <hr style={{ margin: "10px 0" }} />
-            <p>
-              <strong>Total Esperado en Efectivo:</strong> $
-              {expectedCash.toFixed(2)}
-            </p>
-          </div>
-          <button
-            onClick={loadShiftSummary}
+        {/* Layout en dos columnas */}
+        <div style={{ 
+          display: "grid", 
+          gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr", 
+          gap: "15px",
+          marginBottom: "15px"
+        }}>
+          {/* Columna izquierda - Resumen */}
+          <div
             style={{
-              marginTop: "10px",
-              padding: "8px 16px",
-              backgroundColor: "#3b82f6",
-              color: "white",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-              fontSize: "0.9rem",
+              backgroundColor: "#f3f4f6",
+              padding: "15px",
+              borderRadius: "10px",
             }}
           >
-            Ver Resumen Completo
-          </button>
-        </div>
+            <h3 style={{ 
+              marginTop: 0, 
+              marginBottom: "10px",
+              fontSize: "1.1rem",
+              fontWeight: "700",
+              color: "#1f2937"
+            }}>
+              Resumen del Turno
+            </h3>
+            <div style={{ 
+              display: "grid", 
+              gridTemplateColumns: "1fr 1fr", 
+              gap: "8px",
+              fontSize: "0.9rem"
+            }}>
+              <div>
+                <span style={{ color: "#6b7280", fontSize: "0.85rem", display: "block" }}>Fondo Inicial:</span>
+                <p style={{ margin: "2px 0", fontSize: "1rem", fontWeight: "700", color: "#1f2937" }}>
+                  ${activeShift.initialCash.toFixed(2)}
+                </p>
+              </div>
+              
+              <div>
+                <span style={{ color: "#6b7280", fontSize: "0.85rem", display: "block" }}>Ventas Efectivo:</span>
+                <p style={{ margin: "2px 0", fontSize: "1rem", fontWeight: "700", color: "#059669" }}>
+                  ${activeShift.totalCash.toFixed(2)}
+                </p>
+              </div>
 
-        <div className="input-section">
-          <label>Efectivo Contado Físicamente:</label>
-          <div className="input-wrapper">
-            <input
-              ref={inputRef}
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="0.00"
-              value={finalCash}
-              onChange={(e) => setFinalCash(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleCloseShift();
-                }
-              }}
-            />
-          </div>
-          {difference !== null && (
-            <p
-              className="change-text"
-              style={{
-                color:
-                  difference === 0
-                    ? "#059669"
-                    : difference > 0
-                    ? "#dc2626"
-                    : "#3b82f6",
-                fontWeight: "600",
-              }}
-            >
-              Diferencia: {difference >= 0 ? "+" : ""}
-              {difference.toFixed(2)}
-              {difference !== 0 && (
-                <span style={{ fontSize: "0.85rem", marginLeft: "8px" }}>
-                  {difference > 0 ? "(Sobrante)" : "(Faltante)"}
-                </span>
+              {cashMovements.length > 0 && (
+                <>
+                  <div style={{ gridColumn: "1 / -1", padding: "8px", backgroundColor: "#ffffff", borderRadius: "6px", border: "1px solid #e5e7eb" }}>
+                    <span style={{ color: "#6b7280", fontSize: "0.85rem", display: "block", marginBottom: "4px" }}>Movimientos:</span>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem" }}>
+                      <span style={{ color: "#059669", fontWeight: "600" }}>
+                        💰 +${cashMovements.filter((m) => m.type === "ENTRADA").reduce((sum, m) => sum + m.amount, 0).toFixed(2)}
+                      </span>
+                      <span style={{ color: "#dc2626", fontWeight: "600" }}>
+                        💸 -${cashMovements.filter((m) => m.type === "SALIDA").reduce((sum, m) => sum + m.amount, 0).toFixed(2)}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "4px", textAlign: "center" }}>
+                      ({cashMovements.length} movimiento{cashMovements.length !== 1 ? "s" : ""})
+                    </p>
+                  </div>
+                </>
               )}
-            </p>
-          )}
+
+              <div>
+                <span style={{ color: "#6b7280", fontSize: "0.85rem", display: "block" }}>Tarjeta:</span>
+                <p style={{ margin: "2px 0", fontSize: "0.95rem", fontWeight: "600", color: "#3b82f6" }}>
+                  ${activeShift.totalCard.toFixed(2)}
+                </p>
+              </div>
+
+              <div>
+                <span style={{ color: "#6b7280", fontSize: "0.85rem", display: "block" }}>Transferencia:</span>
+                <p style={{ margin: "2px 0", fontSize: "0.95rem", fontWeight: "600", color: "#8b5cf6" }}>
+                  ${activeShift.totalTransfer.toFixed(2)}
+                </p>
+              </div>
+
+              <div>
+                <span style={{ color: "#6b7280", fontSize: "0.85rem", display: "block" }}>Otros:</span>
+                <p style={{ margin: "2px 0", fontSize: "0.95rem", fontWeight: "600", color: "#6b7280" }}>
+                  ${activeShift.totalOther.toFixed(2)}
+                </p>
+              </div>
+            </div>
+
+            <hr style={{ margin: "10px 0", borderColor: "#d1d5db" }} />
+            
+            <div style={{ 
+              padding: "12px",
+              backgroundColor: "#dbeafe",
+              borderRadius: "8px",
+              border: "2px solid #3b82f6"
+            }}>
+              <span style={{ color: "#1e40af", fontSize: "0.9rem", fontWeight: "600", display: "block" }}>
+                Total Esperado en Efectivo:
+              </span>
+              <p style={{ 
+                margin: "4px 0 0 0", 
+                fontSize: "1.3rem", 
+                fontWeight: "700", 
+                color: "#1e40af"
+              }}>
+                ${expectedCash.toFixed(2)}
+              </p>
+            </div>
+          </div>
+
+          {/* Columna derecha - Inputs */}
+          <div>
+            <div className="input-section" style={{ marginBottom: "12px" }}>
+              <label style={{ fontSize: "0.95rem", fontWeight: "600", marginBottom: "6px", display: "block" }}>
+                Efectivo Contado Físicamente:
+              </label>
+              <div className="input-wrapper">
+                <input
+                  ref={inputRef}
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={finalCash}
+                  onChange={(e) => setFinalCash(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleCloseShift();
+                    }
+                  }}
+                  style={{
+                    fontSize: "1.2rem",
+                    padding: "12px",
+                    fontWeight: "600"
+                  }}
+                />
+              </div>
+              {difference !== null && (
+                <div style={{
+                  marginTop: "10px",
+                  padding: "10px",
+                  borderRadius: "8px",
+                  backgroundColor: difference === 0 ? "#d1fae5" : difference > 0 ? "#fee2e2" : "#dbeafe",
+                  border: `2px solid ${difference === 0 ? "#059669" : difference > 0 ? "#dc2626" : "#3b82f6"}`,
+                }}>
+                  <p style={{
+                    margin: 0,
+                    fontSize: "1.1rem",
+                    fontWeight: "700",
+                    color: difference === 0 ? "#059669" : difference > 0 ? "#dc2626" : "#3b82f6",
+                    textAlign: "center"
+                  }}>
+                    Diferencia: {difference >= 0 ? "+" : ""}${difference.toFixed(2)}
+                    {difference !== 0 && (
+                      <span style={{ fontSize: "0.85rem", display: "block", marginTop: "2px" }}>
+                        {difference > 0 ? "(Sobrante)" : "(Faltante)"}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="input-section" style={{ marginBottom: "12px" }}>
+              <label style={{ fontSize: "0.95rem", fontWeight: "600", marginBottom: "6px", display: "block" }}>
+                Observaciones (Opcional):
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Notas sobre el cierre del turno..."
+                rows={3}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  borderRadius: "8px",
+                  border: "2px solid #d1d5db",
+                  fontSize: "0.9rem",
+                  fontFamily: "inherit",
+                  resize: "vertical"
+                }}
+              />
+            </div>
+
+            <button
+              onClick={loadShiftSummary}
+              style={{
+                width: "100%",
+                marginTop: "8px",
+                padding: "10px 16px",
+                backgroundColor: "#3b82f6",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontSize: "0.9rem",
+                fontWeight: "600",
+                transition: "background-color 0.2s"
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#2563eb"}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#3b82f6"}
+            >
+              📊 Ver Resumen Completo
+            </button>
+          </div>
         </div>
 
-        <div className="input-section">
-          <label>Observaciones (Opcional):</label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Notas sobre el cierre del turno..."
-            rows={3}
+        <div className="payment-modal-actions" style={{ 
+          marginTop: "15px",
+          paddingTop: "15px",
+          borderTop: "2px solid #e5e7eb"
+        }}>
+          <button 
+            className="cancel-btn-payment" 
+            onClick={onClose}
             style={{
-              width: "100%",
-              padding: "10px",
-              borderRadius: "6px",
-              border: "1px solid #d1d5db",
-              fontSize: "0.9rem",
-              fontFamily: "inherit",
+              fontSize: "0.95rem",
+              padding: "10px 20px",
+              fontWeight: "600"
             }}
-          />
-        </div>
-
-        <div className="payment-modal-actions">
-          <button className="cancel-btn-payment" onClick={onClose}>
+          >
             Cancelar (ESC)
           </button>
           <button
             className="confirm-btn"
             onClick={handleCloseShift}
             disabled={loading}
+            style={{
+              fontSize: "0.95rem",
+              padding: "10px 20px",
+              fontWeight: "600"
+            }}
           >
             {loading ? "Cerrando..." : "Cerrar Turno (Enter)"}
           </button>
