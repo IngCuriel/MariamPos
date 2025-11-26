@@ -10,6 +10,7 @@ import {
   createCashMovement,
   getCashMovementsByShift,
   getCashMovementsByDateRange,
+  getCashMovementsHistory,
   deleteCashMovement,
 } from "../controllers/cashRegisterController.js";
 
@@ -28,6 +29,7 @@ router.delete("/shifts/:id", cancelShift);
 
 // 🟢 Rutas de movimientos de efectivo
 router.post("/cash-movements", createCashMovement);
+router.get("/cash-movements/history", getCashMovementsHistory);
 router.get("/cash-movements/by-date-range", getCashMovementsByDateRange);
 router.get("/shifts/:shiftId/cash-movements", getCashMovementsByShift);
 router.delete("/cash-movements/:id", deleteCashMovement);

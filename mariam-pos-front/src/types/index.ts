@@ -1,6 +1,6 @@
 // Tipos principales de la aplicación
 
-export type ViewType = 'main' | 'help' | 'pos' | 'products' | 'new-product' | 'catalog' | 'categories' | 'sales' |'client' | 'report' | 'inventory' | 'users' | 'shift-history';
+export type ViewType = 'main' | 'help' | 'pos' | 'products' | 'new-product' | 'catalog' | 'categories' | 'sales' |'client' | 'report' | 'inventory' | 'users' | 'shift-history' | 'cash-movements-history';
 
 // Representa una presentación de un producto (ej: 1 pieza, 1 cono, 1 six)
 export interface ProductPresentation {
@@ -40,6 +40,7 @@ export interface Client {
   id: string;
   name: string;
   alias?: string;
+  phone?: string; // Número de celular/teléfono
   allowCredit?: boolean; // Si el cliente puede comprar a crédito
   creditLimit?: number;  // Límite de crédito permitido
 }

@@ -194,7 +194,9 @@ export const closeShift = async (req, res) => {
     });
 
     // Calcular efectivo esperado (fondo inicial + ventas en efectivo + movimientos + abonos en efectivo)
-    const expectedCash = shift.initialCash + totalCash + totalCashMovements + totalCreditPaymentsCash;
+    // Calcular efectivo esperado: Fondo + Ventas efectivo + Movimientos + Abonos efectivo - Créditos generados
+    // Los créditos se restan porque representan dinero que NO se recibió en efectivo
+    const expectedCash = shift.initialCash + totalCash + totalCashMovements + totalCreditPaymentsCash - totalCreditsGenerated;
 
     // Calcular diferencia
     const difference = parseFloat(finalCash) - expectedCash;
@@ -387,7 +389,9 @@ export const getActiveShift = async (req, res) => {
       totalCard,
       totalTransfer,
       totalOther,
-      expectedCash: shift.initialCash + totalCash + totalCashMovements + totalCreditPaymentsCash,
+      // Calcular efectivo esperado restando créditos generados
+      // Los créditos se restan porque representan dinero que NO se recibió en efectivo
+      expectedCash: shift.initialCash + totalCash + totalCashMovements + totalCreditPaymentsCash - totalCreditsGenerated,
       creditsInfo: {
         totalCreditsGenerated,
         totalCreditPaymentsCash,
@@ -653,9 +657,10 @@ export const getShiftSummary = async (req, res) => {
     // Calcular ventas en efectivo basándose en las ventas actuales
     const ventasEfectivo = paymentMethods["efectivo"]?.total || paymentMethods["Efectivo"]?.total || 0;
 
-    // Calcular efectivo esperado (incluye movimientos y abonos en efectivo)
+    // Calcular efectivo esperado (incluye movimientos, abonos en efectivo y resta créditos generados)
+    // Los créditos se restan porque representan dinero que NO se recibió en efectivo
     // Siempre calcular basándose en valores actuales, no en valores almacenados
-    const calculatedExpectedCash = shift.initialCash + ventasEfectivo + totalCashMovements + totalCreditPaymentsCash;
+    const calculatedExpectedCash = shift.initialCash + ventasEfectivo + totalCashMovements + totalCreditPaymentsCash - totalCreditsGenerated;
 
     const summary = {
       shift: {
@@ -917,6 +922,53 @@ export const deleteCashMovement = async (req, res) => {
   } catch (error) {
     console.error("Error al eliminar movimiento de efectivo:", error);
     res.status(500).json({ error: "Error al eliminar movimiento de efectivo" });
+  }
+};
+
+// ============================================================
+// 📌 OBTENER HISTORIAL DE MOVIMIENTOS POR RANGO DE FECHAS
+// ============================================================
+export const getCashMovementsHistory = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({ error: "Debe proporcionar startDate y endDate" });
+    }
+
+    const start = new Date(`${startDate}T00:00:00.000`);
+    const end = new Date(`${endDate}T23:59:59.999`);
+
+    const movements = await prisma.cashMovement.findMany({
+      where: {
+        createdAt: {
+          gte: start,
+          lte: end,
+        },
+      },
+      include: {
+        shift: {
+          select: {
+            id: true,
+            shiftNumber: true,
+            branch: true,
+            cashRegister: true,
+            cashierName: true,
+            startTime: true,
+            endTime: true,
+            status: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    res.json(movements);
+  } catch (error) {
+    console.error("Error al obtener historial de movimientos:", error);
+    res.status(500).json({ error: "Error al obtener historial de movimientos" });
   }
 };
 

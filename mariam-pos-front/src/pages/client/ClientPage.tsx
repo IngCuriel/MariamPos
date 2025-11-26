@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import '../../styles/pages/client.css';
 import Header from '../../components/Header';
 import type {Client, ClientCredit} from '../../types/index'
-import { getClients,createClient } from "../../api/clients";
+import { getClients, createClient, updateClient } from "../../api/clients";
 import { getClientCredits, getClientCreditSummary } from "../../api/credits";
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import ClientModal from './ClientModal';
 import CreditPaymentModal from './CreditPaymentModal';
+import ClientCreditHistoryModal from './ClientCreditHistoryModal';
 import Swal from 'sweetalert2';
 
 interface ClientPageProps {
@@ -17,10 +18,13 @@ interface ClientPageProps {
 const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
   const [clients, setClients] = useState<Client[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [clientToEdit, setClientToEdit] = useState<Client | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [clientCredits, setClientCredits] = useState<Record<string, { totalPending: number; credits: ClientCredit[] }>>({});
   const [selectedCredit, setSelectedCredit] = useState<ClientCredit | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showCreditHistory, setShowCreditHistory] = useState(false);
+  const [selectedClientForHistory, setSelectedClientForHistory] = useState<Client | null>(null);
   const [loadingCredits, setLoadingCredits] = useState(false);
   
   // 🟢 Llamada al API cuando el hook se monta
@@ -144,21 +148,42 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
   };
 
   const handleAddNew = () => {
-    setShowAddForm(()=> true)
+    setClientToEdit(null);
+    setShowAddForm(true);
+  };
+
+  const handleEdit = (client: Client) => {
+    setClientToEdit(client);
+    setShowAddForm(true);
   };
 
   const handleCloseForm = () => {
-    setShowAddForm(()=> false);
-  }
+    setShowAddForm(false);
+    setClientToEdit(null);
+  };
 
   const filteredClients = clients.filter(client =>
-    client.name.toLowerCase().includes(searchTerm.toLowerCase())
+    client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (client.alias && client.alias.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (client.phone && client.phone.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const handleSave = async (client:Omit<Client, "id">) => {
-    await createClient(client);
+  const handleSave = async (client: Omit<Client, "id">) => {
+    if (clientToEdit) {
+      // Modo edición
+      await updateClient(clientToEdit.id, client);
+    } else {
+      // Modo creación
+      await createClient(client);
+    }
     fetchClients();
-  } 
+    setClientToEdit(null);
+  };
+
+  const handleViewCreditHistory = (client: Client) => {
+    setSelectedClientForHistory(client);
+    setShowCreditHistory(true);
+  }; 
   return (
     <div className="app-client">
       <div className="client-container">
@@ -215,6 +240,7 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
                   <th>*id</th>
                   <th>Nombre</th>
                   <th>Alias</th>
+                  <th>Celular</th>
                   <th>Crédito</th>
                   <th>Límite</th>
                   <th>Pendiente</th>
@@ -246,6 +272,7 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
                         )}
                       </td>
                       <td>{client.alias || '-'}</td>
+                      <td>{client.phone || '-'}</td>
                       <td>{client.allowCredit ? '✅ Sí' : '❌ No'}</td>
                       <td>
                         {client.allowCredit 
@@ -264,19 +291,44 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
                         ) : '-'}
                       </td>
                       <td>
-                        {hasPending && (
+                        <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
                           <Button
-                            variant="success"
-                            onClick={() => handleOpenPaymentModal(client.id)}
+                            variant="secondary"
+                            onClick={() => handleEdit(client)}
                             style={{ 
                               padding: "4px 12px", 
-                              fontSize: "0.85rem",
-                              backgroundColor: "#059669"
+                              fontSize: "0.85rem"
                             }}
                           >
-                            💳 Abonar
+                            ✏️ Editar
                           </Button>
-                        )}
+                          {client.allowCredit && (
+                            <Button
+                              variant="info"
+                              onClick={() => handleViewCreditHistory(client)}
+                              style={{ 
+                                padding: "4px 12px", 
+                                fontSize: "0.85rem",
+                                backgroundColor: "#3b82f6"
+                              }}
+                            >
+                              📋 Historial
+                            </Button>
+                          )}
+                          {hasPending && (
+                            <Button
+                              variant="success"
+                              onClick={() => handleOpenPaymentModal(client.id)}
+                              style={{ 
+                                padding: "4px 12px", 
+                                fontSize: "0.85rem",
+                                backgroundColor: "#059669"
+                              }}
+                            >
+                              💳 Abonar
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -289,6 +341,7 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
             isOpen={showAddForm}           
             onClose={handleCloseForm}
             onSave={handleSave}
+            clientToEdit={clientToEdit}
           />
          
          {/* Modal para registrar abono */}
@@ -300,6 +353,16 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
               setSelectedCredit(null);
             }}
             onPaymentSuccess={handlePaymentSuccess}
+          />
+
+         {/* Modal para ver historial de créditos */}
+         <ClientCreditHistoryModal
+            isOpen={showCreditHistory}
+            client={selectedClientForHistory}
+            onClose={() => {
+              setShowCreditHistory(false);
+              setSelectedClientForHistory(null);
+            }}
           />
       </div>
     </div>

@@ -246,13 +246,15 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
       const summary = await getShiftSummary(activeShift.id);
       console.log('summary resumen de turno', summary);
       // Calcular efectivo esperado correctamente
-      // Fondo inicial + Ventas en efectivo + Neto de movimientos + Abonos en efectivo
+      // Fondo inicial + Ventas en efectivo + Neto de movimientos + Abonos en efectivo - Créditos generados
+      // Los créditos se restan porque representan dinero que NO se recibió en efectivo
       // Siempre calcular localmente para asegurar precisión
       const ventasEfectivo = summary.paymentMethods?.efectivo?.total || summary.paymentMethods?.Efectivo?.total || summary.totals?.totalCash || 0;
       const ventasTarjeta = summary.paymentMethods?.tarjeta?.total || summary.paymentMethods?.Tarjeta?.total || summary.totals?.totalCard || 0;
       const netoMovimientos = summary.cashMovementsSummary?.neto || 0;
       const abonosEfectivo = summary.creditsInfo?.totalCreditPaymentsCash || 0;
-      const expectedCash = summary.shift.initialCash + ventasEfectivo + netoMovimientos + abonosEfectivo;
+      const creditosGenerados = summary.creditsInfo?.totalCreditsGenerated || 0;
+      const expectedCash = summary.shift.initialCash + ventasEfectivo + netoMovimientos + abonosEfectivo - creditosGenerados;
       
       // Construir HTML de movimientos si existen
       let movementsHtml = "";
@@ -369,7 +371,7 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
                 $${expectedCash.toFixed(2)}
               </p>
               <p style="margin: 8px 0 0 0; font-size: 0.9rem; color: #6b7280;">
-                (Fondo: $${summary.shift.initialCash.toFixed(2)} + Ventas: $${ventasEfectivo.toFixed(2)} ${netoMovimientos !== 0 ? `+ Movimientos: ${netoMovimientos >= 0 ? '+' : ''}$${netoMovimientos.toFixed(2)}` : ''}${abonosEfectivo > 0 ? ` + Abonos: +$${abonosEfectivo.toFixed(2)}` : ''})
+                (Fondo: $${summary.shift.initialCash.toFixed(2)} + Ventas: $${ventasEfectivo.toFixed(2)} ${netoMovimientos !== 0 ? `+ Movimientos: ${netoMovimientos >= 0 ? '+' : ''}$${netoMovimientos.toFixed(2)}` : ''}${abonosEfectivo > 0 ? ` + Abonos: +$${abonosEfectivo.toFixed(2)}` : ''}${creditosGenerados > 0 ? ` - Créditos: -$${creditosGenerados.toFixed(2)}` : ''})
               </p>
             </div>
             ${summary.creditsInfo && summary.creditsInfo.creditsCount > 0 ? `
@@ -563,14 +565,16 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
     return null;
   }
 
-  // Calcular efectivo esperado incluyendo movimientos y abonos
+  // Calcular efectivo esperado incluyendo movimientos, abonos y restando créditos generados
+  // Los créditos se restan porque representan dinero que NO se recibió en efectivo
   const totalCashMovements = cashMovements.reduce(
     (sum, m) => sum + (m.type === "ENTRADA" ? m.amount : -m.amount),
     0
   );
   const abonosEfectivo = creditsInfo?.totalCreditPaymentsCash || 0;
+  const creditosGenerados = creditsInfo?.totalCreditsGenerated || 0;
   const expectedCash = activeShift.expectedCash ?? 
-    (activeShift.initialCash + activeShift.totalCash + totalCashMovements + abonosEfectivo);
+    (activeShift.initialCash + activeShift.totalCash + totalCashMovements + abonosEfectivo - creditosGenerados);
   const difference =
     finalCash && parseFloat(finalCash) >= 0
       ? parseFloat(finalCash) - expectedCash
@@ -732,7 +736,7 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
                 ${expectedCash.toFixed(2)}
               </p>
               <p style={{ margin: "4px 0 0 0", fontSize: "0.75rem", color: "#6b7280" }}>
-                (Fondo: ${activeShift.initialCash.toFixed(2)} + Ventas: ${activeShift.totalCash.toFixed(2)} ${totalCashMovements !== 0 ? `+ Mov: ${totalCashMovements >= 0 ? '+' : ''}${totalCashMovements.toFixed(2)}` : ''}${abonosEfectivo > 0 ? ` + Abonos: +${abonosEfectivo.toFixed(2)}` : ''})
+                (Fondo: ${activeShift.initialCash.toFixed(2)} + Ventas: ${activeShift.totalCash.toFixed(2)} ${totalCashMovements !== 0 ? `+ Mov: ${totalCashMovements >= 0 ? '+' : ''}${totalCashMovements.toFixed(2)}` : ''}${abonosEfectivo > 0 ? ` + Abonos: +${abonosEfectivo.toFixed(2)}` : ''}${creditosGenerados > 0 ? ` - Créditos: -${creditosGenerados.toFixed(2)}` : ''})
               </p>
             </div>
             {creditsInfo && creditsInfo.creditsCount > 0 && (

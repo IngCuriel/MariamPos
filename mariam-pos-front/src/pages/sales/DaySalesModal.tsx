@@ -40,7 +40,7 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
       fetchSalesByDateRange(start, end);
       fetchCreditsByDateRange(start, end);
       fetchCreditPaymentsByDateRange(start, end);
-      fetchCashMovementsByDateRange(start, end);
+      //fetchCashMovementsByDateRange(start, end);
     }
   }, [dateToday, isOpen]);
 
@@ -738,7 +738,7 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
                   </div>
                 )}
 
-                {/* Resumen de Movimientos de Efectivo */}
+                {/* Resumen de Movimientos de Efectivo
                 {resumenMovimientos.movementsCount > 0 && (
                   <div className="summary-totals movements-section">
                     <div className="summary-item movement-entrada">
@@ -775,9 +775,9 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
                       </span>
                     </div>
                   </div>
-                )}
+                )}*/}
               </div>
-
+              
               {/* Right column - Sales list and details */}
               <div className="sales-details-column">
                 {/* Left sub-column - Sales list */}

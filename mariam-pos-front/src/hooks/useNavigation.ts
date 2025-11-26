@@ -21,6 +21,7 @@ export const useNavigation = () => {
   const goToInventory = () => setCurrentView('inventory');
   const goToUsers = () => setCurrentView('users');
   const goToShiftHistory = () => setCurrentView('shift-history');
+  const goToCashMovementsHistory = () => setCurrentView('cash-movements-history');
 
   return {
     currentView,
@@ -38,5 +39,6 @@ export const useNavigation = () => {
     goToInventory,
     goToUsers,
     goToShiftHistory,
+    goToCashMovementsHistory,
   };
 };

@@ -6,12 +6,14 @@ interface ClientModalProps {
   isOpen: boolean; 
   onClose: () => void;
   onSave: (client: Omit<Client, 'id'>) => void;
+  clientToEdit?: Client | null; // Cliente a editar (opcional)
 }
 
-const ClientModal:React.FC<ClientModalProps> = ({isOpen, onClose, onSave})=> {
+const ClientModal:React.FC<ClientModalProps> = ({isOpen, onClose, onSave, clientToEdit})=> {
     const [formData, setFormData] = useState({
        name: '',
        alias: '',
+       phone: '',
        allowCredit: false,
        creditLimit: 0,
      });
@@ -19,15 +21,28 @@ const ClientModal:React.FC<ClientModalProps> = ({isOpen, onClose, onSave})=> {
     const [errors, setErrors] = useState<Record<string, string>>({});
     
     useEffect(() => {
-        setFormData({
+        if (clientToEdit) {
+          // Modo edición: cargar datos del cliente
+          setFormData({
+            name: clientToEdit.name || '',
+            alias: clientToEdit.alias || '',
+            phone: clientToEdit.phone || '',
+            allowCredit: clientToEdit.allowCredit || false,
+            creditLimit: clientToEdit.creditLimit || 0,
+          });
+        } else {
+          // Modo creación: resetear formulario
+          setFormData({
             name: '',
             alias: '',
+            phone: '',
             allowCredit: false,
             creditLimit: 0,
-        });
+          });
+        }
         
         setErrors({});
-      }, [isOpen]);
+      }, [isOpen, clientToEdit]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
@@ -55,6 +70,7 @@ const ClientModal:React.FC<ClientModalProps> = ({isOpen, onClose, onSave})=> {
             const clientData: Omit<Client, 'id'> = {
                 name: formData.name.trim(),
                 alias: formData.alias.trim() || undefined,
+                phone: formData.phone.trim() || undefined,
                 allowCredit: formData.allowCredit,
                 creditLimit: formData.allowCredit ? parseFloat(formData.creditLimit.toString()) || 0 : 0,
             };
@@ -70,7 +86,7 @@ const ClientModal:React.FC<ClientModalProps> = ({isOpen, onClose, onSave})=> {
       <div className="modal-container">
         <Card className="modal-card">
           <div className="modal-header">
-             <h1>Cliente</h1>
+             <h1>{clientToEdit ? 'Editar Cliente' : 'Nuevo Cliente'}</h1>
              <button className="close-btn" onClick={onClose}>×</button>
            </div>
             <form onSubmit={handleSubmit} className="category-form">
@@ -99,6 +115,20 @@ const ClientModal:React.FC<ClientModalProps> = ({isOpen, onClose, onSave})=> {
                     />
                     <small style={{ display: "block", marginTop: "4px", fontSize: "0.8rem", color: "#6b7280" }}>
                         El alias ayuda a identificar mejor al cliente si hay nombres repetidos
+                    </small>
+                </div>
+                <div className="form-group">
+                    <label htmlFor="phone">Número de Celular (Opcional)</label>
+                    <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        placeholder="Ej: 521234567890"
+                    />
+                    <small style={{ display: "block", marginTop: "4px", fontSize: "0.8rem", color: "#6b7280" }}>
+                        Número de celular o teléfono del cliente (con código de país)
                     </small>
                 </div>
                 <div className="form-group">
@@ -149,7 +179,7 @@ const ClientModal:React.FC<ClientModalProps> = ({isOpen, onClose, onSave})=> {
                         type="submit"
                         variant="success"
                         className="save-btn"
-                    > Crear
+                    > {clientToEdit ? 'Guardar Cambios' : 'Crear'}
                     </Button>
                 </div>
             </form>

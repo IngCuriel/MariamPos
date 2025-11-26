@@ -163,6 +163,20 @@ export const getCashMovementsByDateRange = async (
 };
 
 // ============================================================
+// 📌 OBTENER HISTORIAL DE MOVIMIENTOS POR RANGO DE FECHAS
+// ============================================================
+export const getCashMovementsHistory = async (
+  startDate: string,
+  endDate: string
+): Promise<CashMovement[]> => {
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.get<CashMovement[]>(
+    `/cash-register/cash-movements/history?startDate=${startDate}&endDate=${endDate}`
+  );
+  return data;
+};
+
+// ============================================================
 // 📌 ELIMINAR MOVIMIENTO DE EFECTIVO
 // ============================================================
 export const deleteCashMovement = async (

@@ -11,9 +11,10 @@ interface POSPageProps {
   onInventoryClick:() => void;
   onUsersClick?:() => void;
   onShiftHistoryClick?:() => void;
+  onCashMovementsHistoryClick?:() => void;
 }
 
-const POSPage: React.FC<POSPageProps> = ({ onBack, onProductsClick, onSalesClick, onClientClick, onReportClick, onInventoryClick, onUsersClick, onShiftHistoryClick}) => {
+const POSPage: React.FC<POSPageProps> = ({ onBack, onProductsClick, onSalesClick, onClientClick, onReportClick, onInventoryClick, onUsersClick, onShiftHistoryClick, onCashMovementsHistoryClick}) => {
   return (
     <div className="app">
       <div className="pos-container">
@@ -86,6 +87,15 @@ const POSPage: React.FC<POSPageProps> = ({ onBack, onProductsClick, onSalesClick
                       hoverable>
                   <h3>📊 Historial de Turnos</h3>
                   <p>Ver cierres de caja</p>
+                </Card>
+              )}
+              {onCashMovementsHistoryClick && (
+                <Card variant="feature" 
+                      className="feature-card"
+                      onClick={onCashMovementsHistoryClick}
+                      hoverable>
+                  <h3>💰 Historial de Movimientos</h3>
+                  <p>Ver entradas y salidas de efectivo</p>
                 </Card>
               )}
             </div>

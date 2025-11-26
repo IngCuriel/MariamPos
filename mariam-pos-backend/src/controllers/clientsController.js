@@ -17,7 +17,8 @@ export const getClients = async (req, res) => {
       clients = clients.filter(
         (client) =>
           client.name.toLowerCase().includes(searchLower) ||
-          (client.alias && client.alias.toLowerCase().includes(searchLower))
+          (client.alias && client.alias.toLowerCase().includes(searchLower)) ||
+          (client.phone && client.phone.toLowerCase().includes(searchLower))
       );
     }
     
@@ -48,7 +49,7 @@ export const getClientById = async (req, res) => {
 
 export const createClient = async (req, res) => {
   try {
-    const { name, alias, allowCredit, creditLimit } = req.body;
+    const { name, alias, phone, allowCredit, creditLimit } = req.body;
     if (!name || !name.trim()) {
       return res.status(400).json({ error: "El nombre es obligatorio" });
     }
@@ -57,6 +58,7 @@ export const createClient = async (req, res) => {
       data: {
         name: name.trim(),
         alias: alias?.trim() || null,
+        phone: phone?.trim() || null,
         allowCredit: allowCredit === true || allowCredit === "true",
         creditLimit: creditLimit ? parseFloat(creditLimit) : 0,
       },
@@ -71,7 +73,7 @@ export const createClient = async (req, res) => {
 export const updateClient = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, alias, allowCredit, creditLimit } = req.body;
+    const { name, alias, phone, allowCredit, creditLimit } = req.body;
 
     const existingClient = await prisma.client.findUnique({
       where: { id },
@@ -84,6 +86,7 @@ export const updateClient = async (req, res) => {
     const updateData = {};
     if (name !== undefined) updateData.name = name.trim();
     if (alias !== undefined) updateData.alias = alias?.trim() || null;
+    if (phone !== undefined) updateData.phone = phone?.trim() || null;
     if (allowCredit !== undefined) updateData.allowCredit = allowCredit === true || allowCredit === "true";
     if (creditLimit !== undefined) updateData.creditLimit = parseFloat(creditLimit) || 0;
 

@@ -138,7 +138,7 @@
 /* ===== MAIN CONTENT ===== */
 .modal-content {
   display: grid;
-  grid-template-columns: 1fr 1.5fr;
+  grid-template-columns: 1fr 2.5fr;
   gap: 1.5rem;
   overflow: hidden;
   flex: 1;
@@ -148,7 +148,7 @@
 /* ===== SUMMARY COLUMN (LEFT) ===== */
 .summary-column {
   display: flex;
-  flex-direction: column;
+  /*flex-direction: column;*/
   gap: 1rem;
   overflow-y: auto;
   padding-right: 1rem;
