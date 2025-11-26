@@ -10,7 +10,7 @@ interface PaymentModalProps {
   onConfirm: (confirmData: ConfirmPaymentData) => void;
 }
 
-const bills = []; // ← Aquí defines tus billetes
+const bills = [2000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, .50]; // ← Aquí defines tus billetes
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }) => {
   const [paymentType, setPaymentType] = useState("efectivo");
@@ -228,7 +228,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }
             className={`payment-btn ${paymentType === "regalo" ? "active" : ""}`}
             onClick={() => setPaymentType("regalo")}
             style={{
-              backgroundColor: paymentType === "regalo" ? "#fef3c7" : "#f3f4f6",
+              backgroundColor: paymentType === "regalo" ? "#aeae40" : "#f3f4f6",
               borderColor: paymentType === "regalo" ? "#f59e0b" : "#d1d5db",
             }}
           >

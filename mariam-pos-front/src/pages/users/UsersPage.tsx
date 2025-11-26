@@ -229,25 +229,22 @@ const UsersPage: React.FC<UsersPageProps> = ({ onBack }) => {
                               variant="primary"
                               onClick={() => handleEdit(user)}
                               className="edit-btn"
-                              title="Editar"
-                            >
-                              ✏️
+                             >
+                              Editar ✏️
                             </Button>
                             <Button
                               variant={user.status === 'ACTIVE' ? 'warning' : 'success'}
                               onClick={() => handleToggleStatus(user)}
                               className="toggle-btn"
-                              title={user.status === 'ACTIVE' ? 'Inactivar' : 'Activar'}
-                            >
-                              {user.status === 'ACTIVE' ? '🚫' : '✅'}
+                             >
+                             {user.status === 'ACTIVE' ? 'Inactivar' : 'Activar'} {user.status === 'ACTIVE' ? '🚫' : '✅'}
                             </Button>
                             <Button
-                              variant="danger"
+                              variant="warning"
                               onClick={() => handleDelete(user)}
                               className="delete-btn"
-                              title="Eliminar"
-                            >
-                              🗑️
+                             >
+                             Eliminar 🗑️
                             </Button>
                           </div>
                         </td>

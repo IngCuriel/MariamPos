@@ -19,9 +19,7 @@ const Footer:React.FC<FooterProps>= ({
   onCheckout,
   onSaleToPending, 
   showPendingCarts, 
-  onFocusSearch, 
-  branch, 
-  cashRegister
+  onFocusSearch
 }) =>{
   return (
     <footer className="pos-footer">
