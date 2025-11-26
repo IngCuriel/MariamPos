@@ -1,6 +1,7 @@
 import React from 'react';
 import Header from '../components/Header';
 import Card from '../components/Card';
+import '../styles/pages/pos/posPage.css';
 
 interface POSPageProps {
   onBack: () => void;
@@ -12,90 +13,170 @@ interface POSPageProps {
   onUsersClick?:() => void;
   onShiftHistoryClick?:() => void;
   onCashMovementsHistoryClick?:() => void;
+  onHelpClick?:() => void;
 }
 
-const POSPage: React.FC<POSPageProps> = ({ onBack, onProductsClick, onSalesClick, onClientClick, onReportClick, onInventoryClick, onUsersClick, onShiftHistoryClick, onCashMovementsHistoryClick}) => {
+const POSPage: React.FC<POSPageProps> = ({ 
+  onBack, 
+  onProductsClick, 
+  onSalesClick, 
+  onClientClick, 
+  onReportClick, 
+  onInventoryClick, 
+  onUsersClick, 
+  onShiftHistoryClick, 
+  onCashMovementsHistoryClick,
+  onHelpClick
+}) => {
   return (
-    <div className="app">
-      <div className="pos-container">
+    <div className="pos-page">
+      <div className="pos-page-container">
         <Header
-          title="Punto de Venta"
+          title="🏪 Punto de Venta"
           onBack={onBack}
           backText="← Volver al Menú Principal"
-          className="pos-header"
+          className="pos-page-header"
         />
-        <div className="pos-content">
-          <div className="pos-placeholder">
-            <h2>Módulo de Punto de Venta</h2>
-            <p>Aquí se implementará la funcionalidad completa del POS</p>
-            <div className="pos-features">
+        
+        <div className="pos-page-content">
+          {/* Sección: Operaciones Principales */}
+          <div className="pos-section">
+            <div className="pos-section-header">
+              <h2 className="pos-section-title">
+                <span className="section-icon">⚡</span>
+                Operaciones Principales
+              </h2>
+              <p className="pos-section-description">Módulos esenciales para el día a día</p>
+            </div>
+            <div className="pos-modules-grid">
               <Card 
                 variant="feature" 
-                className="feature-card"
+                className="pos-module-card primary"
                 onClick={onSalesClick}
-                hoverable>
-                <h3>🛒 Venta</h3>
-                <p>Procesar ventas</p>
+                hoverable
+              >
+                <div className="pos-module-icon">🛒</div>
+                <h3 className="pos-module-title">Venta</h3>
+                <p className="pos-module-description">Procesar ventas y cobros</p>
               </Card>
+              
               <Card
                 variant="feature"
-                className="feature-card"
+                className="pos-module-card secondary"
                 onClick={onProductsClick}
                 hoverable
               >
-                <h3>🛍️ Productos</h3>
-                <p>Ver catálogo de productos</p>
+                <div className="pos-module-icon">🛍️</div>
+                <h3 className="pos-module-title">Productos</h3>
+                <p className="pos-module-description">Catálogo y gestión de productos</p>
               </Card>
+              
               <Card
                 variant="feature"
-                className="feature-card"
+                className="pos-module-card success"
                 onClick={onInventoryClick}
                 hoverable
               >
-                <h3>📦 Inventario</h3>
-                <p>Gestionar inventario</p>
+                <div className="pos-module-icon">📦</div>
+                <h3 className="pos-module-title">Inventario</h3>
+                <p className="pos-module-description">Control de stock y existencias</p>
               </Card>
+            </div>
+          </div>
+
+          {/* Sección: Gestión */}
+          <div className="pos-section">
+            <div className="pos-section-header">
+              <h2 className="pos-section-title">
+                <span className="section-icon">👥</span>
+                Gestión
+              </h2>
+              <p className="pos-section-description">Administración de clientes, personal y ayuda</p>
+            </div>
+            <div className="pos-modules-grid">
               <Card 
+                variant="feature" 
+                className="pos-module-card info"
+                onClick={onClientClick}
+                hoverable
+              >
+                <div className="pos-module-icon">👥</div>
+                <h3 className="pos-module-title">Clientes</h3>
+                <p className="pos-module-description">Catálogo y gestión de clientes</p>
+              </Card>
+              
+              {onUsersClick && (
+                <Card 
                   variant="feature" 
-                  className="feature-card"
-                  onClick={onClientClick}
+                  className="pos-module-card warning"
+                  onClick={onUsersClick}
                   hoverable
                 >
-                <h3>👥 Clientes</h3>
-                <p>Gestionar clientes</p>
-              </Card>
-              <Card variant="feature" 
-                    className="feature-card"
-                    onClick={onReportClick}
-                    hoverable>
-                <h3>📊 Reportes</h3>
-                <p>Ver estadísticas</p>
-              </Card>
-              {onUsersClick && (
-                <Card variant="feature" 
-                      className="feature-card"
-                      onClick={onUsersClick}
-                      hoverable>
-                  <h3>👤 Cajeros</h3>
-                  <p>Gestionar cajeros</p>
+                  <div className="pos-module-icon">👤</div>
+                  <h3 className="pos-module-title">Cajeros</h3>
+                  <p className="pos-module-description">Gestionar usuarios y cajeros</p>
                 </Card>
               )}
+
+              {onHelpClick && (
+                <Card 
+                  variant="feature" 
+                  className="pos-module-card help"
+                  onClick={onHelpClick}
+                  hoverable
+                >
+                  <div className="pos-module-icon">❓</div>
+                  <h3 className="pos-module-title">Ayuda</h3>
+                  <p className="pos-module-description">Información y soporte del sistema</p>
+                </Card>
+              )}
+            </div>
+          </div>
+
+          {/* Sección: Reportes y Análisis */}
+          <div className="pos-section">
+            <div className="pos-section-header">
+              <h2 className="pos-section-title">
+                <span className="section-icon">📊</span>
+                Reportes y Análisis
+              </h2>
+              <p className="pos-section-description">Análisis de ventas, turnos y movimientos</p>
+            </div>
+            <div className="pos-modules-grid">
+              <Card 
+                variant="feature" 
+                className="pos-module-card chart"
+                onClick={onReportClick}
+                hoverable
+              >
+                <div className="pos-module-icon">📊</div>
+                <h3 className="pos-module-title">Reportes</h3>
+                <p className="pos-module-description">Estadísticas y análisis de ventas</p>
+              </Card>
+              
               {onShiftHistoryClick && (
-                <Card variant="feature" 
-                      className="feature-card"
-                      onClick={onShiftHistoryClick}
-                      hoverable>
-                  <h3>📊 Historial de Turnos</h3>
-                  <p>Ver cierres de caja</p>
+                <Card 
+                  variant="feature" 
+                  className="pos-module-card history"
+                  onClick={onShiftHistoryClick}
+                  hoverable
+                >
+                  <div className="pos-module-icon">📋</div>
+                  <h3 className="pos-module-title">Historial de Turnos</h3>
+                  <p className="pos-module-description">Ver cierres de caja y turnos</p>
                 </Card>
               )}
+              
               {onCashMovementsHistoryClick && (
-                <Card variant="feature" 
-                      className="feature-card"
-                      onClick={onCashMovementsHistoryClick}
-                      hoverable>
-                  <h3>💰 Historial de Movimientos</h3>
-                  <p>Ver entradas y salidas de efectivo</p>
+                <Card 
+                  variant="feature" 
+                  className="pos-module-card money"
+                  onClick={onCashMovementsHistoryClick}
+                  hoverable
+                >
+                  <div className="pos-module-icon">💰</div>
+                  <h3 className="pos-module-title">Movimientos de Efectivo</h3>
+                  <p className="pos-module-description">Entradas y salidas de efectivo</p>
                 </Card>
               )}
             </div>

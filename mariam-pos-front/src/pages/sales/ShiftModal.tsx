@@ -8,13 +8,12 @@ import {
   getShiftSummary,
   getCashMovementsByShift,
 } from "../../api/cashRegister";
-import { getUsers } from "../../api/users";
+import { useCashier } from "../../contexts/CashierContext";
 import type {
   CashRegisterShift,
   OpenShiftInput,
   CloseShiftInput,
   CashMovement,
-  User,
 } from "../../types/index";
 import "../../styles/pages/sales/paymentModal.css";
 
@@ -35,12 +34,11 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
   onShiftOpened,
   onShiftClosed,
 }) => {
+  const { selectedCashier } = useCashier();
   const [mode, setMode] = useState<ModalMode>("open");
   const [initialCash, setInitialCash] = useState<string>("");
   const [finalCash, setFinalCash] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
-  const [selectedCashierId, setSelectedCashierId] = useState<string>("");
-  const [cashiers, setCashiers] = useState<User[]>([]);
   const [activeShift, setActiveShift] = useState<CashRegisterShift | null>(null);
   const [loading, setLoading] = useState(false);
   const [cashMovements, setCashMovements] = useState<CashMovement[]>([]);
@@ -61,21 +59,7 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
   // Verificar si hay turno activo al montar
   useEffect(() => {
     checkActiveShift();
-    loadActiveCashiers();
   }, []);
-
-  // Cargar cajeros activos
-  const loadActiveCashiers = async () => {
-    try {
-      const allUsers = await getUsers();
-      const activeUsers = allUsers.filter(user => user.status === 'ACTIVE');
-      setCashiers(activeUsers);
-    } catch (error) {
-      console.error("Error al cargar cajeros:", error);
-      // Si hay error, continuar sin cajeros (se usará "Anónimo")
-      setCashiers([]);
-    }
-  };
 
   const checkActiveShift = async () => {
     try {
@@ -141,17 +125,8 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
 
     setLoading(true);
     try {
-      // Determinar el nombre del cajero
-      // Solo usar el cajero seleccionado, si no hay selección usar "Anónimo"
-      // NO usar el prop cashierName porque puede venir del cliente
-      let cashierNameToUse: string;
-      if (selectedCashierId && selectedCashierId !== "") {
-        const selectedCashier = cashiers.find(c => c.id === selectedCashierId);
-        cashierNameToUse = selectedCashier?.name || "Anónimo";
-      } else {
-        // Si no se seleccionó ningún cajero, siempre usar "Anónimo"
-        cashierNameToUse = "Anónimo";
-      }
+      // Usar el cajero del contexto (seleccionado en HomePage)
+      const cashierNameToUse = selectedCashier?.name || "Anónimo";
 
       const input: OpenShiftInput = {
         branch,
@@ -486,13 +461,7 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
-                    // Si hay cajeros, mover el foco al selector
-                    if (cashiers.length > 0) {
-                      const selectElement = document.getElementById("cashier-select") as HTMLSelectElement;
-                      selectElement?.focus();
-                    } else {
-                      handleOpenShift();
-                    }
+                    handleOpenShift();
                   }
                 }}
               />
@@ -500,47 +469,39 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
           </div>
 
           <div className="input-section">
-            <label>Seleccionar Cajero:</label>
+            <label>Cajero Actual:</label>
             <div className="input-wrapper">
-              <select
-                id="cashier-select"
-                value={selectedCashierId}
-                onChange={(e) => setSelectedCashierId(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleOpenShift();
-                  }
-                }}
+              <div
                 style={{
                   width: "100%",
-                  padding: "10px",
-                  borderRadius: "6px",
+                  padding: "10px 12px",
                   border: "1px solid #d1d5db",
+                  borderRadius: "8px",
                   fontSize: "1rem",
                   fontFamily: "inherit",
-                  backgroundColor: "white",
-                  cursor: "pointer",
+                  backgroundColor: selectedCashier ? "#f0fdf4" : "#f9fafb",
+                  color: selectedCashier ? "#059669" : "#6b7280",
+                  fontWeight: selectedCashier ? 600 : 400,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
                 }}
               >
-                <option value="">-- Seleccionar Cajero (Anónimo si no se selecciona) --</option>
-                {cashiers.map((cashier) => (
-                  <option key={cashier.id} value={cashier.id}>
-                    {cashier.name} {cashier.role && `(${cashier.role})`}
-                  </option>
-                ))}
-              </select>
+                <span>{selectedCashier ? "✓" : "👤"}</span>
+                <span>{selectedCashier?.name || "Anónimo"}</span>
+                {selectedCashier?.role && (
+                  <span style={{ fontSize: "0.85rem", opacity: 0.7 }}>
+                    ({selectedCashier.role})
+                  </span>
+                )}
+              </div>
             </div>
-            {selectedCashierId && (
-              <p style={{ marginTop: "5px", fontSize: "0.85rem", color: "#059669" }}>
-                ✓ Cajero seleccionado: {cashiers.find(c => c.id === selectedCashierId)?.name}
-              </p>
-            )}
-            {!selectedCashierId && (
-              <p style={{ marginTop: "5px", fontSize: "0.85rem", color: "#6b7280", fontStyle: "italic" }}>
-                Si no seleccionas un cajero, se registrará como "Anónimo"
-              </p>
-            )}
+            <p style={{ marginTop: "5px", fontSize: "0.85rem", color: "#6b7280", fontStyle: "italic" }}>
+              {selectedCashier 
+                ? "Este cajero fue seleccionado al iniciar sesión"
+                : "No se seleccionó un cajero. Se registrará como 'Anónimo'"
+              }
+            </p>
           </div>
 
           <div className="payment-modal-actions">

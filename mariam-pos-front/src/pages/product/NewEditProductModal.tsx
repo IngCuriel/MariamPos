@@ -8,6 +8,7 @@ import JsBarcode from "jsbarcode";
 import { getCategories } from "../../api/categories";
 
 import "../../styles/pages/products/newproductpage.css";
+import "../../styles/pages/products/productModal.css";
 
 interface NewEditProductModalProps {
   isOpen: boolean;
@@ -512,39 +513,39 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
   if (!isOpen) return null;
   
   return (
-    <div className="modal-overlay-newEdit-product">
-      <div className=".modal-newEdit-product-container">
-        <Card className="modal-card">
+    <div className="product-modal-overlay">
+      <div className="product-modal-container">
+        <Card className="product-modal-card">
           {/*<div className="modal-header">
             <h2>{title}</h2>
             <button className="close-btn" onClick={onClose}>
               ×
             </button>
           </div>*/}
-          <div className="tab-header">
+          <div className="product-modal-tab-header">
             <button
               type="button"
-              className={`tab-btn ${activeTab === "producto" ? "active" : ""}`}
+              className={`product-modal-tab-btn ${activeTab === "producto" ? "active" : ""}`}
               onClick={() => setActiveTab("producto")}
             >
               {title}
             </button>
              {product && (<button
               type="button"
-              className={`tab-btn ${activeTab === "avanzado" ? "active" : ""}`}
+              className={`product-modal-tab-btn ${activeTab === "avanzado" ? "active" : ""}`}
               onClick={() => setActiveTab("avanzado")}
             >
               Avanzado
             </button>)}
           </div>
            {activeTab === "producto" && (
-            <div className="tab-content">
-              <form onSubmit={handleSubmit} className="product-form">
+            <div className="product-modal-tab-content">
+              <form onSubmit={handleSubmit} className="product-modal-form">
                 {/* Layout en dos columnas */}
-                <div className="product-form-grid">
+                <div className="product-modal-form-grid">
                   {/* Columna izquierda - Información del Producto */}
-                  <div className="product-form-left">
-                    <div className="form-group">
+                  <div className="product-modal-form-left">
+                    <div className="product-modal-form-group">
                       <label htmlFor="code">Codigo del Producto *</label>
                       <input
                         ref={(el) => (inputRefs.current[0] = el  as any)}
@@ -558,11 +559,11 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                         placeholder="Ej: 232323"
                       />
                       {errors.code && (
-                        <span className="error-message">{errors.code}</span>
+                        <span className="product-modal-error-message">{errors.code}</span>
                       )}
                     </div>
 
-                    <div className="form-group">
+                    <div className="product-modal-form-group">
                       <label htmlFor="name">Nombre del Producto *</label>
                       <input
                         ref={(el) => (inputRefs.current[1] = el as any)}
@@ -576,24 +577,26 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                         placeholder="Ej: Manzanas rojas"
                       />
                       {errors.name && (
-                        <span className="error-message">{errors.name}</span>
+                        <span className="product-modal-error-message">{errors.name}</span>
                       )}
                     </div>
 
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label htmlFor="status">Activo*</label>
-                        <input
-                          type="checkbox"
-                          id="status"
-                          name="status"
-                          checked={status === 1}
-                          onChange={() => setStatus(status === 1 ? 0 : 1)}
-                        />
+                    <div className="product-modal-form-row">
+                      <div className="product-modal-form-group">
+                        <label htmlFor="status" className="product-modal-checkbox-group">
+                          <input
+                            type="checkbox"
+                            id="status"
+                            name="status"
+                            checked={status === 1}
+                            onChange={() => setStatus(status === 1 ? 0 : 1)}
+                          />
+                          <span>Activo *</span>
+                        </label>
                       </div>
-                      <div className="form-group">
+                      <div className="product-modal-form-group">
                         <label> Se vende </label>
-                        <div className="radio-group">
+                        <div className="product-modal-radio-group">
                           <label>
                             <input
                               type="radio"
@@ -618,7 +621,7 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                       </div>
                     </div>
 
-                    <div className="form-group">
+                    <div className="product-modal-form-group">
                       <label htmlFor="category">Categoría *</label>
                       <select
                         id="category"
@@ -637,12 +640,12 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                         ))}
                       </select>
                       {errors.category && (
-                        <span className="error-message">{errors.category}</span>
+                        <span className="product-modal-error-message">{errors.category}</span>
                       )}
                     </div>
 
-                    <div className="form-row">
-                      <div className="form-group">
+                    <div className="product-modal-form-row">
+                      <div className="product-modal-form-group">
                         <label htmlFor="price">Precio Base (1 Pieza) *</label>
                         <input
                           ref={(el) => (inputRefs.current[3] = el as any)}
@@ -670,12 +673,12 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                           min="0"
                         />
                         {errors.price && (
-                          <span className="error-message">{errors.price}</span>
+                          <span className="product-modal-error-message">{errors.price}</span>
                         )}
-                        <small className="form-hint">Este es el precio de venta por pieza individual</small>
+                        <small>Este es el precio de venta por pieza individual</small>
                       </div>
 
-                      <div className="form-group">
+                      <div className="product-modal-form-group">
                         <label htmlFor="cost">Costo *</label>
                         <input
                           ref={(el) => (inputRefs.current[4] = el as any)}
@@ -690,39 +693,39 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                           min="0"
                         />
                         {errors.cost && (
-                          <span className="error-message">{errors.cost}</span>
+                          <span className="product-modal-error-message">{errors.cost}</span>
                         )}
                       </div>
                     </div>
                   </div>
 
                   {/* Columna derecha - Presentaciones de Venta */}
-                  <div className="product-form-right">
-                    <div className="form-group">
+                  <div className="product-modal-form-right">
+                    <div className="product-modal-form-group">
                       <label>Presentaciones de Venta *</label>
-                      <div className="presentations-section">
-                    <div className="presentations-list">
+                      <div className="product-modal-presentations-section">
+                    <div className="product-modal-presentations-list">
                       {presentations.map((presentation, index) => (
-                        <div key={index} className="presentation-item">
-                          <div className="presentation-info">
-                            <div className="presentation-name">
+                        <div key={index} className="product-modal-presentation-item">
+                          <div className="product-modal-presentation-info">
+                            <div className="product-modal-presentation-name">
                               <strong>{presentation.name}</strong>
-                              {presentation.isDefault && <span className="badge-default">Base</span>}
+                              {presentation.isDefault && <span className="product-modal-badge-default">Base</span>}
                             </div>
-                            <div className="presentation-details">
+                            <div className="product-modal-presentation-details">
                               <span>{presentation.quantity} unidad{presentation.quantity !== 1 ? 'es' : ''}</span>
-                              <span className="separator">•</span>
+                              <span className="product-modal-separator">•</span>
                               <span>${presentation.unitPrice.toFixed(2)} c/u</span>
-                              <span className="separator">•</span>
-                              <span className="total-price">Total: ${calculateTotalPrice(presentation).toFixed(2)}</span>
+                              <span className="product-modal-separator">•</span>
+                              <span className="product-modal-total-price">Total: ${calculateTotalPrice(presentation).toFixed(2)}</span>
                             </div>
                           </div>
-                          <div className="presentation-actions">
+                          <div className="product-modal-presentation-actions">
                             {!(presentation.isDefault /*|| presentation.quantity === 1*/) ? (
                               <>
                                 <button
                                   type="button"
-                                  className="btn-edit"
+                                  className="product-modal-btn-edit"
                                   onClick={() => handleEditPresentation(index)}
                                   disabled={editingPresentationIndex !== null}
                                 >
@@ -730,7 +733,7 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                                 </button>
                                 <button
                                   type="button"
-                                  className="btn-delete"
+                                  className="product-modal-btn-delete"
                                   onClick={() => handleDeletePresentation(index)}
                                   disabled={editingPresentationIndex !== null}
                                 >
@@ -738,13 +741,13 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                                 </button>
                               </>
                             ) : (
-                              <span className="presentation-base-note">Presentación base</span>
+                              <span className="product-modal-presentation-base-note">Presentación base</span>
                             )}
                           </div>
                           {presentationErrors[index] && (
-                            <div className="presentation-errors">
+                            <div style={{ width: '100%', marginTop: '0.5rem' }}>
                               {Object.values(presentationErrors[index]).map((error, errIdx) => (
-                                <span key={errIdx} className="error-message">{error}</span>
+                                <span key={errIdx} className="product-modal-error-message">{error}</span>
                               ))}
                             </div>
                           )}
@@ -754,10 +757,10 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
 
                     {/* Formulario para agregar/editar presentación */}
                     {editingPresentationIndex === null ? (
-                      <div className="add-presentation-form">
+                      <div className="product-modal-add-presentation-form">
                         <h4>Agregar Nueva Presentación</h4>
-                        <div className="presentation-form-row">
-                          <div className="form-group small">
+                        <div className="product-modal-presentation-form-row">
+                          <div className="product-modal-form-group small">
                             <label htmlFor="presentationName">Nombre</label>
                             <input
                               type="text"
@@ -768,10 +771,10 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                               className={presentationErrors[-1]?.name ? "error" : ""}
                             />
                             {presentationErrors[-1]?.name && (
-                              <span className="error-message">{presentationErrors[-1].name}</span>
+                              <span className="product-modal-error-message">{presentationErrors[-1].name}</span>
                             )}
                           </div>
-                          <div className="form-group small">
+                          <div className="product-modal-form-group small">
                             <label htmlFor="presentationQuantity">Cantidad</label>
                             <input
                               type="number"
@@ -783,10 +786,10 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                               className={presentationErrors[-1]?.quantity ? "error" : ""}
                             />
                             {presentationErrors[-1]?.quantity && (
-                              <span className="error-message">{presentationErrors[-1].quantity}</span>
+                              <span className="product-modal-error-message">{presentationErrors[-1].quantity}</span>
                             )}
                           </div>
-                          <div className="form-group small">
+                          <div className="product-modal-form-group small">
                             <label htmlFor="presentationUnitPrice">Precio Unitario</label>
                             <input
                               type="number"
@@ -799,10 +802,10 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                               className={presentationErrors[-1]?.unitPrice ? "error" : ""}
                             />
                             {presentationErrors[-1]?.unitPrice && (
-                              <span className="error-message">{presentationErrors[-1].unitPrice}</span>
+                              <span className="product-modal-error-message">{presentationErrors[-1].unitPrice}</span>
                             )}
                           </div>
-                          <div className="form-group small">
+                          <div className="product-modal-form-group small">
                             <label>&nbsp;</label>
                             <Button
                               type="button"
@@ -815,7 +818,7 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                           </div>
                         </div>
                         {newPresentation.quantity > 0 && newPresentation.unitPrice > 0 && (
-                          <div className="presentation-preview">
+                          <div className="product-modal-presentation-preview">
                             <small>
                               Total de esta presentación: <strong>${calculateTotalPrice(newPresentation as ProductPresentation).toFixed(2)}</strong>
                             </small>
@@ -823,10 +826,10 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                         )}
                       </div>
                     ) : (
-                      <div className="edit-presentation-form">
+                      <div className="product-modal-add-presentation-form">
                         <h4>Editar Presentación</h4>
-                        <div className="presentation-form-row">
-                          <div className="form-group small">
+                        <div className="product-modal-presentation-form-row">
+                          <div className="product-modal-form-group small">
                             <label htmlFor="editPresentationName">Nombre</label>
                             <input
                               type="text"
@@ -836,10 +839,10 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                               className={presentationErrors[editingPresentationIndex]?.name ? "error" : ""}
                             />
                             {presentationErrors[editingPresentationIndex]?.name && (
-                              <span className="error-message">{presentationErrors[editingPresentationIndex].name}</span>
+                              <span className="product-modal-error-message">{presentationErrors[editingPresentationIndex].name}</span>
                             )}
                           </div>
-                          <div className="form-group small">
+                          <div className="product-modal-form-group small">
                             <label htmlFor="editPresentationQuantity">Cantidad</label>
                             <input
                               type="number"
@@ -851,10 +854,10 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                               className={presentationErrors[editingPresentationIndex]?.quantity ? "error" : ""}
                             />
                             {presentationErrors[editingPresentationIndex]?.quantity && (
-                              <span className="error-message">{presentationErrors[editingPresentationIndex].quantity}</span>
+                              <span className="product-modal-error-message">{presentationErrors[editingPresentationIndex].quantity}</span>
                             )}
                           </div>
-                          <div className="form-group small">
+                          <div className="product-modal-form-group small">
                             <label htmlFor="editPresentationUnitPrice">Precio Unitario</label>
                             <input
                               type="number"
@@ -866,12 +869,12 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                               className={presentationErrors[editingPresentationIndex]?.unitPrice ? "error" : ""}
                             />
                             {presentationErrors[editingPresentationIndex]?.unitPrice && (
-                              <span className="error-message">{presentationErrors[editingPresentationIndex].unitPrice}</span>
+                              <span className="product-modal-error-message">{presentationErrors[editingPresentationIndex].unitPrice}</span>
                             )}
                           </div>
-                          <div className="form-group small">
+                          <div className="product-modal-form-group small">
                             <label>&nbsp;</label>
-                            <div className="edit-actions">
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
                               <Button
                                 type="button"
                                 variant="success"
@@ -892,7 +895,7 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                           </div>
                         </div>
                         {newPresentation.quantity > 0 && newPresentation.unitPrice > 0 && (
-                          <div className="presentation-preview">
+                          <div className="product-modal-presentation-preview">
                             <small>
                               Total de esta presentación: <strong>${calculateTotalPrice(newPresentation as ProductPresentation).toFixed(2)}</strong>
                             </small>
@@ -902,21 +905,21 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                     )}
                       </div>
                       {errors.presentations && (
-                        <span className="error-message">{errors.presentations}</span>
+                        <span className="product-modal-error-message">{errors.presentations}</span>
                       )}
                     </div>
                   </div>
                 </div>
-                <div className="form-actions">
+                <div className="product-modal-form-actions">
                   <Button
                     type="button"
                     variant="secondary"
                     onClick={onClose}
-                    className="cancel-btn"
+                    className="product-modal-cancel-btn"
                   >
                     Cancelar
                   </Button>
-                  <Button type="submit" variant="success" className="save-btn">
+                  <Button type="submit" variant="success" className="product-modal-save-btn">
                     {product ? "Actualizar" : "Crear"} Producto
                   </Button>
                 </div>
@@ -924,51 +927,51 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
             </div>
           )}
          {activeTab === "avanzado" && (
-            <div className="tab-content">
-              <form onSubmit={handleSubmit} className="product-form">
+            <div className="product-modal-tab-content">
+              <form onSubmit={handleSubmit} className="product-modal-form">
                     {/* Sección de Control de Inventario */}
-                    <div className="inventory-control-section">
-                      <div className="section-header">
+                    <div className="product-modal-inventory-section">
+                      <div className="product-modal-section-header">
                         <h3>📦 Control de Inventario</h3>
-                        <p className="section-description">
+                        <p className="product-modal-section-description">
                           Activa el control de inventario para rastrear el stock de este producto automáticamente
                         </p>
                       </div>
 
-                      <div className="inventory-toggle-card">
-                        <div className="toggle-header">
-                          <div className="toggle-info">
-                            <label htmlFor="inventory" className="toggle-label">
+                      <div className="product-modal-inventory-toggle-card">
+                        <div className="product-modal-toggle-header">
+                          <div className="product-modal-toggle-info">
+                            <label htmlFor="inventory" className="product-modal-toggle-label">
                               <strong>Activar control de inventario</strong>
                             </label>
-                            <p className="toggle-description">
+                            <p className="product-modal-toggle-description">
                               {trackInventory 
                                 ? "El sistema rastreará automáticamente las entradas y salidas de este producto"
                                 : "Sin control de inventario. El producto se puede vender sin límite de stock"}
                             </p>
                           </div>
-                          <div className="toggle-switch">
+                          <div className="product-modal-toggle-switch">
                             <input
                               type="checkbox"
                               id="inventory"
                               name="inventory"
                               checked={trackInventory}
                               onChange={() => setTrackInventory(!trackInventory)}
-                              className="switch-input"
+                              className="product-modal-switch-input"
                             />
-                            <label htmlFor="inventory" className="switch-label">
-                              <span className="switch-slider"></span>
+                            <label htmlFor="inventory" className="product-modal-switch-label">
+                              <span className="product-modal-switch-slider"></span>
                             </label>
                           </div>
                         </div>
 
                         {trackInventory && (
-                          <div className="inventory-fields">
-                            <div className="inventory-fields-grid">
-                              <div className="form-group">
+                          <div className="product-modal-inventory-fields">
+                            <div className="product-modal-inventory-fields-grid">
+                              <div className="product-modal-form-group">
                                 <label htmlFor="initialStock">
                                   Stock Inicial *
-                                  <span className="field-hint">Cantidad disponible al crear el producto</span>
+                                  <span className="product-modal-field-hint">Cantidad disponible al crear el producto</span>
                                 </label>
                                 <input
                                   type="number"
@@ -979,20 +982,20 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                                   value={initialStock}
                                   onChange={(e) => setInitialStock(Number(e.target.value))}
                                   placeholder="Ej: 100"
-                                  className={`inventory-input ${errors.initialStock ? "error" : ""}`}
+                                  className={`product-modal-inventory-input ${errors.initialStock ? "error" : ""}`}
                                 />
                                 {errors.initialStock && (
-                                  <span className="error-message">{errors.initialStock}</span>
+                                  <span className="product-modal-error-message">{errors.initialStock}</span>
                                 )}
-                                <small className="field-help">
+                                <small className="product-modal-field-help">
                                   Establece la cantidad inicial de productos en inventario
                                 </small>
                               </div>
 
-                              <div className="form-group">
+                              <div className="product-modal-form-group">
                                 <label htmlFor="minStock">
                                   Stock Mínimo *
-                                  <span className="field-hint">Nivel mínimo antes de alertar</span>
+                                  <span className="product-modal-field-hint">Nivel mínimo antes de alertar</span>
                                 </label>
                                 <input
                                   type="number"
@@ -1003,28 +1006,28 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                                   value={minStock}
                                   onChange={(e) => setMinStock(Number(e.target.value))}
                                   placeholder="Ej: 10"
-                                  className={`inventory-input ${errors.minStock ? "error" : ""}`}
+                                  className={`product-modal-inventory-input ${errors.minStock ? "error" : ""}`}
                                 />
                                 {errors.minStock && (
-                                  <span className="error-message">{errors.minStock}</span>
+                                  <span className="product-modal-error-message">{errors.minStock}</span>
                                 )}
-                                <small className="field-help">
+                                <small className="product-modal-field-help">
                                   Recibirás alertas cuando el stock esté por debajo de este valor
                                 </small>
                               </div>
                             </div>
 
-                            <div className="inventory-preview">
-                              <div className="preview-item">
-                                <span className="preview-label">Stock inicial:</span>
-                                <span className="preview-value">{initialStock}</span>
+                            <div className="product-modal-inventory-preview">
+                              <div className="product-modal-preview-item">
+                                <span className="product-modal-preview-label">Stock inicial:</span>
+                                <span className="product-modal-preview-value">{initialStock}</span>
                               </div>
-                              <div className="preview-item">
-                                <span className="preview-label">Stock mínimo:</span>
-                                <span className="preview-value">{minStock}</span>
+                              <div className="product-modal-preview-item">
+                                <span className="product-modal-preview-label">Stock mínimo:</span>
+                                <span className="product-modal-preview-value">{minStock}</span>
                               </div>
                               {initialStock <= minStock && initialStock > 0 && (
-                                <div className="preview-warning">
+                                <div className="product-modal-preview-warning">
                                   ⚠️ El stock inicial está en o por debajo del mínimo
                                 </div>
                               )}
@@ -1035,15 +1038,15 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                     </div>
 
                     {/* Sección de Generación de Etiquetas */}
-                    <div className="label-section">
-                      <div className="section-header">
+                    <div className="product-modal-label-section">
+                      <div className="product-modal-section-header">
                         <h3>🏷️ Generar Etiquetas</h3>
-                        <p className="section-description">
+                        <p className="product-modal-section-description">
                           Genera etiquetas con código de barras para este producto
                         </p>
                       </div>
-                      <div className="label-controls">
-                        <div className="form-group">
+                      <div className="product-modal-label-controls">
+                        <div className="product-modal-form-group">
                           <label htmlFor="labelQuantity">Cantidad de etiquetas</label>
                           <input
                             type="number"
@@ -1066,16 +1069,16 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                         </Button>
                       </div>
                     </div>
-                <div className="form-actions">
+                <div className="product-modal-form-actions">
                   <Button
                     type="button"
                     variant="secondary"
                     onClick={onClose}
-                    className="cancel-btn"
+                    className="product-modal-cancel-btn"
                   >
                     Cancelar
                   </Button>
-                  <Button type="submit" variant="success" className="save-btn">
+                  <Button type="submit" variant="success" className="product-modal-save-btn">
                     {product ? "Actualizar" : "Crear"} Producto
                   </Button>
                 </div>

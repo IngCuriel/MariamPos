@@ -1,0 +1,677 @@
+/* ===== MODAL DE PRODUCTO - ESTILOS ESPECÍFICOS ===== */
+/* Estos estilos solo afectan al modal de productos, no a otros componentes */
+
+/* ===== OVERLAY Y CONTENEDOR ===== */
+.product-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 1rem;
+  backdrop-filter: blur(4px);
+}
+
+.product-modal-container {
+  width: 100%;
+  max-width: 1200px;
+  max-height: 95vh;
+  overflow-y: auto;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.product-modal-card {
+  padding: 0;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* ===== TABS ===== */
+.product-modal-tab-header {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 1.5rem;
+  background: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.product-modal-tab-btn {
+  padding: 1rem 1.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #6b7280;
+  position: relative;
+  margin-bottom: -2px;
+}
+
+.product-modal-tab-btn:hover {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.product-modal-tab-btn.active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+  background: white;
+}
+
+/* ===== CONTENIDO DEL FORMULARIO ===== */
+.product-modal-tab-content {
+  padding: 1.5rem;
+  background: white;
+}
+
+.product-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ===== GRID DEL FORMULARIO ===== */
+.product-modal-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+/* ===== COLUMNAS ===== */
+.product-modal-form-left,
+.product-modal-form-right {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ===== GRUPOS DE FORMULARIO ===== */
+.product-modal-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.product-modal-form-group label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.product-modal-form-group input[type="text"],
+.product-modal-form-group input[type="number"],
+.product-modal-form-group textarea,
+.product-modal-form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  background: white;
+  color: #1f2937;
+}
+
+.product-modal-form-group input:focus,
+.product-modal-form-group textarea:focus,
+.product-modal-form-group select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.product-modal-form-group input.error,
+.product-modal-form-group textarea.error,
+.product-modal-form-group select.error {
+  border-color: #ef4444;
+}
+
+.product-modal-form-group small {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+}
+
+/* ===== FILA DE FORMULARIO ===== */
+.product-modal-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* ===== CHECKBOX Y RADIO ===== */
+.product-modal-checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.product-modal-checkbox-group input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+.product-modal-radio-group {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.product-modal-radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+}
+
+.product-modal-radio-group input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+/* ===== MENSAJES DE ERROR ===== */
+.product-modal-error-message {
+  font-size: 0.75rem;
+  color: #ef4444;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+/* ===== SECCIÓN DE PRESENTACIONES ===== */
+.product-modal-presentations-section {
+  padding: 1rem;
+  background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.product-modal-presentations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.product-modal-presentation-item {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.product-modal-presentation-info {
+  flex: 1;
+}
+
+.product-modal-presentation-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.product-modal-presentation-name strong {
+  font-size: 0.95rem;
+  color: #1f2937;
+}
+
+.product-modal-badge-default {
+  padding: 0.25rem 0.5rem;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #1e40af;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.product-modal-presentation-details {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #6b7280;
+  flex-wrap: wrap;
+}
+
+.product-modal-separator {
+  color: #d1d5db;
+}
+
+.product-modal-total-price {
+  font-weight: 700;
+  color: #10b981;
+}
+
+.product-modal-presentation-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.product-modal-btn-edit,
+.product-modal-btn-delete {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.product-modal-btn-edit {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.product-modal-btn-edit:hover:not(:disabled) {
+  background: #bfdbfe;
+}
+
+.product-modal-btn-delete {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.product-modal-btn-delete:hover:not(:disabled) {
+  background: #fecaca;
+}
+
+.product-modal-btn-edit:disabled,
+.product-modal-btn-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.product-modal-presentation-base-note {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* ===== FORMULARIO DE AGREGAR PRESENTACIÓN ===== */
+.product-modal-add-presentation-form {
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  border: 2px dashed #d1d5db;
+}
+
+.product-modal-add-presentation-form h4 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 1rem 0;
+}
+
+.product-modal-presentation-form-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.5fr auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.product-modal-form-group.small {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.product-modal-presentation-preview {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: #f0fdf4;
+  border-radius: 6px;
+  border: 1px solid #86efac;
+}
+
+.product-modal-presentation-preview small {
+  color: #166534;
+  font-weight: 600;
+}
+
+/* ===== SECCIÓN DE INVENTARIO ===== */
+.product-modal-inventory-section {
+  margin-top: 1.5rem;
+}
+
+.product-modal-section-header {
+  margin-bottom: 1rem;
+}
+
+.product-modal-section-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 0.5rem 0;
+}
+
+.product-modal-section-description {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.product-modal-inventory-toggle-card {
+  background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+}
+
+.product-modal-toggle-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.product-modal-toggle-info {
+  flex: 1;
+}
+
+.product-modal-toggle-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.product-modal-toggle-description {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.product-modal-toggle-switch {
+  position: relative;
+}
+
+.product-modal-switch-input {
+  display: none;
+}
+
+.product-modal-switch-label {
+  display: block;
+  width: 50px;
+  height: 28px;
+  background: #d1d5db;
+  border-radius: 14px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.3s ease;
+}
+
+.product-modal-switch-slider {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 24px;
+  height: 24px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.product-modal-switch-input:checked + .product-modal-switch-label {
+  background: #3b82f6;
+}
+
+.product-modal-switch-input:checked + .product-modal-switch-label .product-modal-switch-slider {
+  transform: translateX(22px);
+}
+
+.product-modal-inventory-fields {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.product-modal-inventory-fields-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.product-modal-inventory-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.product-modal-field-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 400;
+  margin-top: 0.25rem;
+}
+
+.product-modal-field-help {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.5rem;
+  display: block;
+}
+
+.product-modal-inventory-preview {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f0f9ff;
+  border-radius: 8px;
+  border: 1px solid #bae6fd;
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.product-modal-preview-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.product-modal-preview-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.product-modal-preview-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.product-modal-preview-warning {
+  width: 100%;
+  padding: 0.75rem;
+  background: #fef3c7;
+  border-radius: 6px;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* ===== SECCIÓN DE ETIQUETAS ===== */
+.product-modal-label-section {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.product-modal-label-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+/* ===== ACCIONES DEL FORMULARIO ===== */
+.product-modal-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid #e5e7eb;
+  margin-top: 1rem;
+}
+
+.product-modal-cancel-btn,
+.product-modal-save-btn {
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.product-modal-cancel-btn {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.product-modal-cancel-btn:hover {
+  background: #e5e7eb;
+}
+
+.product-modal-save-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.product-modal-save-btn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
+}
+
+/* ===== SCROLLBAR PERSONALIZADO ===== */
+.product-modal-container::-webkit-scrollbar,
+.product-modal-presentations-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.product-modal-container::-webkit-scrollbar-track,
+.product-modal-presentations-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.product-modal-container::-webkit-scrollbar-thumb,
+.product-modal-presentations-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.product-modal-container::-webkit-scrollbar-thumb:hover,
+.product-modal-presentations-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1024px) {
+  .product-modal-container {
+    max-width: 95%;
+  }
+
+  .product-modal-form-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .product-modal-inventory-fields-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .product-modal-overlay {
+    padding: 0.5rem;
+  }
+
+  .product-modal-container {
+    max-height: 98vh;
+    border-radius: 12px;
+  }
+
+  .product-modal-tab-content {
+    padding: 1rem;
+  }
+
+  .product-modal-form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .product-modal-presentation-form-row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .product-modal-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .product-modal-cancel-btn,
+  .product-modal-save-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .product-modal-tab-header {
+    padding: 0 1rem;
+  }
+
+  .product-modal-tab-btn {
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .product-modal-presentation-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .product-modal-presentation-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+

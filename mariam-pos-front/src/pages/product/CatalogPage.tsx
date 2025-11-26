@@ -15,6 +15,7 @@ import {
 } from "../../api/products";
 import { getCategories } from "../../api/categories";
 import "../../styles/pages/products/products.css";
+import "../../styles/pages/products/catalog.css";
 import NewEditProductModal from "./NewEditProductModal";
 
 import { toast } from "react-toastify";
@@ -359,7 +360,7 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack }) => {
             </div>
           </Card>
           {/* Grid de productos */}
-          <div className="products-grid">
+          <div className="catalog-products-grid">
             {loading ? (
               <Card className="no-products-card">
                 <div className="loader-container">
@@ -372,48 +373,94 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack }) => {
                 <h3>No se encontraron productos</h3>
                 <p>Intenta ajustar los filtros de búsqueda</p>
               </Card>
-            ) : ( products.map((product) => (
-                <Card
-                  key={product.id}
-                  className={`product-card`}
-                  variant="product"
-                >
-                  {/*<div className={`product-image`}>{product.icon}</div>*/}
-                  <div className="product-info">
-                    <h3 className="product-name">{product.name}</h3>
-                    <p className="product-category">
-                      Categoria: {product.category?.name}
-                    </p>
-                    <p className="product-price">${product.price.toFixed(2)}</p>
-                    <p className="product-stock">Costo: {product.cost}</p>
-                    {/*product.description && (
-                      <p className="product-description">
-                        {product.description}
-                      </p>
-                    )*/}
-                    <p className="product-code">Codigo: {product.code}</p>
-                  </div>
-                  <div className="product-actions">
-                    <Button
-                      variant="info"
-                      size="small"
-                      onClick={() => onEdit(product)}
-                      className="edit-btn"
+            ) : ( products.map((product, index) => {
+                // Colores rotativos para las tarjetas
+                const colorVariants = [
+                  { bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', border: '#667eea' },
+                  { bg: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', border: '#f5576c' },
+                  { bg: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', border: '#4facfe' },
+                  { bg: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', border: '#43e97b' },
+                  { bg: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', border: '#fa709a' },
+                  { bg: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)', border: '#30cfd0' },
+                  { bg: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)', border: '#a8edea' },
+                  { bg: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)', border: '#ff9a9e' },
+                ];
+                const colorVariant = colorVariants[index % colorVariants.length];
+                
+                return (
+                  <Card
+                    key={product.id}
+                    className="catalog-product-card"
+                    variant="product"
+                  >
+                    <div 
+                      className="catalog-card-header"
+                      style={{ background: colorVariant.bg }}
                     >
-                      Editar
-                    </Button>
+                      {product.icon && (
+                        <div className="catalog-product-icon">{product.icon}</div>
+                      )}
+                      {product.category && (
+                        <span className="catalog-category-badge">
+                          {product.category.name}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="catalog-product-body">
+                      <h3 className="catalog-product-name" title={product.name}>
+                        {product.name}
+                      </h3>
+                      
+                      <div className="catalog-product-code">
+                        <span className="code-label">Código:</span>
+                        <span className="code-value">{product.code}</span>
+                      </div>
 
-                    <Button
-                      variant="warning"
-                      size="small"
-                      onClick={() => handleDelete(product.id)}
-                      className="delete-btn"
-                    >
-                      Eliminar
-                    </Button>
-                  </div>
-                </Card>
-              ))
+                      {product.description && (
+                        <p className="catalog-product-description" title={product.description}>
+                          {product.description}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="catalog-product-pricing">
+                      <div className="price-main">
+                        <span className="price-label">Precio</span>
+                        <span className="price-value">${product.price.toFixed(2)}</span>
+                      </div>
+                      {product.cost && product.cost > 0 && (
+                        <div className="cost-info">
+                          <span className="cost-label">Costo:</span>
+                          <span className="cost-value">${product.cost.toFixed(2)}</span>
+                          <span className="margin-badge">
+                            +${(product.price - product.cost).toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="catalog-product-actions">
+                      <Button
+                        variant="info"
+                        size="small"
+                        onClick={() => onEdit(product)}
+                        className="catalog-edit-btn"
+                      >
+                        ✏️ Editar
+                      </Button>
+                      <Button
+                        variant="warning"
+                        size="small"
+                        onClick={() => handleDelete(product.id)}
+                        className="catalog-delete-btn"
+                      >
+                        🗑️ Eliminar
+                      </Button>
+                    </div>
+                  </Card>
+                );
+              })
             )}
           </div>
         </div>

@@ -40,9 +40,9 @@ function App() {
   const renderCurrentView = () => {
     switch (currentView) {
       case 'help':
-        return <HelpPage onBack={goToMain} />;
+        return <HelpPage onBack={goToPOS} />;
       case 'pos':
-        return <POSPage onBack={goToMain} onProductsClick={goToProducts} onSalesClick={goToSales} onClientClick={gotoClients} onReportClick={gotoReport} onInventoryClick={goToInventory} onUsersClick={goToUsers} onShiftHistoryClick={goToShiftHistory} onCashMovementsHistoryClick={goToCashMovementsHistory} />;
+        return <POSPage onBack={goToMain} onProductsClick={goToProducts} onSalesClick={goToSales} onClientClick={gotoClients} onReportClick={gotoReport} onInventoryClick={goToInventory} onUsersClick={goToUsers} onShiftHistoryClick={goToShiftHistory} onCashMovementsHistoryClick={goToCashMovementsHistory} onHelpClick={goToHelp} />;
       case 'products':
         return (
           <ProductsPage 
