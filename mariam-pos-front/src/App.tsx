@@ -4,7 +4,6 @@ import HomePage from './pages/HomePage';
 import HelpPage from './pages/HelpPage';
 import POSPage from './pages/POSPage';
 import ProductsPage from './pages/ProductsPage';
-import NewProductPage from './pages/product/NewProductPage';
 import CatalogPage from './pages/product/CatalogPage';
 import CategoriesPage from './pages/CategoriesPage';
 import ReportPage from './pages/report/ReportPage';
@@ -23,7 +22,6 @@ function App() {
     goToHelp, 
     goToPOS, 
     goToProducts, 
-    goToNewProduct, 
     goToCatalog,
     goToCategories,
     goToSales,
@@ -47,16 +45,10 @@ function App() {
         return (
           <ProductsPage 
             onBack={goToPOS} 
-            onNewProduct={goToNewProduct}
+            onNewProduct={goToCatalog}
             onViewCatalog={goToCatalog}
             onCategories={goToCategories}
           />
-        );
-      case 'new-product':
-        return (
-          <NewProductPage 
-            onBack={goToProducts} 
-           />
         );
       case 'catalog':
         return (

@@ -12,7 +12,6 @@ export const useNavigation = () => {
   const goToHelp = () => setCurrentView('help');
   const goToPOS = () => setCurrentView('pos');
   const goToProducts = () => setCurrentView('products');
-  const goToNewProduct = () => setCurrentView('new-product');
   const goToCatalog = () => setCurrentView('catalog');
   const goToCategories = () => setCurrentView('categories');
   const goToSales = () => setCurrentView('sales');
@@ -30,7 +29,6 @@ export const useNavigation = () => {
     goToHelp,
     goToPOS,
     goToProducts,
-    goToNewProduct,
     goToCatalog,
     goToCategories,
     goToSales,
