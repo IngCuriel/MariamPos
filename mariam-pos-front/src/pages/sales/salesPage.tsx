@@ -858,63 +858,38 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         />
         
         {/* Indicador de Turno de Caja */}
-        <div style={{
-          padding: "10px 20px",
-          backgroundColor: activeShift ? "#d1fae5" : "#fee2e2",
-          borderBottom: `3px solid ${activeShift ? "#059669" : "#dc2626"}`,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span style={{ fontSize: "1.2rem" }}>
+        <div className="shift-indicator">
+          <div className="shift-info">
+            <span className="shift-status-icon">
               {activeShift ? "🟢" : "🔴"}
             </span>
-            <span style={{ fontWeight: "600", fontSize: "0.95rem" }}>
+            <span className="shift-status-text">
               {activeShift 
                 ? `Turno Activo: ${activeShift.shiftNumber}`
                 : "No hay turno activo"
               }
             </span>
             {activeShift && (
-              <span style={{ fontSize: "0.85rem", color: "#6b7280" }}>
-                | Fondo: ${activeShift.initialCash.toFixed(2)} | 
-                Efectivo: ${activeShift.totalCash.toFixed(2)} | 
-                Tarjeta: ${activeShift.totalCard.toFixed(2)}
-              </span>
+              <div className="shift-details">
+                <span>Fondo: ${activeShift.initialCash.toFixed(2)}</span>
+                <span>Efectivo: ${activeShift.totalCash.toFixed(2)}</span>
+                <span>Tarjeta: ${activeShift.totalCard.toFixed(2)}</span>
+              </div>
             )}
           </div>
-          <div style={{ display: "flex", gap: "10px" }}>
+          <div className="shift-actions">
             {activeShift && (
               <button
+                className="btn-movements"
                 onClick={() => setShowCashMovementModal(true)}
-                style={{
-                  padding: "8px 16px",
-                  backgroundColor: "#3b82f6",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontWeight: "600",
-                  fontSize: "0.9rem",
-                }}
                 title="Movimientos de Efectivo"
               >
                 💰 Movimientos
               </button>
             )}
             <button
+              className={`btn-shift ${activeShift ? "close" : "open"}`}
               onClick={() => setShowShiftModal(true)}
-              style={{
-                padding: "8px 16px",
-                backgroundColor: activeShift ? "#dc2626" : "#059669",
-                color: "white",
-                border: "none",
-                borderRadius: "6px",
-                cursor: "pointer",
-                fontWeight: "600",
-                fontSize: "0.9rem",
-              }}
               title={activeShift ? "Cerrar Turno (F4)" : "Abrir Turno (F4)"}
             >
               {activeShift ? "🔴 Cerrar Turno" : "🟢 Abrir Turno"}
@@ -1012,20 +987,8 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
           {/* 🔹 Lado derecho: cart */}
           <div className="venta-right">
             <button
-              className="btn-finalizar"
+              className="btn-client"
               onClick={() => setShowClientModal(true)}
-              style={{
-                cursor: "pointer",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.opacity = "0.8";
-                e.currentTarget.style.transform = "scale(1.02)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.opacity = "1";
-                e.currentTarget.style.transform = "scale(1)";
-              }}
               title="Click para cambiar cliente"
             >
               👤 Cliente: {client}
@@ -1117,27 +1080,13 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
               </table>
             </div>
             {/**End scroll */}
-            <div className="venta-summary">
-              <h1>
-                Total:{" "}
-                {total.toLocaleString("es-MX", {
-                  style: "currency",
-                  currency: "MXN",
-                })}
-              </h1>
-              <button
-                className="btn-finalizar"
-                disabled={cart.length === 0}
-                onClick={() => setShowModal(true)}
-              >
-                💵 Cobrar (F2)
-              </button>
-            </div>
           </div>
         </div>
       </div>
       <Footer
-        cartLength = {cart.length}
+        cartLength={cart.length}
+        total={total}
+        onCheckout={() => setShowModal(true)}
         onSaleToPending={saleToPending}
         showPendingCarts={showPendingCarts}
         onFocusSearch={() => {
