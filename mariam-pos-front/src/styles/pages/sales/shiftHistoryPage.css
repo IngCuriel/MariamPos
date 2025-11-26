@@ -1,0 +1,530 @@
+.shift-history-page {
+  width: 100%;
+  min-height: 100vh;
+  background: #f9fafb;
+  padding: 0;
+}
+
+.shift-history-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px 30px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.shift-history-container {
+  max-width: 1800px;
+  margin: 0 auto;
+  padding: 30px;
+}
+
+/* Resumen de totales */
+.totals-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.total-item {
+  background: white;
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.total-label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.total-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.total-value.cash {
+  color: #059669;
+}
+
+.total-value.card {
+  color: #3b82f6;
+}
+
+.total-value.regalo {
+  color: #f59e0b;
+}
+
+.total-value.shifts {
+  color: #667eea;
+}
+
+/* Contenido principal */
+.shift-history-content {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 30px;
+  align-items: start;
+}
+
+/* Sección de lista de turnos */
+.shifts-list-section {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.filters-section {
+  margin-bottom: 25px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e5e7eb;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 15px;
+  align-items: end;
+}
+
+.filter-group {
+  margin-bottom: 0;
+}
+
+.filter-label {
+  display: block;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.datepicker-input-large {
+  width: 100%;
+  padding: 12px 15px;
+  font-size: 1.1rem;
+  border: 2px solid #d1d5db;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.datepicker-input-large:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.filter-info {
+  margin-top: 0;
+  font-size: 1rem;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  padding-bottom: 8px;
+}
+
+.filter-info strong {
+  color: #374151;
+  font-size: 1.1rem;
+  margin-left: 5px;
+}
+
+/* Tabla de turnos */
+.table-wrapper {
+  max-height: 600px;
+  overflow-y: auto;
+  border-radius: 8px;
+}
+
+.shifts-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1rem;
+}
+
+.shifts-table thead {
+  background: #f3f4f6;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.shifts-table th {
+  padding: 15px 12px;
+  text-align: left;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #374151;
+  border-bottom: 2px solid #d1d5db;
+}
+
+.shifts-table tbody tr {
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.shifts-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.shifts-table tbody tr.selected {
+  background-color: #dbeafe;
+  border-left: 4px solid #3b82f6;
+}
+
+.shifts-table td {
+  padding: 15px 12px;
+  font-size: 1rem;
+}
+
+.folio-cell {
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.date-cell {
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.cashier-cell {
+  color: #374151;
+  font-weight: 500;
+}
+
+.status-cell {
+  font-size: 0.95rem;
+}
+
+.total-cell {
+  font-weight: 700;
+  color: #059669;
+  font-size: 1.05rem;
+}
+
+/* Estados */
+.loading-state,
+.empty-state,
+.no-selection {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6b7280;
+  font-size: 1.1rem;
+}
+
+/* Sección de detalles */
+.shift-details-section {
+  background: white;
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+.details-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #667eea;
+}
+
+.details-card {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #d1d5db;
+}
+
+.closing-title {
+  color: #059669;
+  border-bottom-color: #059669;
+}
+
+/* Grid de información */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.info-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.info-value {
+  font-size: 0.9rem;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+/* Métodos de pago */
+.payment-methods-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+
+.payment-method-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.payment-label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.payment-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.payment-value.cash {
+  color: #059669;
+}
+
+.payment-value.card {
+  color: #3b82f6;
+}
+
+.payment-value.transfer {
+  color: #8b5cf6;
+}
+
+.payment-value.regalo {
+  color: #f59e0b;
+}
+
+.payment-value.other {
+  color: #6b7280;
+}
+
+/* Cierre de turno */
+.closing-card {
+  background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%);
+  border: 2px solid #3b82f6;
+}
+
+.closing-details {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.closing-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.closing-item.highlight {
+  background: #fef3c7;
+  border-color: #f59e0b;
+}
+
+.closing-item.difference {
+  background: #dbeafe;
+  border: 2px solid #3b82f6;
+  padding: 20px;
+}
+
+.closing-label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.closing-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.closing-value.expected {
+  color: #1e40af;
+}
+
+.closing-value.final {
+  color: #059669;
+}
+
+/* Movimientos */
+.movements-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.movement-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.movement-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.movement-reason {
+  font-size: 0.95rem;
+  color: #6b7280;
+}
+
+.movement-date {
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+/* Resumen */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.summary-label {
+  font-size: 0.95rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.summary-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+/* Notas */
+.notes-text {
+  font-size: 1rem;
+  color: #374151;
+  line-height: 1.6;
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+/* Responsive */
+@media (max-width: 1400px) {
+  .shift-history-content {
+    grid-template-columns: 1fr;
+  }
+
+  .shift-details-section {
+    max-height: none;
+  }
+}
+
+@media (max-width: 1024px) {
+  .totals-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .filters-section {
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+  }
+
+  .filter-info {
+    grid-column: 1 / -1;
+    margin-top: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .shift-history-container {
+    padding: 15px;
+  }
+
+  .totals-summary {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .total-item {
+    padding: 10px;
+  }
+
+  .total-label {
+    font-size: 0.75rem;
+  }
+
+  .total-value {
+    font-size: 1rem;
+  }
+
+  .filters-section {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .filter-info {
+    grid-column: 1;
+    margin-top: 0;
+  }
+
+  .info-grid,
+  .payment-methods-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

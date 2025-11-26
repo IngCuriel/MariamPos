@@ -628,6 +628,8 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       let paymentMethod = data.paymentType;
       if (data.paymentType === "mixto") {
         paymentMethod = `Mixto (Efectivo: $${data.cashAmount?.toFixed(2) || 0}, Tarjeta: $${data.cardAmount?.toFixed(2) || 0})`;
+      } else if (data.paymentType === "regalo") {
+        paymentMethod = "Regalo";
       }
 
       const sale: Omit<SaleInput, "createdAt"> = {
@@ -1175,18 +1177,29 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
           <ShiftModal
             branch={branch}
             cashRegister={cashRegister}
-            cashierName={client}
             onClose={() => {
               setShowShiftModal(false);
               checkActiveShift();
+              // Enfocar el input de búsqueda después de cerrar el modal
+              setTimeout(() => {
+                inputRef.current?.focus();
+              }, 200);
             }}
             onShiftOpened={(shift) => {
               setActiveShift(shift);
               setShowShiftModal(false);
+              // Enfocar el input de búsqueda después de abrir el turno
+              setTimeout(() => {
+                inputRef.current?.focus();
+              }, 200);
             }}
             onShiftClosed={() => {
               setActiveShift(null);
               setShowShiftModal(false);
+              // Enfocar el input de búsqueda después de cerrar el turno
+              setTimeout(() => {
+                inputRef.current?.focus();
+              }, 200);
             }}
           />
         )}

@@ -21,7 +21,6 @@ import "../../styles/pages/sales/paymentModal.css";
 interface ShiftModalProps {
   branch: string;
   cashRegister: string;
-  cashierName?: string;
   onClose: () => void;
   onShiftOpened?: (shift: CashRegisterShift) => void;
   onShiftClosed?: (shift: CashRegisterShift) => void;
@@ -32,7 +31,6 @@ type ModalMode = "open" | "close";
 const ShiftModal: React.FC<ShiftModalProps> = ({
   branch,
   cashRegister,
-  cashierName,
   onClose,
   onShiftOpened,
   onShiftClosed,
@@ -125,12 +123,15 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
     setLoading(true);
     try {
       // Determinar el nombre del cajero
-      let cashierNameToUse: string | undefined;
+      // Solo usar el cajero seleccionado, si no hay selección usar "Anónimo"
+      // NO usar el prop cashierName porque puede venir del cliente
+      let cashierNameToUse: string;
       if (selectedCashierId && selectedCashierId !== "") {
         const selectedCashier = cashiers.find(c => c.id === selectedCashierId);
         cashierNameToUse = selectedCashier?.name || "Anónimo";
       } else {
-        cashierNameToUse = cashierName || "Anónimo";
+        // Si no se seleccionó ningún cajero, siempre usar "Anónimo"
+        cashierNameToUse = "Anónimo";
       }
 
       const input: OpenShiftInput = {
@@ -320,12 +321,22 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
                     $${summary.totals.totalTransfer.toFixed(2)}
                   </p>
                 </div>
+                ${summary.paymentMethods?.Regalo ? `
+                <div style="margin-bottom: 12px;">
+                  <span style="color: #6b7280; font-size: 0.95rem;">Regalo:</span>
+                  <p style="margin: 4px 0; font-size: 1.1rem; font-weight: 600; color: #f59e0b;">
+                    $${summary.paymentMethods.Regalo.total.toFixed(2)}
+                  </p>
+                </div>
+                ` : ''}
+                ${(summary.totals.totalOther - (summary.paymentMethods?.Regalo?.total || 0)) > 0 ? `
                 <div style="margin-bottom: 12px;">
                   <span style="color: #6b7280; font-size: 0.95rem;">Otros:</span>
                   <p style="margin: 4px 0; font-size: 1.1rem; font-weight: 600; color: #6b7280;">
-                    $${summary.totals.totalOther.toFixed(2)}
+                    $${(summary.totals.totalOther - (summary.paymentMethods?.Regalo?.total || 0)).toFixed(2)}
                   </p>
                 </div>
+                ` : ''}
               </div>
             </div>
             <hr style="margin: 15px 0; border-color: #d1d5db;">
@@ -616,12 +627,37 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
                 </p>
               </div>
 
-              <div>
-                <span style={{ color: "#6b7280", fontSize: "0.85rem", display: "block" }}>Otros:</span>
-                <p style={{ margin: "2px 0", fontSize: "0.95rem", fontWeight: "600", color: "#6b7280" }}>
-                  ${activeShift.totalOther.toFixed(2)}
-                </p>
-              </div>
+              {(() => {
+                // Calcular regalos desde las ventas si están disponibles
+                let totalRegalo = 0;
+                if (activeShift.sales && Array.isArray(activeShift.sales)) {
+                  totalRegalo = activeShift.sales
+                    .filter((sale: any) => sale.paymentMethod && sale.paymentMethod.toLowerCase().includes("regalo"))
+                    .reduce((sum: number, sale: any) => sum + (sale.total || 0), 0);
+                }
+                const totalOtros = activeShift.totalOther - totalRegalo;
+                
+                return (
+                  <>
+                    {totalRegalo > 0 && (
+                      <div>
+                        <span style={{ color: "#6b7280", fontSize: "0.85rem", display: "block" }}>Regalo:</span>
+                        <p style={{ margin: "2px 0", fontSize: "0.95rem", fontWeight: "600", color: "#f59e0b" }}>
+                          {totalRegalo.toFixed(2)}
+                        </p>
+                      </div>
+                    )}
+                    {totalOtros > 0 && (
+                      <div>
+                        <span style={{ color: "#6b7280", fontSize: "0.85rem", display: "block" }}>Otros:</span>
+                        <p style={{ margin: "2px 0", fontSize: "0.95rem", fontWeight: "600", color: "#6b7280" }}>
+                          {totalOtros.toFixed(2)}
+                        </p>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
 
             <hr style={{ margin: "10px 0", borderColor: "#d1d5db" }} />

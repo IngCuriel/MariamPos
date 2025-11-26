@@ -119,6 +119,10 @@ export const closeShift = async (req, res) => {
         method.includes("transfer")
       ) {
         totalTransfer += amount;
+      } else if (method.includes("regalo")) {
+        // Los regalos NO se suman a totalCash ni a expectedCash
+        // Se cuentan en totalOther pero con etiqueta "Regalo"
+        totalOther += amount;
       } else {
         totalOther += amount;
       }
@@ -241,6 +245,10 @@ export const getActiveShift = async (req, res) => {
         method.includes("transfer")
       ) {
         totalTransfer += amount;
+      } else if (method.includes("regalo")) {
+        // Los regalos NO se suman a totalCash ni a expectedCash
+        // Se cuentan en totalOther pero con etiqueta "Regalo"
+        totalOther += amount;
       } else {
         totalOther += amount;
       }
@@ -351,6 +359,7 @@ export const getShiftsByDateRange = async (req, res) => {
           select: {
             id: true,
             total: true,
+            paymentMethod: true,
           },
         },
       },
@@ -425,13 +434,32 @@ export const getShiftSummary = async (req, res) => {
         }
         paymentMethods["tarjeta"].count += 1;
         paymentMethods["tarjeta"].total += cardAmount;
+      } else if (methodLower.includes("regalo")) {
+        // Normalizar regalo
+        if (!paymentMethods["Regalo"]) {
+          paymentMethods["Regalo"] = { count: 0, total: 0 };
+        }
+        paymentMethods["Regalo"].count += 1;
+        paymentMethods["Regalo"].total += sale.total || 0;
       } else {
         // Para otros métodos, mantener el comportamiento original
-        if (!paymentMethods[method]) {
-          paymentMethods[method] = { count: 0, total: 0 };
+        // Normalizar nombres comunes
+        let normalizedMethod = method;
+        if (methodLower.includes("efectivo") || methodLower === "cash") {
+          normalizedMethod = "Efectivo";
+        } else if (methodLower.includes("tarjeta") || methodLower.includes("card")) {
+          normalizedMethod = "Tarjeta";
+        } else if (methodLower.includes("transferencia") || methodLower.includes("transfer")) {
+          normalizedMethod = "Transferencia";
+        } else if (method === "Otros" || method === "otros") {
+          normalizedMethod = "Otros";
         }
-        paymentMethods[method].count += 1;
-        paymentMethods[method].total += sale.total || 0;
+        
+        if (!paymentMethods[normalizedMethod]) {
+          paymentMethods[normalizedMethod] = { count: 0, total: 0 };
+        }
+        paymentMethods[normalizedMethod].count += 1;
+        paymentMethods[normalizedMethod].total += sale.total || 0;
       }
     });
 

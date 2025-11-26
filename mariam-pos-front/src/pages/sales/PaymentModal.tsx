@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { FaMoneyBillWave, FaCreditCard } from "react-icons/fa";
+import { FaMoneyBillWave, FaCreditCard, FaGift } from "react-icons/fa";
 import { IoCloseCircleOutline } from "react-icons/io5";
 import Swal from "sweetalert2";
 import type { ConfirmPaymentData } from "../../types/index";
@@ -40,6 +40,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }
   useEffect(() => {
     if (paymentType === "mixto") {
       setAmountReceived("");
+    } else if (paymentType === "regalo") {
+      setAmountReceived("");
+      setCashAmount("");
+      setCardAmount("");
     } else {
       setCashAmount("");
       setCardAmount("");
@@ -161,10 +165,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }
         onClose();
       } else if (e.code === "Space") {
         e.preventDefault();
-        // Ciclar entre efectivo -> tarjeta -> mixto -> efectivo
+        // Ciclar entre efectivo -> tarjeta -> mixto -> regalo -> efectivo
         setPaymentType((prev) => {
           if (prev === "efectivo") return "tarjeta";
           if (prev === "tarjeta") return "mixto";
+          if (prev === "mixto") return "regalo";
           return "efectivo";
         });
       }
@@ -188,7 +193,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }
           <h1>${totalNumber.toFixed(2)}</h1>
         </div>
 
-        <div className="payment-options" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
+        <div className="payment-options" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "10px" }}>
           <button
             className={`payment-btn ${paymentType === "efectivo" ? "active" : ""}`}
             onClick={() => setPaymentType("efectivo")}
@@ -218,6 +223,17 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }
               <FaCreditCard size={20} />
             </div>
             Mixto
+          </button>
+          <button
+            className={`payment-btn ${paymentType === "regalo" ? "active" : ""}`}
+            onClick={() => setPaymentType("regalo")}
+            style={{
+              backgroundColor: paymentType === "regalo" ? "#fef3c7" : "#f3f4f6",
+              borderColor: paymentType === "regalo" ? "#f59e0b" : "#d1d5db",
+            }}
+          >
+            <FaGift size={30} />
+            Regalo
           </button>
         </div>
 
@@ -268,9 +284,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }
 
         {paymentType === "mixto" && (
           <div className="input-section">
-            <label style={{ marginBottom: "15px", display: "block", fontWeight: "600" }}>
+            {/*<label style={{ marginBottom: "15px", display: "block", fontWeight: "600" }}>
               Desglose de Pago Mixto:
-            </label>
+            </label> */}
 
             {/* Efectivo */}
             <div style={{ marginBottom: "15px" }}>
@@ -364,7 +380,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }
               border: `2px solid ${totalMixed === totalNumber ? "#059669" : "#dc2626"}`,
               marginTop: "10px"
             }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+              {/*<div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
                 <span style={{ fontSize: "0.9rem" }}>Efectivo:</span>
                 <strong style={{ color: "#059669" }}>${cashReceived.toFixed(2)}</strong>
               </div>
@@ -372,7 +388,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, onClose, onConfirm }
                 <span style={{ fontSize: "0.9rem" }}>Tarjeta:</span>
                 <strong style={{ color: "#3b82f6" }}>${cardReceived.toFixed(2)}</strong>
               </div>
-              <hr style={{ margin: "8px 0", borderColor: "#d1d5db" }} />
+               <hr style={{ margin: "8px 0", borderColor: "#d1d5db" }} />*/}
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ fontSize: "1rem", fontWeight: "600" }}>Total:</span>
                 <strong style={{ 
