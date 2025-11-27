@@ -14,7 +14,7 @@ interface PaymentModalProps {
   onConfirm: (confirmData: ConfirmPaymentData) => void;
 }
 
-const bills = [2000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, .50]; // ← Aquí defines tus billetes
+const bills = [500, 200, 100, 50]; // ← Aquí defines tus billetes
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, onClose, onConfirm }) => {
   const [paymentType, setPaymentType] = useState("efectivo");

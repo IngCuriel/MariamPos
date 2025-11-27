@@ -160,9 +160,9 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
      }
   }
 
-  const fetchCashMovementsByDateRange = async(startDate:string, endDate:string ) =>{
+  const fetchCashMovementsByDateRange = async(_startDate:string, _endDate:string ) =>{
      try {
-        const fetchMovements = await getCashMovementsByDateRange(startDate, endDate)
+        const fetchMovements = await getCashMovementsByDateRange(_startDate, _endDate)
         setCashMovements(fetchMovements);
      } catch (error) {
       console.log('Error al obtener movimientos:', error);

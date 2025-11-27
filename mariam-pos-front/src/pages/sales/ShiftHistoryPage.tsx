@@ -18,7 +18,7 @@ interface ShiftHistoryPageProps {
 
 export default function ShiftHistoryPage({
   onBack,
-  branch = "Sucursal Test",
+  branch = "Sucursal Principal",
   cashRegister = "Caja 1",
 }: ShiftHistoryPageProps) {
   const [selectedShift, setSelectedShift] = useState<CashRegisterShift | null>(null);

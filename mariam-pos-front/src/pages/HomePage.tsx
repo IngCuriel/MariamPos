@@ -7,11 +7,10 @@ import type { User } from '../types/index';
 import '../styles/pages/home/homePage.css';
 
 interface HomePageProps {
-  onHelpClick: () => void;
-  onPOSClick: () => void;
+   onPOSClick: () => void;
 }
 
-const HomePage: React.FC<HomePageProps> = ({ onHelpClick, onPOSClick }) => {
+const HomePage: React.FC<HomePageProps> = ({ onPOSClick }) => {
   const { selectedCashier, setSelectedCashier } = useCashier();
   const [cashiers, setCashiers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);

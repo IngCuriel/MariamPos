@@ -12,8 +12,7 @@ import {
   Cell,
   LineChart,
   Line,
-  CartesianGrid,
-  Legend
+  CartesianGrid
 } from "recharts";
 import Header from "../../components/Header";
 import DatePicker from "react-datepicker";
@@ -41,11 +40,6 @@ interface DailySale {
 interface TopProduct {
   productName: string;
   _sum: { quantity: number };
-}
-
-interface PaymentMethod {
-  paymentMethod: string;
-  _sum: { total: number };
 }
 
 interface CategorySale {
