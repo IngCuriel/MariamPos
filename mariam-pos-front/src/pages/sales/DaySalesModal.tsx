@@ -40,7 +40,7 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
       fetchSalesByDateRange(start, end);
       fetchCreditsByDateRange(start, end);
       fetchCreditPaymentsByDateRange(start, end);
-      //fetchCashMovementsByDateRange(start, end);
+      fetchCashMovementsByDateRange(start, end);
     }
   }, [dateToday, isOpen]);
 
@@ -403,87 +403,7 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
       }
     }
   };
-
-  // Función para enviar por correo
-  const handleSendEmail = async () => {
-    if (!selectedSale) return;
-
-    const { value: email } = await Swal.fire({
-      title: "Enviar Ticket por Correo",
-      html: `
-        <input 
-          id="swal-email" 
-          class="swal2-input" 
-          type="email" 
-          placeholder="correo@ejemplo.com"
-          required
-        >
-      `,
-      focusConfirm: false,
-      showCancelButton: true,
-      confirmButtonText: "Enviar",
-      cancelButtonText: "Cancelar",
-      confirmButtonColor: "#2563eb",
-      preConfirm: () => {
-        const emailInput = document.getElementById("swal-email") as HTMLInputElement;
-        const email = emailInput?.value;
-        if (!email) {
-          Swal.showValidationMessage("Por favor ingresa un correo electrónico");
-          return false;
-        }
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-          Swal.showValidationMessage("Por favor ingresa un correo válido");
-          return false;
-        }
-        return email;
-      },
-    });
-
-    if (email) {
-      try {
-        // Generar PDF
-        const pdfBlob = await generateInvoicePDF(selectedSale);
-        
-        // Crear URL del PDF
-        const pdfUrl = URL.createObjectURL(pdfBlob);
-        
-        // Crear enlace mailto (aunque no se puede adjuntar directamente, 
-        // el usuario puede descargar y adjuntar manualmente, o implementar backend)
-        const subject = encodeURIComponent(`Ticket de Venta #${selectedSale.id}`);
-        const body = encodeURIComponent(
-          `Estimado cliente,\n\nAdjunto encontrará el ticket de su compra.\n\nFolio: ${selectedSale.id}\nTotal: ${selectedSale.total.toLocaleString("es-MX", { style: "currency", currency: "MXN" })}\n\nGracias por su compra.`
-        );
-        
-        // Abrir cliente de correo
-        window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
-        
-        // También descargar el PDF para que el usuario lo pueda adjuntar
-        const link = document.createElement("a");
-        link.href = pdfUrl;
-        link.download = `ticket-${selectedSale.id}.pdf`;
-        link.click();
-        
-        Swal.fire({
-          icon: "success",
-          title: "PDF Generado",
-          text: `El PDF se ha descargado. Por favor adjúntalo al correo que se abrió para ${email}`,
-          timer: 5000,
-        });
-        
-        // Limpiar URL después de un tiempo
-        setTimeout(() => URL.revokeObjectURL(pdfUrl), 10000);
-      } catch (error) {
-        console.error("Error al enviar por correo:", error);
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "No se pudo generar el PDF para enviar",
-        });
-      }
-    }
-  };
-
+  
   // Función para abrir WhatsApp Web en nueva ventana
   const handleSendWhatsApp = async () => {
     if (!selectedSale) return;
@@ -738,7 +658,7 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
                   </div>
                 )}
 
-                {/* Resumen de Movimientos de Efectivo
+                {/* Resumen de Movimientos de Efectivo*/}
                 {resumenMovimientos.movementsCount > 0 && (
                   <div className="summary-totals movements-section">
                     <div className="summary-item movement-entrada">
@@ -775,7 +695,7 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
                       </span>
                     </div>
                   </div>
-                )}*/}
+                )}
               </div>
               
               {/* Right column - Sales list and details */}

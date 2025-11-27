@@ -83,7 +83,7 @@ function App() {
       case 'cash-movements-history':
         return <CashMovementsHistoryPage onBack={goToPOS} />;
       default:
-        return <HomePage onHelpClick={goToHelp} onPOSClick={goToPOS} />;
+        return <HomePage onPOSClick={goToPOS} />;
     }
   };
 

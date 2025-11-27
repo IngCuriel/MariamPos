@@ -25,7 +25,7 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showCreditHistory, setShowCreditHistory] = useState(false);
   const [selectedClientForHistory, setSelectedClientForHistory] = useState<Client | null>(null);
-  const [loadingCredits, setLoadingCredits] = useState(false);
+  const [_loadingCredits, setLoadingCredits] = useState(false);
   
   // 🟢 Llamada al API cuando el hook se monta
   useEffect(() => {
