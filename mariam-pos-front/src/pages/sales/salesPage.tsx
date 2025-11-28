@@ -30,6 +30,8 @@ import CreditPaymentModal from "../client/CreditPaymentModal";
 import { getClientCredits } from "../../api/credits";
 import type { ClientCredit } from "../../types";
 import type { ProductPresentation } from "../../types";
+import { createPendingSale, getPendingSales, deletePendingSale, type PendingSale } from "../../api/pendingSales";
+import PendingSalesModal from "./PendingSalesModal";
 
 interface SalesPageProps {
   onBack: () => void;
@@ -66,6 +68,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
   const [showShiftModal, setShowShiftModal] = useState(false);
   const [showCashMovementModal, setShowCashMovementModal] = useState(false);
   const [showClientModal, setShowClientModal] = useState(false);
+  const [showPendingSalesModal, setShowPendingSalesModal] = useState(false);
   const [activeShift, setActiveShift] = useState<CashRegisterShift | null>(null);
   const [productCounter, setProductCounter] = useState(1);
 
@@ -814,12 +817,23 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
     }
   };
 
-  const saleToPending = () => {
-     if (cart.length === 0) {
-      Swal.fire("No hay Productos  selecionados");
+  const saleToPending = async () => {
+    if (cart.length === 0) {
+      Swal.fire("No hay Productos seleccionados");
       return;
     }
-    Swal.fire({
+
+    // Calcular el total del carrito
+    const total = cart.reduce((sum, item) => {
+      const itemPrice = item.selectedPresentation?.unitPrice || item.price;
+      const itemQuantity = item.presentationQuantity 
+        ? (item.selectedPresentation?.quantity || 1) * item.presentationQuantity
+        : item.quantity;
+      return sum + (itemPrice * itemQuantity);
+    }, 0);
+
+    // Pedir confirmación y nombre del cliente
+    const { value: confirm } = await Swal.fire({
       title: "Venta pendiente",
       text: "¿Deseas guardar la venta como pendiente?",
       icon: "question",
@@ -828,71 +842,134 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       cancelButtonText: "Cancelar",
       confirmButtonColor: "#4CAF50",
       cancelButtonColor: "#d33",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        const { value: name } = await Swal.fire({
-          title: "Ingresa un nombre para el  ticket",
-          input: "text",
-          inputLabel: "Name",
-          inputPlaceholder: "Ticket # name",
-          showCancelButton: true,
-        });
-        if (name) {
-          // Obtener los carritos existentes
-          const stored = localStorage.getItem("cart-pending");
-          const cartPending = stored ? JSON.parse(stored) : [];
-          // Crear nuevo carrito
-          const newCart = {
-            name,
-            items: cart,
-          };
-          // Agregar al array
-          cartPending.push(newCart);
-          localStorage.setItem("cart-pending", JSON.stringify(cartPending));
-          setCart(() => []);
-          Swal.fire(
-            "Guardado",
-            `La venta se guardó correctamente ${name}`,
-            "success"
-          );
-        }
-      }
     });
-  };
 
-  const showPendingCarts = async () => {
-    // Obtener carritos del localStorage
-    const stored = localStorage.getItem("cart-pending");
-    const carts = stored ? JSON.parse(stored) : [];
-
-    if (carts.length === 0) {
-      Swal.fire("No hay carritos pendientes");
+    if (!confirm) {
       return;
     }
 
-    // Crear un objeto para SweetAlert2 tipo select
-    const options: Record<number, string> = {};;
-    carts.forEach((cart:ItemCart, index:number) => {
-      options[index] = cart.name; // la key puede ser el índice
-    });
-
-    // Mostrar alerta
-    const { value: selectedIndex } = await Swal.fire({
-      title: "Selecciona un carrito pendiente",
-      input: "select",
-      inputOptions: options,
-      inputPlaceholder: "Elige un carrito",
+    const { value: clientName } = await Swal.fire({
+      title: "Guardar venta pendiente",
+      html: `
+        <p style="margin-bottom: 15px;">Ingresa el nombre del cliente para recordar esta venta:</p>
+        <p style="font-size: 12px; color: #666; margin-bottom: 10px;">Total: ${total.toLocaleString("es-MX", {
+          style: "currency",
+          currency: "MXN",
+        })}</p>
+      `,
+      input: "text",
+      inputLabel: "Nombre del cliente",
+      inputPlaceholder: "Ej: Juan Pérez, Mostrador 1, etc.",
       showCancelButton: true,
+      confirmButtonText: "Guardar",
+      cancelButtonText: "Cancelar",
+      inputValidator: (value) => {
+        if (!value || value.trim() === "") {
+          return "Debes ingresar un nombre";
+        }
+        return null;
+      },
     });
 
-    if (selectedIndex !== undefined) {
-      const selectedCart = carts[selectedIndex];
-      console.log("Carrito seleccionado:", selectedCart);
-      setCart(() => selectedCart.items);
-      //Eliminar del localstorage el carrito pendiente
-      carts.splice(selectedIndex, 1);
-      localStorage.setItem("cart-pending", JSON.stringify(carts));
+    if (!clientName) {
+      return;
     }
+
+    try {
+      // Convertir el carrito a formato de detalles de venta pendiente
+      const details = cart.map((item) => {
+        const itemPrice = item.selectedPresentation?.unitPrice || item.price;
+        const itemQuantity = item.presentationQuantity 
+          ? (item.selectedPresentation?.quantity || 1) * item.presentationQuantity
+          : item.quantity;
+        const subTotal = itemPrice * itemQuantity;
+
+        return {
+          productId: item.id,
+          quantity: itemQuantity,
+          price: itemPrice,
+          subTotal: subTotal,
+          productName: item.name,
+          presentationId: item.selectedPresentation?.id,
+          presentationName: item.selectedPresentation?.name,
+          saleType: item.saleType || "Pieza",
+          basePrice: item.selectedPresentation?.unitPrice || item.price,
+        };
+      });
+
+      // Guardar en la base de datos
+      const pendingSale = await createPendingSale({
+        clientName: clientName.trim(),
+        total,
+        branch: branch || "Sucursal Default",
+        cashRegister: cashRegister || "Caja 1",
+        details,
+      });
+
+      // Limpiar el carrito
+      setCart(() => []);
+
+      Swal.fire({
+        icon: "success",
+        title: "Venta guardada",
+        html: `
+          <p>La venta se guardó correctamente</p>
+          <p style="margin-top: 10px; font-weight: bold; color: #059669;">
+            Código: ${pendingSale.code}
+          </p>
+          <p style="margin-top: 5px;">Cliente: ${pendingSale.clientName}</p>
+        `,
+      });
+    } catch (error) {
+      console.error("Error al guardar venta pendiente:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "No se pudo guardar la venta pendiente. Intenta nuevamente.",
+      });
+    }
+  };
+
+  const showPendingCarts = () => {
+    setShowPendingSalesModal(true);
+  };
+
+  const handlePendingSaleSelect = (pendingSale: PendingSale) => {
+    // Convertir los detalles de la venta pendiente al formato del carrito
+    const cartItems: ItemCart[] = pendingSale.details.map((detail) => {
+      // Buscar el producto completo
+      const product = detail.product;
+      
+      // Crear el item del carrito
+      const cartItem: ItemCart = {
+        ...product,
+        quantity: detail.quantity,
+        selectedPresentation: detail.presentationId && product.presentations
+          ? product.presentations.find(p => p.id === detail.presentationId)
+          : undefined,
+        presentationQuantity: detail.presentationId 
+          ? Math.ceil(detail.quantity / (detail.presentationId && product.presentations
+              ? product.presentations.find(p => p.id === detail.presentationId)?.quantity || 1
+              : 1))
+          : undefined,
+      };
+
+      return cartItem;
+    });
+
+    // Cargar el carrito
+    setCart(() => cartItems);
+
+    Swal.fire({
+      icon: "success",
+      title: "Venta cargada",
+      html: `
+        <p>La venta <strong>${pendingSale.code}</strong> se cargó correctamente</p>
+        <p style="margin-top: 10px;">Cliente: ${pendingSale.clientName || "Sin nombre"}</p>
+      `,
+      timer: 2000,
+      showConfirmButton: false,
+    });
   };
  
   return (
@@ -1408,6 +1485,11 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
             }}
           />
         )}
+        <PendingSalesModal
+          isOpen={showPendingSalesModal}
+          onClose={() => setShowPendingSalesModal(false)}
+          onSelect={handlePendingSaleSelect}
+        />
       </div>
     </div>
   );

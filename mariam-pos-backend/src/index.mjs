@@ -52,6 +52,7 @@ import usersRouter from "./routes/users.js";
 import creditsRouter from "./routes/credits.js";
 import syncRouter from "./routes/sync.js";
 import healthRouter from "./routes/health.js";
+import pendingSalesRouter from "./routes/pendingSales.js";
 
 // Health check (sin /api para facilitar detección)
 app.use("/health", healthRouter);
@@ -64,7 +65,8 @@ app.use("/api/inventory", inventoryRouter);
 app.use("/api/cash-register", cashRegisterRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/credits", creditsRouter);
-app.use("/api/sync", syncRouter); 
+app.use("/api/sync", syncRouter);
+app.use("/api/pending-sales", pendingSalesRouter); 
 
 // -------------------
 // Iniciar servidor

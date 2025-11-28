@@ -36,6 +36,7 @@ model Product {
   presentations ProductPresentation[]
 
   saleDetails SaleDetail[]
+  pendingSaleDetails PendingSaleDetail[]
 
   @@index([code])
   @@index([name])
@@ -403,4 +404,65 @@ enum CreditStatus {
   PENDING         // Pendiente de pago
   PARTIALLY_PAID  // Parcialmente pagado
   PAID            // Completamente pagado
+}
+
+// ============================================================
+// 🕓 MÓDULO DE VENTAS PENDIENTES
+// ============================================================
+
+// ------------------------------------------------------------
+// Ventas Pendientes (Carritos guardados para cobrar después)
+// ------------------------------------------------------------
+model PendingSale {
+  id              Int       @id @default(autoincrement())
+  code            String    @unique // Código único generado automáticamente
+  clientName      String?   // Nombre del cliente para recordar
+  total           Float     // Total de la venta pendiente
+  branch          String?   @default("Sucursal Default")
+  cashRegister    String?   @default("Caja 1")
+  
+  // Relación con los detalles del carrito
+  details         PendingSaleDetail[]
+  
+  // Fechas
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([code])
+  @@index([clientName])
+  @@index([createdAt])
+}
+
+// ------------------------------------------------------------
+// Detalles de Venta Pendiente
+// ------------------------------------------------------------
+model PendingSaleDetail {
+  id              Int       @id @default(autoincrement())
+  
+  // Relación con PendingSale
+  pendingSaleId   Int
+  pendingSale     PendingSale @relation(fields: [pendingSaleId], references: [id], onDelete: Cascade)
+  
+  // Información del producto
+  productId       Int
+  product         Product   @relation(fields: [productId], references: [id])
+  
+  // Datos de la venta
+  quantity        Float     // Cantidad
+  price           Float     // Precio unitario
+  subTotal        Float     // Subtotal (quantity * price)
+  productName     String?   // Nombre del producto al momento de guardar
+  
+  // Información de presentación (si aplica)
+  presentationId  Int?      // ID de la presentación si se usó
+  presentationName String?  // Nombre de la presentación
+  
+  // Información de granel (si aplica)
+  saleType        String?   // "Pieza" o "Granel"
+  basePrice       Float?    // Precio base para granel
+  
+  createdAt       DateTime  @default(now())
+  
+  @@index([pendingSaleId])
+  @@index([productId])
 }
