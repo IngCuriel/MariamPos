@@ -30,7 +30,7 @@ import CreditPaymentModal from "../client/CreditPaymentModal";
 import { getClientCredits } from "../../api/credits";
 import type { ClientCredit } from "../../types";
 import type { ProductPresentation } from "../../types";
-import { createPendingSale, getPendingSales, deletePendingSale, type PendingSale } from "../../api/pendingSales";
+import { createPendingSale, type PendingSale } from "../../api/pendingSales";
 import PendingSalesModal from "./PendingSalesModal";
 import { playAddProductSound } from "../../utils/sound";
 
@@ -985,21 +985,44 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
   const handlePendingSaleSelect = (pendingSale: PendingSale) => {
     // Convertir los detalles de la venta pendiente al formato del carrito
     const cartItems: ItemCart[] = pendingSale.details.map((detail) => {
-      // Buscar el producto completo
-      const product = detail.product;
+      // Crear un producto básico con la información disponible
+      // Nota: No tenemos el producto completo, solo la información del detalle
+      const baseProduct: Product = {
+        id: detail.productId,
+        code: '',
+        name: detail.productName || 'Producto',
+        status: 1,
+        saleType: detail.saleType || 'Pieza',
+        price: detail.basePrice || detail.price,
+        cost: 0,
+        icon: '',
+        categoryId: '',
+      };
+      
+      // Crear presentación si existe
+      let selectedPresentation: ProductPresentation | undefined;
+      if (detail.presentationId && detail.presentationName) {
+        selectedPresentation = {
+          id: detail.presentationId,
+          name: detail.presentationName,
+          quantity: 1, // Valor por defecto, no tenemos esta info
+          unitPrice: detail.basePrice || detail.price,
+        };
+      }
+      
+      // Calcular presentationQuantity si hay presentación
+      let presentationQuantity: number | undefined;
+      if (selectedPresentation && selectedPresentation.quantity > 0) {
+        presentationQuantity = Math.ceil(detail.quantity / selectedPresentation.quantity);
+      }
       
       // Crear el item del carrito
       const cartItem: ItemCart = {
-        ...product,
+        ...baseProduct,
         quantity: detail.quantity,
-        selectedPresentation: detail.presentationId && product.presentations
-          ? product.presentations.find(p => p.id === detail.presentationId)
-          : undefined,
-        presentationQuantity: detail.presentationId 
-          ? Math.ceil(detail.quantity / (detail.presentationId && product.presentations
-              ? product.presentations.find(p => p.id === detail.presentationId)?.quantity || 1
-              : 1))
-          : undefined,
+        price: detail.price,
+        selectedPresentation,
+        presentationQuantity,
       };
 
       return cartItem;

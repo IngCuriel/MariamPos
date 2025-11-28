@@ -219,18 +219,22 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
           </Card>
             {/* Alerta de clientes con créditos pendientes */}
             {Object.keys(clientCredits).length > 0 && (
-              <Card className="search-card" style={{ 
+              <div style={{ 
                 marginBottom: "16px", 
                 backgroundColor: "#fef3c7", 
-                border: "1px solid #f59e0b" 
+                border: "1px solid #f59e0b",
+                borderRadius: "8px",
+                padding: "16px"
               }}>
+                <Card className="search-card">
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <span style={{ fontSize: "1.2rem" }}>⚠️</span>
                   <strong style={{ color: "#92400e" }}>
                     {Object.keys(clientCredits).length} cliente(s) con créditos pendientes
                   </strong>
                 </div>
-              </Card>
+                </Card>
+              </div>
             )}
 
             {/* Tabla de clientes */}
@@ -295,10 +299,7 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
                           <Button
                             variant="secondary"
                             onClick={() => handleEdit(client)}
-                            style={{ 
-                              padding: "4px 12px", 
-                              fontSize: "0.85rem"
-                            }}
+                            className="button-small"
                           >
                             ✏️ Editar
                           </Button>
@@ -306,11 +307,7 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
                             <Button
                               variant="info"
                               onClick={() => handleViewCreditHistory(client)}
-                              style={{ 
-                                padding: "4px 12px", 
-                                fontSize: "0.85rem",
-                                backgroundColor: "#3b82f6"
-                              }}
+                              className="button-small"
                             >
                               📋 Historial
                             </Button>
@@ -319,11 +316,7 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
                             <Button
                               variant="success"
                               onClick={() => handleOpenPaymentModal(client.id)}
-                              style={{ 
-                                padding: "4px 12px", 
-                                fontSize: "0.85rem",
-                                backgroundColor: "#059669"
-                              }}
+                              className="button-small"
                             >
                               💳 Abonar
                             </Button>

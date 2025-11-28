@@ -71,6 +71,7 @@ const CreditPaymentModal: React.FC<CreditPaymentModalProps> = ({
     setLoading(true);
     try {
       const input: CreateCreditPaymentInput = {
+        creditId: creditDetails.id,
         amount: paymentAmount,
         paymentMethod: paymentMethod,
         notes: notes.trim() || undefined,

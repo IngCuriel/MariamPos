@@ -157,7 +157,7 @@ const ClientCreditHistoryModal: React.FC<ClientCreditHistoryModalProps> = ({
                           Historial de Pagos ({credit.payments.length})
                         </h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                          {credit.payments.map((payment, index) => {
+                          {credit.payments.map((payment) => {
                             const daysSince = calculateDaysSince(payment.createdAt);
                             return (
                               <div

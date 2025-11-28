@@ -1,7 +1,7 @@
 {
-  "mode": "auto",
+  "mode": "client",
   "apiUrl": "http://127.0.0.1:3001/api",
-  "serverUrl": "http://192.168.1.100:3001/api",
+  "serverUrl": "http://192.168.0.8:3001/api",
   "sucursal": "Sucursal Principal",
   "caja": "Caja 1",
   "autoDetect": true

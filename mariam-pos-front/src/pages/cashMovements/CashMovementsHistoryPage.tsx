@@ -53,15 +53,6 @@ export default function CashMovementsHistoryPage({
     });
   };
 
-  const formatDateOnly = (date: Date | string) => {
-    const d = new Date(date);
-    return d.toLocaleDateString("es-MX", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-  };
-
   // Calcular totales
   const totals = movements.reduce(
     (acc, movement) => {
@@ -217,32 +208,19 @@ export default function CashMovementsHistoryPage({
                       {movement.reason || "-"}
                     </td>
                     <td className="shift-cell">
-                      {movement.shift ? (
+                      {movement.shiftId ? (
                         <div>
-                          <strong>#{movement.shift.shiftNumber}</strong>
-                          <br />
-                          <small style={{ color: "#6b7280", fontSize: "0.85rem" }}>
-                            {formatDateOnly(movement.shift.startTime)}
-                          </small>
+                          <strong>#{movement.shiftId}</strong>
                         </div>
                       ) : (
                         "-"
                       )}
                     </td>
                     <td className="cashier-cell">
-                      {movement.shift?.cashierName || "Anónimo"}
+                      {movement.createdBy || "Anónimo"}
                     </td>
                     <td className="location-cell">
-                      {movement.shift ? (
-                        <div>
-                          <div>{movement.shift.branch}</div>
-                          <small style={{ color: "#6b7280", fontSize: "0.85rem" }}>
-                            {movement.shift.cashRegister}
-                          </small>
-                        </div>
-                      ) : (
-                        "-"
-                      )}
+                      -
                     </td>
                     <td className="created-by-cell">
                       {movement.createdBy || "-"}

@@ -305,7 +305,10 @@ const DashboardSalesPage: React.FC<DashboardSalesPageProps> = ({ onBack }) => {
                       cx="50%"
                       cy="50%"
                       outerRadius={100}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      label={(props: any) => {
+                        const { name, percent } = props;
+                        return `${name}: ${((percent as number) * 100).toFixed(0)}%`;
+                      }}
                     >
                       {byPayment.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
