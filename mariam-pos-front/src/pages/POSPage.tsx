@@ -13,6 +13,7 @@ interface POSPageProps {
   onUsersClick?:() => void;
   onShiftHistoryClick?:() => void;
   onCashMovementsHistoryClick?:() => void;
+  onCopiesClick?:() => void;
   onHelpClick?:() => void;
 }
 
@@ -26,6 +27,7 @@ const POSPage: React.FC<POSPageProps> = ({
   onUsersClick, 
   onShiftHistoryClick, 
   onCashMovementsHistoryClick,
+  onCopiesClick,
   onHelpClick
 }) => {
   return (
@@ -81,6 +83,19 @@ const POSPage: React.FC<POSPageProps> = ({
                 <h3 className="pos-module-title">Inventario</h3>
                 <p className="pos-module-description">Control de stock y existencias</p>
               </Card>
+
+              {onCopiesClick && (
+                <Card
+                  variant="feature"
+                  className="pos-module-card copies"
+                  onClick={onCopiesClick}
+                  hoverable
+                >
+                  <div className="pos-module-icon">🖨️</div>
+                  <h3 className="pos-module-title">Copias</h3>
+                  <p className="pos-module-description">Imprimir documentos y copias</p>
+                </Card>
+              )}
             </div>
           </div>
 

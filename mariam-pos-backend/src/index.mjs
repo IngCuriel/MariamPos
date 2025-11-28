@@ -53,6 +53,7 @@ import creditsRouter from "./routes/credits.js";
 import syncRouter from "./routes/sync.js";
 import healthRouter from "./routes/health.js";
 import pendingSalesRouter from "./routes/pendingSales.js";
+import copiesRouter from "./routes/copies.js";
 
 // Health check (sin /api para facilitar detección)
 app.use("/health", healthRouter);
@@ -66,7 +67,9 @@ app.use("/api/cash-register", cashRegisterRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/credits", creditsRouter);
 app.use("/api/sync", syncRouter);
-app.use("/api/pending-sales", pendingSalesRouter); 
+app.use("/api/pending-sales", pendingSalesRouter);
+app.use("/api/copies", copiesRouter);
+console.log("✅ Ruta /api/copies registrada correctamente"); 
 
 // -------------------
 // Iniciar servidor
