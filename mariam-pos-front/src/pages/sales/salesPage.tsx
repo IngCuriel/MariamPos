@@ -32,6 +32,7 @@ import type { ClientCredit } from "../../types";
 import type { ProductPresentation } from "../../types";
 import { createPendingSale, getPendingSales, deletePendingSale, type PendingSale } from "../../api/pendingSales";
 import PendingSalesModal from "./PendingSalesModal";
+import { playAddProductSound } from "../../utils/sound";
 
 interface SalesPageProps {
   onBack: () => void;
@@ -154,6 +155,9 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
           quantity
         }];
       });
+
+      // Reproducir sonido de confirmación
+      playAddProductSound();
 
       Swal.fire({
         icon: 'success',
@@ -403,6 +407,10 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
             setCart((prev) => {
               return [...prev, {...product, name:result.nombre, price:result.precio, quantity}];
             });
+            
+            // Reproducir sonido de confirmación
+            playAddProductSound();
+            
             // Aquí puedes actualizar tu carrito o llamar una API
         } else {
             console.log('Venta cancelada');
@@ -492,6 +500,9 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         return [...prev, cartItem];
       });
       
+      // Reproducir sonido de confirmación
+      playAddProductSound();
+      
       const presentationName = selectedPresentation 
         ? ` (${selectedPresentation.name})` 
         : '';
@@ -517,6 +528,9 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       }];
     });
 
+    // Reproducir sonido de confirmación
+    playAddProductSound();
+
     // Incrementar contador para siguiente producto
     setProductCounter((prev) => prev + 1);
   };
@@ -532,6 +546,40 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       // Si no hay presentación, comparar solo por id y name
       return !(item.id === id && item.name === name && !item.selectedPresentation);
     }));
+  };
+
+  // Función para actualizar cantidad de productos por pieza
+  const handleUpdateQuantity = (
+    id: number,
+    presentationId: number | undefined,
+    change: number
+  ) => {
+    setCart((prev) =>
+      prev.map((item) => {
+        // Verificar que sea el mismo producto y presentación
+        const isSameItem =
+          item.id === id &&
+          ((presentationId !== undefined &&
+            item.selectedPresentation?.id === presentationId) ||
+            (presentationId === undefined && !item.selectedPresentation));
+
+        if (isSameItem) {
+          // Solo permitir actualizar cantidad para productos "Pieza" sin presentaciones
+          // o productos con presentaciones que no sean granel
+          const isPieza = item.saleType?.toLowerCase() === 'pieza';
+          const hasNoPresentation = !item.selectedPresentation;
+          
+          if (isPieza && hasNoPresentation) {
+            const newQuantity = Math.max(1, item.quantity + change);
+            return {
+              ...item,
+              quantity: newQuantity,
+            };
+          }
+        }
+        return item;
+      })
+    );
   };
 
   // Calcular total considerando presentaciones y productos granel
@@ -1294,11 +1342,40 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                             )}
                           </td>
                           <td>
-                            <h4>{displayQuantity}</h4>
-                            {item.selectedPresentation && item.quantity > item.presentationQuantity! && (
-                              <small style={{ color: '#6b7280', fontSize: '0.85rem' }}>
-                                ({item.quantity} unidades totales)
-                              </small>
+                            {/* Mostrar controles de cantidad solo para productos "Pieza" sin presentaciones */}
+                            {item.saleType?.toLowerCase() === 'pieza' && !item.selectedPresentation ? (
+                              <div className="quantity-controls">
+                                <button
+                                  className="quantity-btn quantity-btn-minus"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleUpdateQuantity(item.id, item.selectedPresentation?.id, -1);
+                                  }}
+                                  title="Disminuir cantidad"
+                                >
+                                  <span className="quantity-icon">−</span>
+                                </button>
+                                <span className="quantity-display">{item.quantity}</span>
+                                <button
+                                  className="quantity-btn quantity-btn-plus"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleUpdateQuantity(item.id, item.selectedPresentation?.id, 1);
+                                  }}
+                                  title="Aumentar cantidad"
+                                >
+                                  <span className="quantity-icon">+</span>
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <h4>{displayQuantity}</h4>
+                                {item.selectedPresentation && item.quantity > item.presentationQuantity! && (
+                                  <small style={{ color: '#6b7280', fontSize: '0.85rem' }}>
+                                    ({item.quantity} unidades totales)
+                                  </small>
+                                )}
+                              </>
                             )}
                           </td>
                           <td>

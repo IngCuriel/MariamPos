@@ -2,12 +2,15 @@
 node_modules/
 mariam-pos-front/node_modules/
 mariam-pos-backend/node_modules/
+mariam-pos-app/node_modules/
 
 # Build outputs
 dist/
 dist_electron/
 dist_client/
 mariam-pos-front/dist/
+mariam-pos-app/.expo/
+mariam-pos-app/.expo-shared/
 
 # Logs
 *.log
