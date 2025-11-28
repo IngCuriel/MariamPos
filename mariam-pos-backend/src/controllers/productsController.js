@@ -257,3 +257,31 @@ export const getProductsByCategoryId = async (req, res) => {
 
   res.json(products);
 }
+
+export const getProductByCode = async (req, res) => {
+  try {
+    const { code } = req.params;
+
+    if (!code) {
+      return res.status(400).json({ error: "El código de barras es obligatorio" });
+    }
+
+    const product = await prisma.product.findUnique({
+      where: { code: code },
+      include: {
+        category: true,
+        presentations: true,
+        inventory: true
+      }
+    });
+
+    if (!product) {
+      return res.status(404).json({ error: "Producto no encontrado con ese código de barras" });
+    }
+
+    res.json(product);
+  } catch (error) {
+    console.error("Error al buscar producto por código:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+}
