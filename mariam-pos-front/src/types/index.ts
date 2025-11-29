@@ -350,3 +350,16 @@ export interface CreateCreditPaymentInput {
   createdBy?: string;
 }
 
+// ============================================================
+// ⚡ ELECTRON API TYPES
+// ============================================================
+
+declare global {
+  interface Window {
+    electronAPI?: {
+      openExternal: (url: string) => Promise<{ success: boolean; error?: string }>;
+      isElectron: boolean;
+    };
+  }
+}
+

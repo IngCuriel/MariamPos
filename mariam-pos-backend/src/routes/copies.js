@@ -1,5 +1,7 @@
 import express from 'express';
-import { printCopies, getAvailablePrinters, uploadMiddleware, scanDocument, photocopy } from '../controllers/copiesController.js';
+import multer from 'multer';
+import os from 'os';
+import { printCopies, getAvailablePrinters, uploadMiddleware, scanDocument, photocopy, createPdfFromImages, combineImages } from '../controllers/copiesController.js';
 
 const router = express.Router();
 
@@ -10,6 +12,44 @@ console.log('✅ Ruta POST /copies/print registrada');
 // Ruta para escanear documento
 router.post('/scan', express.json(), scanDocument);
 console.log('✅ Ruta POST /copies/scan registrada');
+
+// Ruta para crear PDF desde múltiples imágenes
+const uploadMultiple = multer({
+  dest: os.tmpdir(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB por archivo
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Tipo de archivo no válido. Solo se permiten JPG y PNG.'));
+    }
+  }
+}).array('images', 50); // Máximo 50 imágenes
+
+router.post('/create-pdf', uploadMultiple, createPdfFromImages);
+console.log('✅ Ruta POST /copies/create-pdf registrada');
+
+// Ruta para combinar dos imágenes en una sola
+const uploadTwoImages = multer({
+  dest: os.tmpdir(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB por archivo
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Tipo de archivo no válido. Solo se permiten JPG y PNG.'));
+    }
+  }
+}).array('images', 2); // Exactamente 2 imágenes
+
+router.post('/combine-images', uploadTwoImages, combineImages);
+console.log('✅ Ruta POST /copies/combine-images registrada');
 
 // Ruta para fotocopiar (escanear + imprimir)
 router.post('/photocopy', express.json(), photocopy);
