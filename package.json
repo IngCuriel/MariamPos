@@ -12,7 +12,7 @@
   },
   "build": {
     "appId": "com.mariam.pos",
-    "productName": "Mariam POS",
+    "productName": "Mini Super CURIEL",
     "directories": {
       "output": "dist_electron"
     },
