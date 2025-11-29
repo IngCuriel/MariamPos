@@ -1,11 +1,11 @@
-// build-client.js - Script Node.js para generar instalador cliente
+// build-server.js - Script Node.js para generar instalador servidor
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
 console.log('========================================');
-console.log('  Generador de Instalador CLIENTE');
-console.log('  MariamPOS - Solo Frontend');
+console.log('  Generador de Instalador SERVIDOR');
+console.log('  MariamPOS - Frontend + Backend');
 console.log('========================================\n');
 
 // Verificar que el frontend esté compilado
@@ -42,58 +42,20 @@ configScripts.forEach(({ from, to }) => {
 });
 console.log('');
 
-// Backup de archivos originales
-const packageJson = 'package.json';
-const mainJs = 'main.js';
-const packageBackup = 'package-server.json';
-const mainBackup = 'main-server.js';
+console.log('📦 Generando instalador servidor...\n');
 
 try {
-  // Hacer backup
-  if (fs.existsSync(packageJson)) {
-    fs.copyFileSync(packageJson, packageBackup);
-  }
-  if (fs.existsSync(mainJs)) {
-    fs.copyFileSync(mainJs, mainBackup);
-  }
-
-  // Copiar archivos cliente
-  fs.copyFileSync('package-client.json', packageJson);
-  fs.copyFileSync('main-client.js', mainJs);
-
-  console.log('📦 Generando instalador cliente...\n');
-
   // Ejecutar electron-builder
   execSync('npm run dist', { stdio: 'inherit' });
 
-  // Restaurar archivos originales
-  if (fs.existsSync(packageBackup)) {
-    fs.copyFileSync(packageBackup, packageJson);
-    fs.unlinkSync(packageBackup);
-  }
-  if (fs.existsSync(mainBackup)) {
-    fs.copyFileSync(mainBackup, mainJs);
-    fs.unlinkSync(mainBackup);
-  }
-
-  console.log('\n✅ Instalador cliente generado en: dist_client/');
-  console.log('\n📝 IMPORTANTE: Antes de instalar en otra máquina:');
-  console.log('   1. Edita public/config.json con la IP del servidor');
-  console.log('   2. O ejecuta configurar-cliente.bat después de instalar\n');
+  console.log('\n✅ Instalador servidor generado en: dist_electron/');
+  console.log('\n📝 IMPORTANTE: Después de instalar:');
+  console.log('   1. Ejecuta configurar-servidor.bat para configurar sucursal y caja');
+  console.log('   2. O edita manualmente el config.json en la carpeta de instalación\n');
 
 } catch (error) {
   console.error('\n❌ Error al generar instalador:', error.message);
-  
-  // Restaurar archivos en caso de error
-  if (fs.existsSync(packageBackup)) {
-    fs.copyFileSync(packageBackup, packageJson);
-    fs.unlinkSync(packageBackup);
-  }
-  if (fs.existsSync(mainBackup)) {
-    fs.copyFileSync(mainBackup, mainJs);
-    fs.unlinkSync(mainBackup);
-  }
-  
   process.exit(1);
 }
+
 

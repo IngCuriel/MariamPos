@@ -1,15 +1,14 @@
 #!/bin/bash
 
 echo "========================================"
-echo "  Configuración de Cliente MariamPOS"
+echo "  Configuración de Servidor MariamPOS"
 echo "========================================"
 echo ""
-echo "Este script configurará el cliente para conectarse al servidor."
+echo "Este script configurará el servidor con la sucursal y caja."
 echo ""
 
-read -p "Ingresa la IP del servidor (ej: 192.168.1.100): " SERVER_IP
-read -p "Número de caja (ej: Caja 1): " CAJA
 read -p "Nombre de sucursal: " SUCURSAL
+read -p "Número de caja (ej: Caja 1): " CAJA
 
 echo ""
 echo "Creando config.json..."
@@ -30,9 +29,8 @@ elif [ -f "${SCRIPT_DIR}/../dist/index.html" ]; then
     # También crear en public para desarrollo
     cat > "${SCRIPT_DIR}/config.json" << EOF
 {
-  "mode": "client",
+  "mode": "server",
   "apiUrl": "http://127.0.0.1:3001/api",
-  "serverUrl": "http://${SERVER_IP}:3001/api",
   "sucursal": "${SUCURSAL}",
   "caja": "${CAJA}",
   "autoDetect": true
@@ -48,9 +46,8 @@ fi
 # Crear el archivo config.json en la ubicación detectada
 cat > "${CONFIG_PATH}" << EOF
 {
-  "mode": "client",
+  "mode": "server",
   "apiUrl": "http://127.0.0.1:3001/api",
-  "serverUrl": "http://${SERVER_IP}:3001/api",
   "sucursal": "${SUCURSAL}",
   "caja": "${CAJA}",
   "autoDetect": true
@@ -62,11 +59,12 @@ echo ""
 echo "✅ Configuración completada!"
 echo ""
 echo "Configuración:"
-echo "  - Modo: Cliente"
-echo "  - Servidor: http://${SERVER_IP}:3001/api"
+echo "  - Modo: Servidor"
+echo "  - API URL: http://127.0.0.1:3001/api"
 echo "  - Sucursal: ${SUCURSAL}"
 echo "  - Caja: ${CAJA}"
 echo ""
-echo "⚠️  IMPORTANTE: Reinicia la aplicación Electron para que cargue la nueva configuración."
+echo "⚠️  IMPORTANTE: Reinicia la aplicación para que cargue la nueva configuración."
 echo ""
+
 

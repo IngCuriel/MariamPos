@@ -8,7 +8,9 @@
     "start": "electron .",
     "dist": "electron-builder",
     "build:client": "node build-client.js",
-    "dist:client": "npm run build:client"
+    "dist:client": "npm run build:client",
+    "build:server": "node build-server.js",
+    "dist:server": "npm run build:server"
   },
   "build": {
     "appId": "com.mariam.pos",

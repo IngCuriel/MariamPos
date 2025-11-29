@@ -20,7 +20,7 @@ async function checkBackendAvailability(url: string, timeout: number = 2000): Pr
     
     clearTimeout(timeoutId);
     return response.ok || response.status < 500;
-  } catch (error) {
+  } catch {
     // Si /health no existe, intentar con un endpoint simple
     try {
       const controller = new AbortController();
@@ -86,37 +86,162 @@ async function determineBackendUrl(config: Config): Promise<string> {
 
 // Función para cargar la configuración desde /public/config.json
 async function loadConfig(): Promise<Config> {
-  try {
-    const response = await fetch("/config.json", { cache: "no-store" });
-    const config = await response.json();
-    return config;
-  } catch (error) {
-    console.error("❌ Error cargando config.json:", error);
-    // Valor por defecto si no existe el archivo o hay error
-    return {
-      mode: "auto",
-      apiUrl: "http://127.0.0.1:3001/api",
-      sucursal: "DEFAULT",
-      caja: "1",
-      autoDetect: true,
-    };
+  // Información del entorno
+  const isElectron = typeof window !== 'undefined' && 
+    (window as unknown as { electronAPI?: { isElectron?: boolean } }).electronAPI?.isElectron === true;
+  const currentUrl = typeof window !== 'undefined' ? window.location.href : 'N/A';
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : 'N/A';
+  
+  console.log("🔍 [loadConfig] Iniciando carga de configuración...");
+  console.log("📍 [loadConfig] Entorno:", {
+    isElectron,
+    currentUrl,
+    currentPath,
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A'
+  });
+
+  // Detectar si estamos en Electron con protocolo file://
+  const isFileProtocol = typeof window !== 'undefined' && window.location.protocol === 'file:';
+  
+  // Construir rutas basadas en la ubicación actual
+  let configPaths: string[] = [];
+  
+  if (isFileProtocol && typeof window !== 'undefined') {
+    // En Electron con file://, necesitamos rutas relativas al directorio actual
+    // El currentPath es algo como: "/C:/Users/.../dist/index.html"
+    // Necesitamos extraer el directorio: "/C:/Users/.../dist/"
+    const pathParts = currentPath.split('/');
+    pathParts.pop(); // Eliminar "index.html"
+    const currentDir = pathParts.join('/') + '/';
+    
+    console.log("📂 [loadConfig] Protocolo file:// detectado");
+    console.log("📂 [loadConfig] Directorio actual detectado:", currentDir);
+    
+    // Priorizar rutas relativas para evitar que apunte a C:/config.json
+    configPaths = [
+      "./config.json",          // Ruta relativa al directorio actual (dist/) - PRIMERA PRIORIDAD
+      "config.json",            // Sin punto, también relativa
+      currentDir + "config.json", // Ruta explícita relativa
+      "/config.json",           // Ruta absoluta (fallback, puede apuntar a C:/) - ÚLTIMA PRIORIDAD
+    ];
+  } else {
+    // En desarrollo o navegador web, usar rutas estándar
+    configPaths = [
+      "/config.json",           // Ruta estándar (funciona en dev y prod)
+      "./config.json",          // Ruta relativa
+      "../config.json",         // Ruta relativa alternativa
+    ];
   }
+  
+  console.log("🗺️ [loadConfig] Rutas a intentar (en orden de prioridad):", configPaths);
+
+  // Intentar cargar desde cada ruta posible
+  for (const configPath of configPaths) {
+    try {
+      // Construir URL completa para logging
+      let fullUrl = configPath;
+      if (typeof window !== 'undefined') {
+        try {
+          fullUrl = new URL(configPath, window.location.href).href;
+        } catch {
+          fullUrl = `${window.location.origin}${configPath}`;
+        }
+      }
+      
+      console.log(`🔎 [loadConfig] Intentando cargar desde: ${configPath} (URL completa: ${fullUrl})`);
+      
+      const response = await fetch(configPath, { 
+        cache: "no-store",
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+      
+      console.log(`📊 [loadConfig] Respuesta de ${configPath}:`, {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        url: response.url,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+      
+      if (response.ok) {
+        const config = await response.json();
+        console.log(`✅ [loadConfig] Config cargado exitosamente desde: ${configPath}`);
+        console.log(`📄 [loadConfig] URL final del archivo: ${response.url}`);
+        console.log(`📋 [loadConfig] Contenido del config:`, JSON.stringify(config, null, 2));
+        console.log(`🏢 [loadConfig] Sucursal configurada: "${config.sucursal}"`);
+        console.log(`💰 [loadConfig] Caja configurada: "${config.caja}"`);
+        console.log(`🌐 [loadConfig] Server URL: "${config.serverUrl || config.apiUrl}"`);
+        return config;
+      } else {
+        console.warn(`⚠️ [loadConfig] Respuesta no OK desde ${configPath}: ${response.status} ${response.statusText}`);
+      }
+    } catch (error) {
+      // Continuar con la siguiente ruta
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.warn(`⚠️ [loadConfig] Error al cargar desde ${configPath}:`, errorMessage);
+      if (error instanceof Error && error.stack) {
+        console.warn(`📚 [loadConfig] Stack trace:`, error.stack);
+      }
+    }
+  }
+
+  // Si ninguna ruta funcionó, usar valores por defecto
+  console.error("❌ [loadConfig] Error cargando config.json desde todas las rutas. Usando valores por defecto.");
+  console.error("🔍 [loadConfig] Rutas intentadas:", configPaths);
+  const defaultConfig: Config = {
+    mode: "auto",
+    apiUrl: "http://127.0.0.1:3001/api",
+    sucursal: "DEFAULT",
+    caja: "1",
+    autoDetect: true,
+  };
+  console.warn("⚠️ [loadConfig] Usando configuración por defecto:", defaultConfig);
+  return defaultConfig;
 }
 
 // Función que inicializa y devuelve el cliente Axios
 export async function getAxiosClient() {
-  if (axiosClient) return axiosClient; // si ya existe, reutilízalo
+  if (axiosClient) {
+    console.log("♻️ [getAxiosClient] Reutilizando cliente Axios existente");
+    return axiosClient; // si ya existe, reutilízalo
+  }
 
+  console.log("🚀 [getAxiosClient] Inicializando nuevo cliente Axios...");
   const config = await loadConfig();
   const backendUrl = await determineBackendUrl(config);
+
+  console.log("🔧 [getAxiosClient] Configuración recibida:", {
+    mode: config.mode,
+    apiUrl: config.apiUrl,
+    serverUrl: config.serverUrl,
+    sucursal: config.sucursal,
+    caja: config.caja,
+    autoDetect: config.autoDetect
+  });
+  console.log("🌐 [getAxiosClient] URL del backend determinada:", backendUrl);
 
   axiosClient = axios.create({
     baseURL: backendUrl,
     timeout: 30000, // 30 segundos timeout
   });
   
-  localStorage.setItem("sucursal", config.sucursal)
-  localStorage.setItem("caja", config.caja)
+  console.log("💾 [getAxiosClient] Guardando en localStorage:");
+  console.log(`   - sucursal: "${config.sucursal}"`);
+  console.log(`   - caja: "${config.caja}"`);
+  
+  localStorage.setItem("sucursal", config.sucursal);
+  localStorage.setItem("caja", config.caja);
+  
+  // Verificar que se guardó correctamente
+  const savedSucursal = localStorage.getItem("sucursal");
+  const savedCaja = localStorage.getItem("caja");
+  console.log("✅ [getAxiosClient] Verificación de localStorage:");
+  console.log(`   - sucursal guardada: "${savedSucursal}" (coincide: ${savedSucursal === config.sucursal})`);
+  console.log(`   - caja guardada: "${savedCaja}" (coincide: ${savedCaja === config.caja})`);
   
   axiosClient.interceptors.request.use((reqConfig) => {
     const token = localStorage.getItem("token");
@@ -136,7 +261,9 @@ export async function getAxiosClient() {
     }
   );
 
-  console.log("✅ AxiosClient inicializado con baseURL:", backendUrl);
+  console.log("✅ [getAxiosClient] AxiosClient inicializado con baseURL:", backendUrl);
+  console.log("🎉 [getAxiosClient] Cliente Axios listo para usar");
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
   return axiosClient;
 }

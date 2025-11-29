@@ -1,14 +1,13 @@
 @echo off
 chcp 65001 >nul
 echo ========================================
-echo   Configuración de Cliente MariamPOS
+echo   Configuración de Servidor MariamPOS
 echo ========================================
 echo.
-echo Este script configurará el cliente para conectarse al servidor.
+echo Este script configurará el servidor con la sucursal y caja.
 echo.
-set /p SERVER_IP="Ingresa la IP del servidor (ej: 192.168.1.100): "
-set /p CAJA="Número de caja (ej: Caja 1): "
 set /p SUCURSAL="Nombre de sucursal: "
+set /p CAJA="Número de caja (ej: Caja 1): "
 
 echo.
 echo Creando config.json...
@@ -30,9 +29,8 @@ if exist "%SCRIPT_DIR%\index.html" (
     REM También crear en public para desarrollo
     (
     echo {
-    echo   "mode": "client",
+    echo   "mode": "server",
     echo   "apiUrl": "http://127.0.0.1:3001/api",
-    echo   "serverUrl": "http://%SERVER_IP%:3001/api",
     echo   "sucursal": "%SUCURSAL%",
     echo   "caja": "%CAJA%",
     echo   "autoDetect": true
@@ -48,9 +46,8 @@ if exist "%SCRIPT_DIR%\index.html" (
 REM Crear el archivo config.json en la ubicación detectada
 (
 echo {
-echo   "mode": "client",
+echo   "mode": "server",
 echo   "apiUrl": "http://127.0.0.1:3001/api",
-echo   "serverUrl": "http://%SERVER_IP%:3001/api",
 echo   "sucursal": "%SUCURSAL%",
 echo   "caja": "%CAJA%",
 echo   "autoDetect": true
@@ -62,12 +59,13 @@ echo.
 echo ✅ Configuración completada!
 echo.
 echo Configuración:
-echo   - Modo: Cliente
-echo   - Servidor: http://%SERVER_IP%:3001/api
+echo   - Modo: Servidor
+echo   - API URL: http://127.0.0.1:3001/api
 echo   - Sucursal: %SUCURSAL%
 echo   - Caja: %CAJA%
 echo.
-echo ⚠️  IMPORTANTE: Reinicia la aplicación Electron para que cargue la nueva configuración.
+echo ⚠️  IMPORTANTE: Reinicia la aplicación para que cargue la nueva configuración.
 echo.
 pause
+
 

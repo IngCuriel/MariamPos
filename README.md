@@ -60,3 +60,27 @@ cambio de dato a la cantidad en el detalle de la compra.
 
 pasar el dist carpeta del front 
 y el archivo salesController, productsController del back
+
+
+
+Crear .exe solo cliente de backend 
+``
+cd mariam-pos-front
+   npm run build
+``
+```
+   cd ..
+   npm run build:client
+``
+
+Para generar el instalador del servidor:
+# 1. Compilar el frontend
+cd mariam-pos-front
+npm run build
+cd ..
+
+# 2. Generar el instalador (nuevo método)
+npm run build:server
+
+# O método tradicional (también funciona)
+npm run dist
