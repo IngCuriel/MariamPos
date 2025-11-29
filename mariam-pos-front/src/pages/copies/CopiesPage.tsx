@@ -29,7 +29,7 @@ const CopiesPage: React.FC<CopiesPageProps> = ({ onBack }) => {
   const [mode, setMode] = useState<'print' | 'photocopy' | 'scan'>('print');
   const [doubleSided, setDoubleSided] = useState<boolean>(false); // Opción de doble cara
   const [photocopySide, setPhotocopySide] = useState<'first' | 'second' | null>(null); // Estado del escaneo de doble cara
-  const [firstSideBlob, setFirstSideBlob] = useState<Blob | null>(null); // Primera cara escaneada
+  const [, setFirstSideBlob] = useState<Blob | null>(null); // Primera cara escaneada (solo para limpiar estado)
   const [pdfPageCount, setPdfPageCount] = useState<number>(0); // Número de páginas del PDF
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [printers, setPrinters] = useState<Printer[]>([]);
@@ -335,13 +335,16 @@ const CopiesPage: React.FC<CopiesPageProps> = ({ onBack }) => {
       setPhotocopySide('first');
       
       try {
-        const firstSideBlob = await scanDocument({
+        const scannedFirstSide = await scanDocument({
           colorMode: 'color', // Siempre escanear en color para doble cara
           format: 'jpg',
         });
         
-        setFirstSideBlob(firstSideBlob);
+        setFirstSideBlob(scannedFirstSide);
         setIsPhotocopying(false);
+        
+        // Guardar referencia local para usar en el closure
+        const firstSideForCombining = scannedFirstSide;
         
         // Pedir al usuario que voltee el documento
         await Swal.fire({
@@ -375,7 +378,8 @@ const CopiesPage: React.FC<CopiesPageProps> = ({ onBack }) => {
               });
               
               // Combinar ambas caras en una sola imagen (lado a lado - horizontal)
-              const combinedImageBlob = await combineImages([firstSideBlob, secondSideBlob], 'horizontal');
+              // Usar la referencia local que guardamos antes del closure
+              const combinedImageBlob = await combineImages([firstSideForCombining, secondSideBlob], 'horizontal');
               
               // Imprimir la imagen combinada
               const formData = new FormData();
@@ -502,8 +506,6 @@ const CopiesPage: React.FC<CopiesPageProps> = ({ onBack }) => {
         pagesToPrint = 1;
       }
     }
-
-    const totalPages = pagesToPrint * copies;
 
     setIsPrinting(true);
 
@@ -1026,206 +1028,6 @@ const CopiesPage: React.FC<CopiesPageProps> = ({ onBack }) => {
 
         </div>
 
-        {/* Modal de Descarga de Documentos - ELIMINADO */}
-        {false && (
-          <div className="copies-modal-overlay" onClick={() => setShowDownloadModal(false)}>
-            <div className="copies-download-modal-container" onClick={(e) => e.stopPropagation()}>
-              <div className="copies-modal-header">
-                <h2>📥 Descargar Documentos Oficiales</h2>
-                <button className="copies-modal-close" onClick={() => setShowDownloadModal(false)}>
-                  ✕
-                </button>
-              </div>
-
-              <div className="copies-download-modal-content">
-                <div className="copies-document-options">
-                  <Card
-                    className={`copies-document-option ${selectedDocument === 'curp' ? 'active' : ''}`}
-                    onClick={() => setSelectedDocument('curp')}
-                    hoverable
-                  >
-                    <div className="document-icon">🆔</div>
-                    <h3 className="document-title">CURP</h3>
-                    <p className="document-description">Clave Única de Registro de Población</p>
-                  </Card>
-                  <Card
-                    className={`copies-document-option ${selectedDocument === 'whatsapp' ? 'active' : ''}`}
-                    onClick={() => setSelectedDocument('whatsapp')}
-                    hoverable
-                  >
-                    <div className="document-icon">💬</div>
-                    <h3 className="document-title">WhatsApp Web</h3>
-                    <p className="document-description">Descargar e imprimir archivos de WhatsApp</p>
-                  </Card>
-                </div>
-
-                {selectedDocument === 'curp' && (
-                  <div className="copies-iframe-container">
-                    <div className="copies-iframe-header">
-                      <span className="iframe-info">
-                        📋 Página oficial del Gobierno de México - Consulta e Impresión de CURP
-                      </span>
-                    </div>
-                    <div className="copies-iframe-error">
-                      <div className="iframe-error-content">
-                        <div className="error-icon">🌐</div>
-                        <h3 className="error-title">Abrir página del gobierno</h3>
-                        <p className="error-message">
-                          El sitio del gobierno de México tiene restricciones de seguridad que impiden 
-                          mostrarlo dentro de esta aplicación. Por favor, haz clic en el botón de abajo 
-                          para abrir la página directamente en una nueva pestaña, donde podrás ingresar 
-                          los datos de la persona y descargar la CURP.
-                        </p>
-                        <Button
-                          onClick={() => {
-                            window.open(
-                              'https://www.gob.mx/curp/#datos-personales',
-                              '_blank',
-                              'noopener,noreferrer'
-                            );
-                          }}
-                          variant="primary"
-                          className="copies-open-external-btn-large"
-                        >
-                          🔗 Abrir página de CURP en nueva pestaña
-                        </Button>
-                        <p className="error-note">
-                          💡 La página se abrirá directamente en la sección de "Datos personales" 
-                          donde podrás ingresar la información necesaria.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {selectedDocument === 'whatsapp' && (
-                  <div className="copies-iframe-container">
-                    <div className="copies-iframe-header">
-                      <span className="iframe-info">
-                        💬 WhatsApp Web - Descargar e Imprimir Archivos
-                      </span>
-                    </div>
-                    <div className="copies-whatsapp-content">
-                      <div className="whatsapp-instructions">
-                        <div className="whatsapp-step">
-                          <div className="step-number">1</div>
-                          <div className="step-content">
-                            <h4 className="step-title">Abrir WhatsApp Web</h4>
-                            <p className="step-description">
-                              Haz clic en el botón de abajo para abrir WhatsApp Web en una nueva pestaña.
-                            </p>
-                            <div className="whatsapp-browser-warning">
-                              <p className="warning-text">
-                                ⚠️ <strong>Requisitos:</strong> WhatsApp Web requiere Google Chrome 85+, 
-                                Firefox, Safari, Microsoft Edge u Opera. Si tu navegador no es compatible, 
-                                actualiza tu navegador o usa uno de los mencionados.
-                              </p>
-                            </div>
-                            <Button
-                              onClick={async () => {
-                                const whatsappUrl = 'https://web.whatsapp.com';
-                                
-                                // Verificar si estamos en Electron
-                                const isElectron = (window as any).electronAPI?.isElectron;
-                                
-                                if (isElectron) {
-                                  // En Electron, usar el navegador del sistema
-                                  try {
-                                    const result = await (window as any).electronAPI.openExternal(whatsappUrl);
-                                    if (!result.success) {
-                                      Swal.fire({
-                                        icon: 'error',
-                                        title: 'Error',
-                                        text: 'No se pudo abrir WhatsApp Web. Por favor, ábrelo manualmente en tu navegador.',
-                                      });
-                                    }
-                                  } catch (error) {
-                                    console.error('Error al abrir WhatsApp Web:', error);
-                                    Swal.fire({
-                                      icon: 'error',
-                                      title: 'Error',
-                                      text: 'No se pudo abrir WhatsApp Web. Por favor, ábrelo manualmente en tu navegador.',
-                                    });
-                                  }
-                                } else {
-                                  // En navegador web, usar window.open normal
-                                  window.open(
-                                    whatsappUrl,
-                                    '_blank',
-                                    'noopener,noreferrer'
-                                  );
-                                }
-                              }}
-                              variant="primary"
-                              className="copies-open-external-btn-large"
-                            >
-                              💬 Abrir WhatsApp Web
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="whatsapp-step">
-                          <div className="step-number">2</div>
-                          <div className="step-content">
-                            <h4 className="step-title">Descargar el archivo</h4>
-                            <p className="step-description">
-                              En WhatsApp Web, busca el archivo que quieres imprimir, haz clic en él 
-                              y descárgalo a tu computadora (botón de descarga o clic derecho → Guardar como).
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="whatsapp-step">
-                          <div className="step-number">3</div>
-                          <div className="step-content">
-                            <h4 className="step-title">Subir el archivo aquí</h4>
-                            <p className="step-description">
-                              Una vez descargado, arrastra el archivo al área de abajo o haz clic para seleccionarlo.
-                              Luego podrás imprimirlo directamente.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="copies-whatsapp-upload-area">
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={handleFileChange}
-                          className="copies-file-input"
-                          style={{ display: 'none' }}
-                        />
-                        <div
-                          className="copies-dropzone"
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            const file = e.dataTransfer.files[0];
-                            if (file) {
-                              handleFileChange({ target: { files: [file] } } as any);
-                            }
-                          }}
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                          }}
-                          onClick={() => fileInputRef.current?.click()}
-                        >
-                          <div className="dropzone-icon">📎</div>
-                          <p className="dropzone-text">
-                            Arrastra el archivo aquí o haz clic para seleccionarlo
-                          </p>
-                          <p className="dropzone-hint">
-                            Formatos soportados: PDF, JPG, PNG (máx. 10MB)
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Modal de Configuración */}
         {showConfigModal && (
@@ -1251,7 +1053,11 @@ const CopiesPage: React.FC<CopiesPageProps> = ({ onBack }) => {
                       className="copies-printer-input"
                       onKeyPress={(e) => {
                         if (e.key === 'Enter') {
-                          editingPrinter ? handleUpdatePrinter() : handleAddPrinter();
+                          if (editingPrinter) {
+                            handleUpdatePrinter();
+                          } else {
+                            handleAddPrinter();
+                          }
                         }
                       }}
                     />
