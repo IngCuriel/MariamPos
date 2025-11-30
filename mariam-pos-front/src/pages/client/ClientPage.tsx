@@ -3,8 +3,8 @@ import '../../styles/pages/client.css';
 import Header from '../../components/Header';
 import type {Client, ClientCredit} from '../../types/index'
 import { getClients, createClient, updateClient } from "../../api/clients";
-import { getClientCredits, getClientCreditSummary } from "../../api/credits";
-import { getClientPendingDeposits } from "../../api/clientContainerDeposits";
+import { getClientCredits, getClientCreditSummary, getAllPendingCredits } from "../../api/credits";
+import { getClientPendingDeposits, getAllPendingContainerDeposits, type ClientContainerDeposit } from "../../api/clientContainerDeposits";
 import { getActiveShift } from "../../api/cashRegister";
 import Card from '../../components/Card';
 import Button from '../../components/Button';
@@ -32,6 +32,11 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
   const [showContainerDeposits, setShowContainerDeposits] = useState(false);
   const [selectedClientForDeposits, setSelectedClientForDeposits] = useState<Client | null>(null);
   const [_loadingCredits, setLoadingCredits] = useState(false);
+  const [activeTab, setActiveTab] = useState<'clients' | 'credits' | 'containers'>('clients');
+  const [allPendingCredits, setAllPendingCredits] = useState<ClientCredit[]>([]);
+  const [allPendingDeposits, setAllPendingDeposits] = useState<ClientContainerDeposit[]>([]);
+  const [loadingAllCredits, setLoadingAllCredits] = useState(false);
+  const [loadingAllDeposits, setLoadingAllDeposits] = useState(false);
   
   // 🟢 Llamada al API cuando el hook se monta
   useEffect(() => {
@@ -45,6 +50,15 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
       loadAllClientContainerDeposits();
     }
   }, [clients]);
+
+  // Cargar todos los créditos y depósitos pendientes cuando se cambia de pestaña
+  useEffect(() => {
+    if (activeTab === 'credits') {
+      loadAllPendingCredits();
+    } else if (activeTab === 'containers') {
+      loadAllPendingDeposits();
+    }
+  }, [activeTab]);
 
   const fetchClients = async () => {
     try {
@@ -166,7 +180,7 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
             <select id="credit-select" class="swal2-select" style="width: 100%; margin-top: 10px;">
               ${allPending.map(credit => `
                 <option value="${credit.id}">
-                  Venta #${credit.saleId} - Saldo: $${credit.remainingAmount.toFixed(2)}
+                  Venta #${credit.saleId} - Saldo: $${(credit.remainingAmount || 0).toFixed(2)}
                 </option>
               `).join('')}
             </select>
@@ -235,7 +249,98 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
   const handleViewCreditHistory = (client: Client) => {
     setSelectedClientForHistory(client);
     setShowCreditHistory(true);
-  }; 
+  };
+
+  const loadAllPendingCredits = async () => {
+    setLoadingAllCredits(true);
+    try {
+      const credits = await getAllPendingCredits();
+      setAllPendingCredits(credits);
+    } catch (error) {
+      console.error("Error al cargar todos los créditos pendientes:", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudieron cargar los créditos pendientes',
+        confirmButtonText: 'Entendido',
+      });
+    } finally {
+      setLoadingAllCredits(false);
+    }
+  };
+
+  const loadAllPendingDeposits = async () => {
+    setLoadingAllDeposits(true);
+    try {
+      const deposits = await getAllPendingContainerDeposits();
+      setAllPendingDeposits(deposits);
+    } catch (error) {
+      console.error("Error al cargar todos los depósitos pendientes:", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudieron cargar los depósitos pendientes',
+        confirmButtonText: 'Entendido',
+      });
+    } finally {
+      setLoadingAllDeposits(false);
+    }
+  };
+
+  // Calcular totales de créditos
+  const totalCreditsAmount = allPendingCredits.reduce((sum, credit) => sum + (credit.remainingAmount || 0), 0);
+  const totalCreditsCount = allPendingCredits.length;
+  const creditsByClient = allPendingCredits.reduce((acc, credit) => {
+    const clientId = credit.clientId;
+    if (!acc[clientId]) {
+      acc[clientId] = {
+        client: clients.find(c => c.id === clientId) || { id: clientId, name: 'Cliente desconocido' },
+        credits: [],
+        totalAmount: 0,
+      };
+    }
+    acc[clientId].credits.push(credit);
+    acc[clientId].totalAmount += (credit.remainingAmount || 0);
+    return acc;
+  }, {} as Record<string, { client: Client | { id: string; name: string }, credits: ClientCredit[], totalAmount: number }>);
+
+  // Calcular totales de depósitos
+  const totalDepositsAmount = allPendingDeposits.reduce((sum, deposit) => sum + deposit.importAmount, 0);
+  const totalDepositsCount = allPendingDeposits.reduce((sum, deposit) => sum + deposit.quantity, 0);
+  const depositsByClient = allPendingDeposits.reduce((acc, deposit) => {
+    const clientId = deposit.clientId;
+    if (!acc[clientId]) {
+      acc[clientId] = {
+        client: clients.find(c => c.id === clientId) || { id: clientId, name: 'Cliente desconocido' },
+        deposits: [],
+        totalAmount: 0,
+        totalContainers: 0,
+      };
+    }
+    acc[clientId].deposits.push(deposit);
+    acc[clientId].totalAmount += deposit.importAmount;
+    acc[clientId].totalContainers += deposit.quantity;
+    return acc;
+  }, {} as Record<string, { client: Client | { id: string; name: string }, deposits: ClientContainerDeposit[], totalAmount: number, totalContainers: number }>);
+
+  // Agrupar depósitos por tipo de envase
+  const depositsByContainerType = allPendingDeposits.reduce((acc, deposit) => {
+    const containerName = deposit.containerName;
+    if (!acc[containerName]) {
+      acc[containerName] = {
+        containerName,
+        unitPrice: deposit.unitPrice,
+        totalQuantity: 0,
+        totalAmount: 0,
+        deposits: [],
+      };
+    }
+    acc[containerName].totalQuantity += deposit.quantity;
+    acc[containerName].totalAmount += deposit.importAmount;
+    acc[containerName].deposits.push(deposit);
+    return acc;
+  }, {} as Record<string, { containerName: string; unitPrice: number; totalQuantity: number; totalAmount: number; deposits: ClientContainerDeposit[] }>);
+
   return (
     <div className="app-client">
       <div className="client-container">
@@ -246,6 +351,31 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
           className="catalog-header"
         />
         <div className="client-content">
+          {/* Sistema de pestañas */}
+          <div className="tabs-container">
+            <button
+              className={`tab-button ${activeTab === 'clients' ? 'active' : ''}`}
+              onClick={() => setActiveTab('clients')}
+            >
+              👥 Clientes
+            </button>
+            <button
+              className={`tab-button ${activeTab === 'credits' ? 'active' : ''}`}
+              onClick={() => setActiveTab('credits')}
+            >
+              💳 Créditos por cobrar
+            </button>
+            <button
+              className={`tab-button ${activeTab === 'containers' ? 'active' : ''}`}
+              onClick={() => setActiveTab('containers')}
+            >
+              🍺 Envases por recuperar
+            </button>
+          </div>
+
+          {/* Contenido de la pestaña de Clientes */}
+          {activeTab === 'clients' && (
+            <>
            {/* Barra de búsqueda */}
           <Card className="search-card">
             <div className="search-section">
@@ -436,6 +566,281 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
                 })}
               </tbody>
             </table>
+            </>
+          )}
+
+          {/* Contenido de la pestaña de Créditos por cobrar */}
+          {activeTab === 'credits' && (
+            <div className="tab-content">
+              <Card className="summary-card" style={{ marginBottom: '20px', backgroundColor: '#fef3c7', border: '2px solid #f59e0b' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', padding: '1rem' }}>
+                  <div>
+                    <span style={{ fontSize: '0.9rem', color: '#92400e', fontWeight: '600' }}>Total de Créditos:</span>
+                    <p style={{ margin: '4px 0', fontWeight: '700', fontSize: '1.5rem', color: '#dc2626' }}>
+                      {totalCreditsCount} crédito{totalCreditsCount !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.9rem', color: '#92400e', fontWeight: '600' }}>Total a Cobrar:</span>
+                    <p style={{ margin: '4px 0', fontWeight: '700', fontSize: '1.5rem', color: '#dc2626' }}>
+                      ${totalCreditsAmount.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+              {loadingAllCredits ? (
+                <div style={{ textAlign: 'center', padding: '2rem' }}>Cargando créditos...</div>
+              ) : totalCreditsCount === 0 ? (
+                <Card className="empty-state-card">
+                  <div style={{ textAlign: 'center', padding: '2rem' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
+                    <h3>No hay créditos pendientes</h3>
+                    <p>Todos los créditos han sido pagados</p>
+                  </div>
+                </Card>
+              ) : (
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                  {Object.values(creditsByClient).map((clientData, idx) => (
+                    <Card key={idx} className="client-credit-card" style={{ border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                      <div style={{ padding: '1rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '2px solid #f59e0b' }}>
+                          <div>
+                            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '700', color: '#1f2937' }}>
+                              {clientData.client.name}
+                            </h3>
+                            {clientData.client.phone && (
+                              <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#6b7280' }}>
+                                📱 {clientData.client.phone}
+                              </p>
+                            )}
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <span style={{ fontSize: '0.85rem', color: '#6b7280', display: 'block' }}>
+                              {clientData.credits.length} crédito{clientData.credits.length !== 1 ? 's' : ''}
+                            </span>
+                            <strong style={{ fontSize: '1.2rem', color: '#dc2626', fontWeight: '700' }}>
+                              ${clientData.totalAmount.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </strong>
+                          </div>
+                        </div>
+                        <div style={{ display: 'grid', gap: '0.5rem' }}>
+                          {clientData.credits.map((credit) => (
+                            <div
+                              key={credit.id}
+                              style={{
+                                padding: '0.75rem',
+                                backgroundColor: '#fff7ed',
+                                borderRadius: '4px',
+                                border: '1px solid #fed7aa',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                              }}
+                            >
+                              <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                                  <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#1f2937' }}>
+                                    Venta #{credit.saleId}
+                                  </span>
+                                  <span style={{
+                                    fontSize: '0.75rem',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    backgroundColor: credit.status === 'PENDING' ? '#fee2e2' : '#fef3c7',
+                                    color: credit.status === 'PENDING' ? '#dc2626' : '#92400e',
+                                    fontWeight: '600',
+                                  }}>
+                                    {credit.status === 'PENDING' ? 'Pendiente' : 'Parcial'}
+                                  </span>
+                                </div>
+                                <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
+                                  <span>Fecha: {new Date(credit.createdAt).toLocaleDateString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit' })}</span>
+                                  {credit.originalAmount && credit.originalAmount !== credit.remainingAmount && (
+                                    <span style={{ marginLeft: '0.5rem' }}>
+                                      | Total: ${(credit.originalAmount || 0).toFixed(2)} | Pagado: ${((credit.originalAmount || 0) - (credit.remainingAmount || 0)).toFixed(2)}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div style={{ textAlign: 'right', marginLeft: '1rem' }}>
+                                <strong style={{ fontSize: '1rem', color: '#dc2626', fontWeight: '700' }}>
+                                  ${(credit.remainingAmount || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </strong>
+                                <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '2px' }}>
+                                  Saldo pendiente
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Contenido de la pestaña de Envases por recuperar */}
+          {activeTab === 'containers' && (
+            <div className="tab-content">
+              <Card className="summary-card" style={{ marginBottom: '20px', backgroundColor: '#ecfdf5', border: '2px solid #059669' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', padding: '1rem' }}>
+                  <div>
+                    <span style={{ fontSize: '0.9rem', color: '#065f46', fontWeight: '600' }}>Total de Envases:</span>
+                    <p style={{ margin: '4px 0', fontWeight: '700', fontSize: '1.5rem', color: '#059669' }}>
+                      {totalDepositsCount} envase{totalDepositsCount !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.9rem', color: '#065f46', fontWeight: '600' }}>Importe Total:</span>
+                    <p style={{ margin: '4px 0', fontWeight: '700', fontSize: '1.5rem', color: '#059669' }}>
+                      ${totalDepositsAmount.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Resumen por tipo de envase */}
+              {Object.keys(depositsByContainerType).length > 0 && (
+                <Card className="summary-card" style={{ marginBottom: '20px', backgroundColor: '#f0fdf4', border: '1px solid #059669' }}>
+                  <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', fontWeight: '600', color: '#065f46' }}>
+                    📊 Resumen por Tipo de Envase
+                  </h3>
+                  <div style={{ display: 'grid', gap: '0.75rem' }}>
+                    {Object.values(depositsByContainerType).map((containerData, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          padding: '0.75rem',
+                          backgroundColor: 'white',
+                          borderRadius: '4px',
+                          border: '1px solid #e5e7eb',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <div style={{ flex: 1 }}>
+                          <span style={{ fontSize: '0.9rem', color: '#1f2937', fontWeight: '600', display: 'block', marginBottom: '0.25rem' }}>
+                            {containerData.containerName}
+                          </span>
+                          <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
+                            <span>{containerData.totalQuantity} envase{containerData.totalQuantity !== 1 ? 's' : ''}</span>
+                            <span style={{ marginLeft: '0.5rem' }}>| Precio unitario: ${containerData.unitPrice.toFixed(2)}</span>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', marginLeft: '1rem' }}>
+                          <strong style={{ fontSize: '1rem', color: '#059669', fontWeight: '700' }}>
+                            ${containerData.totalAmount.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </strong>
+                          <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '2px' }}>
+                            (${containerData.unitPrice.toFixed(2)} × {containerData.totalQuantity})
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+              {loadingAllDeposits ? (
+                <div style={{ textAlign: 'center', padding: '2rem' }}>Cargando depósitos...</div>
+              ) : totalDepositsCount === 0 ? (
+                <Card className="empty-state-card">
+                  <div style={{ textAlign: 'center', padding: '2rem' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
+                    <h3>No hay envases pendientes</h3>
+                    <p>Todos los envases han sido devueltos</p>
+                  </div>
+                </Card>
+              ) : (
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                  {Object.values(depositsByClient).map((clientData, idx) => (
+                    <Card key={idx} className="client-deposit-card" style={{ border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                      <div style={{ padding: '1rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '2px solid #059669' }}>
+                          <div>
+                            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '700', color: '#1f2937' }}>
+                              {clientData.client.name}
+                            </h3>
+                            {clientData.client.phone && (
+                              <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#6b7280' }}>
+                                📱 {clientData.client.phone}
+                              </p>
+                            )}
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <span style={{ fontSize: '0.85rem', color: '#6b7280', display: 'block' }}>
+                              {clientData.totalContainers} envase{clientData.totalContainers !== 1 ? 's' : ''}
+                            </span>
+                            <strong style={{ fontSize: '1.2rem', color: '#059669', fontWeight: '700' }}>
+                              ${clientData.totalAmount.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </strong>
+                          </div>
+                        </div>
+                        <div style={{ display: 'grid', gap: '0.5rem' }}>
+                          {Object.values(
+                            clientData.deposits.reduce((acc, deposit) => {
+                              const containerName = deposit.containerName;
+                              if (!acc[containerName]) {
+                                acc[containerName] = {
+                                  containerName,
+                                  unitPrice: deposit.unitPrice,
+                                  quantity: 0,
+                                  amount: 0,
+                                  deposits: [],
+                                };
+                              }
+                              acc[containerName].quantity += deposit.quantity;
+                              acc[containerName].amount += deposit.importAmount;
+                              acc[containerName].deposits.push(deposit);
+                              return acc;
+                            }, {} as Record<string, { containerName: string; unitPrice: number; quantity: number; amount: number; deposits: ClientContainerDeposit[] }>)
+                          ).map((containerData, containerIdx) => (
+                            <div
+                              key={containerIdx}
+                              style={{
+                                padding: '0.75rem',
+                                backgroundColor: '#f0fdf4',
+                                borderRadius: '4px',
+                                border: '1px solid #a7f3d0',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                              }}
+                            >
+                              <div style={{ flex: 1 }}>
+                                <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#1f2937', display: 'block', marginBottom: '0.25rem' }}>
+                                  {containerData.containerName}
+                                </span>
+                                <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
+                                  <span>{containerData.quantity} envase{containerData.quantity !== 1 ? 's' : ''}</span>
+                                  <span style={{ marginLeft: '0.5rem' }}>| Precio unitario: ${containerData.unitPrice.toFixed(2)}</span>
+                                  {containerData.deposits.length > 1 && (
+                                    <span style={{ marginLeft: '0.5rem' }}>| {containerData.deposits.length} depósito{containerData.deposits.length !== 1 ? 's' : ''}</span>
+                                  )}
+                                </div>
+                              </div>
+                              <div style={{ textAlign: 'right', marginLeft: '1rem' }}>
+                                <strong style={{ fontSize: '1rem', color: '#059669', fontWeight: '700' }}>
+                                  ${containerData.amount.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </strong>
+                                <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '2px' }}>
+                                  (${containerData.unitPrice.toFixed(2)} × {containerData.quantity})
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
          {/* Modal para agregar/editar */}
          <ClientModal 

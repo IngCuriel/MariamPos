@@ -99,3 +99,12 @@ export const returnAllClientContainerDeposits = async (
   return data;
 };
 
+// Obtener todos los depósitos pendientes de todos los clientes
+export const getAllPendingContainerDeposits = async (): Promise<ClientContainerDeposit[]> => {
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.get<ClientContainerDeposit[]>(
+    "/client-container-deposits?status=PENDING"
+  );
+  return data;
+};
+

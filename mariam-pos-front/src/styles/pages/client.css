@@ -41,3 +41,115 @@
 .client-table button:hover {
   opacity: 0.8;
 }
+
+/* Sistema de pestañas */
+.tabs-container {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 0;
+}
+
+.tab-button {
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #6b7280;
+  transition: all 0.2s ease;
+  position: relative;
+  bottom: -2px;
+}
+
+.tab-button:hover {
+  color: #1f2937;
+  background: #f9fafb;
+}
+
+.tab-button.active {
+  color: #059669;
+  border-bottom-color: #059669;
+  background: transparent;
+}
+
+.tab-content {
+  width: 100%;
+}
+
+/* Tarjetas de resumen */
+.summary-card {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.empty-state-card {
+  text-align: center;
+  padding: 3rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.empty-state-card h3 {
+  margin: 0.5rem 0;
+  color: #1f2937;
+  font-size: 1.25rem;
+}
+
+.empty-state-card p {
+  margin: 0.5rem 0 0 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+/* Tarjetas de créditos y depósitos */
+.client-credit-card,
+.client-deposit-card {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s ease;
+}
+
+.client-credit-card:hover,
+.client-deposit-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive para tablets */
+@media (max-width: 1024px) {
+  .tabs-container {
+    flex-wrap: wrap;
+  }
+
+  .tab-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .summary-card > div {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Responsive para móviles */
+@media (max-width: 768px) {
+  .tabs-container {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .tab-button {
+    width: 100%;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-bottom: 2px solid #e5e7eb;
+    border-left: 3px solid transparent;
+  }
+
+  .tab-button.active {
+    border-left-color: #059669;
+    border-bottom-color: #e5e7eb;
+  }
+}
