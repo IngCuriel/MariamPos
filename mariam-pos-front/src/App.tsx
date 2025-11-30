@@ -14,6 +14,7 @@ import UsersPage from './pages/users/UsersPage';
 import ShiftHistoryPage from './pages/sales/ShiftHistoryPage';
 import CashMovementsHistoryPage from './pages/cashMovements/CashMovementsHistoryPage';
 import CopiesPage from './pages/copies/CopiesPage';
+import ContainersPage from './pages/containers/ContainersPage';
 import './styles/index.css';
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
     goToShiftHistory,
     goToCashMovementsHistory,
     goToCopies,
+    goToContainers,
   } = useNavigation();
   
   const { categories, addCategory, updateCategory, deleteCategory } = useCategories();
@@ -42,7 +44,7 @@ function App() {
       case 'help':
         return <HelpPage onBack={goToPOS} />;
       case 'pos':
-        return <POSPage onBack={goToMain} onProductsClick={goToProducts} onSalesClick={goToSales} onClientClick={gotoClients} onReportClick={gotoReport} onInventoryClick={goToInventory} onUsersClick={goToUsers} onShiftHistoryClick={goToShiftHistory} onCashMovementsHistoryClick={goToCashMovementsHistory} onCopiesClick={goToCopies} onHelpClick={goToHelp} />;
+        return <POSPage onBack={goToMain} onProductsClick={goToProducts} onSalesClick={goToSales} onClientClick={gotoClients} onReportClick={gotoReport} onInventoryClick={goToInventory} onUsersClick={goToUsers} onShiftHistoryClick={goToShiftHistory} onCashMovementsHistoryClick={goToCashMovementsHistory} onCopiesClick={goToCopies} onContainersClick={goToContainers} onHelpClick={goToHelp} />;
       case 'products':
         return (
           <ProductsPage 
@@ -86,6 +88,8 @@ function App() {
         return <CashMovementsHistoryPage onBack={goToPOS} />;
       case 'copies':
         return <CopiesPage onBack={goToPOS} />;
+      case 'containers':
+        return <ContainersPage onBack={goToPOS} />;
       default:
         return <HomePage onPOSClick={goToPOS} />;
     }

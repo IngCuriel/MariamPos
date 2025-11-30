@@ -10,13 +10,18 @@ import type { Client } from "../../types/index";
 interface PaymentModalProps {
   total: number;
   client?: Client | null; // Información del cliente para validar crédito
+  containersDepositInfo?: {
+    total: number;
+    count: number;
+    details: Array<{ name: string; quantity: number; amount: number }>;
+  } | null;
   onClose: () => void;
   onConfirm: (confirmData: ConfirmPaymentData) => void;
 }
 
 const bills = [500, 200, 100, 50]; // ← Aquí defines tus billetes
 
-const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, onClose, onConfirm }) => {
+const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDepositInfo, onClose, onConfirm }) => {
   const [paymentType, setPaymentType] = useState("efectivo");
   const [amountReceived, setAmountReceived] = useState<string>("");
   const [cashAmount, setCashAmount] = useState<string>("");
@@ -25,7 +30,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, onClose, onC
   const cashInputRef = useRef<HTMLInputElement>(null);
   const cardInputRef = useRef<HTMLInputElement>(null);
 
-  const totalNumber = total;
+  // Calcular total incluyendo depósito de envases
+  const containersTotal = containersDepositInfo?.total || 0;
+  const totalNumber = total + containersTotal;
   const received = parseFloat(amountReceived || "0");
   const cashReceived = parseFloat(cashAmount || "0");
   const cardReceived = parseFloat(cardAmount || "0");
@@ -109,6 +116,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, onClose, onC
         change: 0,
         cashAmount: cashReceived,
         cardAmount: cardReceived,
+        containersDepositInfo: containersDepositInfo || null,
       });
       return;
     }
@@ -176,6 +184,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, onClose, onC
                 amountReceived: finalAmount,
                 change: 0,
                 creditAmount: missingAmount,
+                containersDepositInfo: containersDepositInfo || null,
               });
               return;
             } else {
@@ -261,6 +270,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, onClose, onC
       paymentType,
       amountReceived: finalAmount,
       change,
+      containersDepositInfo: containersDepositInfo || null,
     });
   }, [paymentType, amountReceived, totalNumber, received, change, onConfirm, cashReceived, cardReceived, totalMixed, client]);
 
@@ -297,9 +307,49 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, onClose, onC
 
         <h2 className="modal-title">💰 Cobrar Venta</h2>
 
-        <div className="total-section">
-          <p>Total a cobrar:</p>
-          <h1>${totalNumber.toFixed(2)}</h1>
+        {containersDepositInfo && containersDepositInfo.total > 0 && (
+          <div className="containers-deposit-section" style={{
+            background: "#f0fdf4",
+            border: "2px solid #059669",
+            borderRadius: "8px",
+            padding: "1rem",
+            marginBottom: "1rem",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
+              <span style={{ fontSize: "1.5rem" }}>🍺</span>
+              <strong style={{ fontSize: "1rem", color: "#059669" }}>Depósito de Envases</strong>
+            </div>
+            <div style={{ marginBottom: "0.5rem" }}>
+              {containersDepositInfo.details.map((detail, idx) => (
+                <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: "0.25rem 0", fontSize: "0.9rem" }}>
+                  <span>{detail.name} ({detail.quantity})</span>
+                  <strong>${detail.amount.toFixed(2)}</strong>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "0.5rem", borderTop: "1px solid #059669", fontWeight: "600" }}>
+              <span>Total envases:</span>
+              <strong style={{ color: "#059669" }}>${containersDepositInfo.total.toFixed(2)}</strong>
+            </div>
+          </div>
+        )}
+
+        {/* Solo mostrar subtotal si hay depósito de envases */}
+        {containersDepositInfo && containersDepositInfo.total > 0 && (
+          <>
+            <div className="total-section">
+              <p>Subtotal productos:</p>
+              <p style={{ fontSize: "1.2rem", color: "#6b7280" }}>${total.toFixed(2)}</p>
+            </div>
+            <div className="total-section">
+              <p>Depósito envases:</p>
+              <p style={{ fontSize: "1.2rem", color: "#059669" }}>+${containersDepositInfo.total.toFixed(2)}</p>
+            </div>
+          </>
+        )}
+        <div className="total-section" style={{ borderTop: containersDepositInfo && containersDepositInfo.total > 0 ? "2px solid #1f2937" : "none", paddingTop: containersDepositInfo && containersDepositInfo.total > 0 ? "0.5rem" : "0", marginTop: containersDepositInfo && containersDepositInfo.total > 0 ? "0.5rem" : "0" }}>
+          <p style={{ fontSize: "1.1rem", fontWeight: "600" }}>Total a cobrar:</p>
+          <h1 style={{ fontSize: "2rem", color: "#059669" }}>${totalNumber.toFixed(2)}</h1>
         </div>
 
         <div className="payment-options" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "10px" }}>

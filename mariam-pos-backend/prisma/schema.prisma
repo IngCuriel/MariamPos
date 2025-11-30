@@ -35,6 +35,9 @@ model Product {
   // 🔥 Nueva relación (un producto puede tener varias presentaciones)
   presentations ProductPresentation[]
 
+  // Relación con envases
+  containers   Container[]
+
   saleDetails SaleDetail[]
   pendingSaleDetails PendingSaleDetail[]
 
@@ -45,13 +48,16 @@ model Product {
 
 model ProductPresentation {
   id        Int      @id @default(autoincrement())
-  name      String   // Ej: “Pieza”, “Cono”, “Six”
+  name      String   // Ej: "Pieza", "Cono", "Six"
   quantity  Int      // Ej: 1, 30, 6 → unidades reales
   unitPrice Float    // Precio por unidad en esta presentación
   isDefault Boolean  @default(false)
 
   product   Product  @relation(fields: [productId], references: [id])
   productId Int
+
+  // Relación con envases
+  containers Container[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -81,6 +87,7 @@ model Client {
    
    // Relaciones
    credits     ClientCredit[] // Créditos pendientes del cliente
+   containerDeposits ClientContainerDeposit[] // Depósitos de envases pendientes
    
    @@index([name])
    @@index([alias])
@@ -243,6 +250,9 @@ model CashRegisterShift {
   
   // Relación con movimientos de efectivo
   cashMovements   CashMovement[]
+  
+  // Relación con depósitos de envases de clientes
+  clientContainerDeposits ClientContainerDeposit[]
   
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -465,4 +475,95 @@ model PendingSaleDetail {
   
   @@index([pendingSaleId])
   @@index([productId])
+}
+
+// ============================================================
+// 🍺 MÓDULO DE ENVASES RETORNABLES
+// ============================================================
+
+// ------------------------------------------------------------
+// Envases Retornables
+// ------------------------------------------------------------
+model Container {
+  id          Int       @id @default(autoincrement())
+  name        String    // Nombre del envase (ej: "Coca Vidrio", "Rega Cerveza")
+  quantity    Int       // Cantidad de envases
+  importAmount Float    // Importe del depósito por envase
+  
+  // Relación con producto (opcional - si no tiene presentación)
+  productId   Int?
+  product     Product?  @relation(fields: [productId], references: [id])
+  
+  // Relación con presentación (opcional - si el producto tiene presentación)
+  presentationId Int?
+  presentation   ProductPresentation? @relation(fields: [presentationId], references: [id])
+  
+  // Notas adicionales
+  notes       String?
+  
+  // Estado
+  isActive    Boolean   @default(true)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([productId])
+  @@index([presentationId])
+  @@index([isActive])
+}
+
+// ============================================================
+// 🍺 DEPÓSITOS DE ENVASES POR CLIENTE
+// ============================================================
+
+// ------------------------------------------------------------
+// Depósitos de Envases de Clientes
+// ------------------------------------------------------------
+model ClientContainerDeposit {
+  id              Int       @id @default(autoincrement())
+  
+  // Relación con cliente
+  clientId        String
+  client          Client    @relation(fields: [clientId], references: [id])
+  
+  // Relación con venta que generó el depósito
+  saleId          Int?      // Opcional, puede ser null si se crea manualmente
+  
+  // Información del depósito
+  containerName   String    // Nombre del envase (ej: "Coca Vidrio")
+  quantity        Int       // Cantidad de envases
+  importAmount    Float     // Importe total del depósito (quantity * unitPrice)
+  unitPrice       Float     // Precio unitario del envase
+  
+  // Estado
+  status          ContainerDepositStatus @default(PENDING) // PENDING, RETURNED
+  
+  // Relación con turno de caja
+  shiftId         Int?
+  shift           CashRegisterShift? @relation(fields: [shiftId], references: [id])
+  
+  // Relación con movimiento de efectivo
+  cashMovementId  Int?      // ID del movimiento de efectivo generado
+  
+  // Notas
+  notes           String?
+  
+  // Fechas
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  returnedAt      DateTime? // Fecha en que se devolvieron los envases
+  
+  @@index([clientId])
+  @@index([saleId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([shiftId])
+}
+
+// ------------------------------------------------------------
+// Enum para estados de depósito de envases
+// ------------------------------------------------------------
+enum ContainerDepositStatus {
+  PENDING   // Pendiente de devolución
+  RETURNED // Devuelto
 }

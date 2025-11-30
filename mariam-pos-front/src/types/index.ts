@@ -1,6 +1,6 @@
 // Tipos principales de la aplicación
 
-export type ViewType = 'main' | 'help' | 'pos' | 'products' | 'catalog' | 'categories' | 'sales' |'client' | 'report' | 'inventory' | 'users' | 'shift-history' | 'cash-movements-history' | 'copies';
+export type ViewType = 'main' | 'help' | 'pos' | 'products' | 'catalog' | 'categories' | 'sales' |'client' | 'report' | 'inventory' | 'users' | 'shift-history' | 'cash-movements-history' | 'copies' | 'containers';
 
 // Representa una presentación de un producto (ej: 1 pieza, 1 cono, 1 six)
 export interface ProductPresentation {
@@ -78,6 +78,11 @@ export interface ConfirmPaymentData {
    cashAmount?: number; // Monto en efectivo (solo para mixto)
    cardAmount?: number; // Monto en tarjeta (solo para mixto)
    creditAmount?: number; // Monto a crédito (si hay faltante y se permite crédito)
+   containersDepositInfo?: {
+     total: number;
+     count: number;
+     details: Array<{ name: string; quantity: number; amount: number }>;
+   } | null;
 }
 
 // ============================================================

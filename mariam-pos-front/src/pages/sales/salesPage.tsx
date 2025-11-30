@@ -33,6 +33,9 @@ import type { ProductPresentation } from "../../types";
 import { createPendingSale, type PendingSale } from "../../api/pendingSales";
 import PendingSalesModal from "./PendingSalesModal";
 import { playAddProductSound } from "../../utils/sound";
+import { getContainers, type Container } from "../../api/containers";
+import { createCashMovement, type CreateCashMovementInput } from "../../api/cashRegister";
+import { createClientContainerDeposit } from "../../api/clientContainerDeposits";
 
 interface SalesPageProps {
   onBack: () => void;
@@ -72,6 +75,11 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
   const [showPendingSalesModal, setShowPendingSalesModal] = useState(false);
   const [activeShift, setActiveShift] = useState<CashRegisterShift | null>(null);
   const [productCounter, setProductCounter] = useState(1);
+  const [containersDepositInfo, setContainersDepositInfo] = useState<{
+    total: number;
+    count: number;
+    details: Array<{ name: string; quantity: number; amount: number }>;
+  } | null>(null);
 
   // Nuevo Agrega estos estados y funciones dentro de tu componente
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -207,29 +215,344 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
     }
   };
 
+  // Función para verificar envases en el carrito
+  const checkContainersInCart = async (): Promise<Container[]> => {
+    try {
+      const allContainers = await getContainers({ isActive: true });
+      const containersInCart: Container[] = [];
+
+      for (const item of cart) {
+        // Buscar envases por producto
+        if (item.id) {
+          const productContainers = allContainers.filter(
+            (container) => container.productId === item.id && !container.presentationId
+          );
+          containersInCart.push(...productContainers);
+        }
+
+        // Buscar envases por presentación
+        if (item.selectedPresentation?.id) {
+          const presentationContainers = allContainers.filter(
+            (container) => container.presentationId === item.selectedPresentation?.id
+          );
+          containersInCart.push(...presentationContainers);
+        }
+      }
+
+      // Eliminar duplicados
+      const uniqueContainers = containersInCart.filter(
+        (container, index, self) =>
+          index === self.findIndex((c) => c.id === container.id)
+      );
+
+      return uniqueContainers;
+    } catch (error) {
+      console.error("Error al verificar envases:", error);
+      return [];
+    }
+  };
+
+  // Función para calcular total de envases
+  const calculateContainersTotal = (containers: Container[]): { total: number; count: number; details: Array<{ name: string; quantity: number; amount: number }> } => {
+    let total = 0;
+    let count = 0;
+    const details: Array<{ name: string; quantity: number; amount: number }> = [];
+
+    for (const item of cart) {
+      // Calcular cantidad de items (considerando presentaciones)
+      // Si tiene presentación, usar presentationQuantity, sino usar quantity
+      const itemQuantity = item.selectedPresentation && item.presentationQuantity 
+        ? item.presentationQuantity 
+        : (item.quantity || 1);
+      
+      for (const container of containers) {
+        // Verificar si el envase corresponde a este item
+        const matchesProduct = container.productId === item.id && !container.presentationId;
+        const matchesPresentation = container.presentationId === item.selectedPresentation?.id;
+
+        if (matchesProduct || matchesPresentation) {
+          const containerAmount = container.importAmount * itemQuantity;
+          total += containerAmount;
+          count += itemQuantity;
+          
+          // Buscar si ya existe este envase en los detalles
+          const existingDetail = details.find(d => d.name === container.name);
+          if (existingDetail) {
+            existingDetail.quantity += itemQuantity;
+            existingDetail.amount += containerAmount;
+          } else {
+            details.push({
+              name: container.name,
+              quantity: itemQuantity,
+              amount: containerAmount,
+            });
+          }
+        }
+      }
+    }
+
+    return { total, count, details };
+  };
+
+  // Función para manejar el checkout con validación de envases
+  const handleCheckoutWithContainers = useCallback(async () => {
+    if (cart.length < 1) return;
+
+    // Validar que haya turno activo antes de permitir venta
+    if (!activeShift) {
+      Swal.fire({
+        icon: "warning",
+        title: "Turno no activo",
+        text: "Debe abrir un turno de caja antes de realizar ventas",
+        confirmButtonText: "Abrir Turno",
+        showCancelButton: true,
+        cancelButtonText: "Cancelar",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          setShowShiftModal(true);
+        }
+      });
+      return;
+    }
+
+    // Verificar si hay envases en el carrito
+    const containers = await checkContainersInCart();
+
+    if (containers.length > 0) {
+      // Hay envases, preguntar al cliente
+      const result = await Swal.fire({
+        icon: "question",
+        title: "🍺 Envases Retornables",
+        html: `
+          <p style="font-weight: 600; color: #1f2937; font-size: 1.1rem; margin: 1rem 0;">¿El cliente trajo los envases?</p>
+        `,
+        showCancelButton: true,
+        confirmButtonText: "✅ Sí, trajo envases",
+        cancelButtonText: "💰 No, dejar importe",
+        confirmButtonColor: "#059669",
+        cancelButtonColor: "#667eea",
+        reverseButtons: true,
+      });
+
+      if (result.isConfirmed) {
+        // Trajo envases - flujo normal, limpiar información de depósitos
+        setContainersDepositInfo(null);
+        setShowModal(true);
+      } else {
+        // Va a dejar importe
+        // Validar que el cliente no sea "Publico en General"
+        if (!selectedClient || client === "Publico en General") {
+          Swal.fire({
+            icon: "warning",
+            title: "Cliente requerido",
+            text: "Para dejar importe de envases, debe seleccionar un cliente específico (no puede ser 'Publico en General')",
+            confirmButtonText: "Entendido",
+            confirmButtonColor: "#667eea",
+          });
+          return;
+        }
+
+        // Calcular total de envases
+        const containersInfo = calculateContainersTotal(containers);
+        
+        // Crear un modal interactivo para ajustar cantidades
+        const adjustedDetails = containersInfo.details.map(detail => ({
+          ...detail,
+          adjustedQuantity: detail.quantity, // Inicialmente igual a la cantidad original
+          unitPrice: detail.amount / detail.quantity, // Precio unitario
+        }));
+
+        // Función para recalcular totales
+        const recalculateTotals = (details: typeof adjustedDetails) => {
+          const totalCount = details.reduce((sum, d) => sum + d.adjustedQuantity, 0);
+          const totalAmount = details.reduce((sum, d) => sum + (d.adjustedQuantity * d.unitPrice), 0);
+          return { totalCount, totalAmount };
+        };
+
+        // Crear HTML del modal con inputs para ajustar cantidades
+        const createModalHTML = (details: typeof adjustedDetails) => {
+          const { totalCount, totalAmount } = recalculateTotals(details);
+          
+          const detailsHtml = details
+            .map(
+              (detail, idx) =>
+                `<div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #e5e7eb;">
+                  <div style="flex: 1;">
+                    <span style="font-weight: 600; color: #1f2937;">${detail.name}</span>
+                    <div style="margin-top: 0.25rem; font-size: 0.85rem; color: #6b7280;">
+                      Precio unitario: $${detail.unitPrice.toFixed(2)}
+                    </div>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem; margin-left: 1rem;">
+                    <button 
+                      type="button" 
+                      class="btn-decrease-${idx}" 
+                      style="width: 32px; height: 32px; border: 1px solid #d1d5db; background: #f9fafb; border-radius: 4px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; ${detail.adjustedQuantity <= 0 ? 'opacity: 0.5; cursor: not-allowed;' : ''}"
+                      ${detail.adjustedQuantity <= 0 ? 'disabled' : ''}
+                    >−</button>
+                    <input 
+                      type="number" 
+                      id="quantity-${idx}" 
+                      value="${detail.adjustedQuantity}" 
+                      min="0" 
+                      max="${detail.quantity}"
+                      style="width: 60px; text-align: center; border: 1px solid #d1d5db; border-radius: 4px; padding: 0.25rem; font-weight: 600;"
+                    />
+                    <button 
+                      type="button" 
+                      class="btn-increase-${idx}" 
+                      style="width: 32px; height: 32px; border: 1px solid #d1d5db; background: #f9fafb; border-radius: 4px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; ${detail.adjustedQuantity >= detail.quantity ? 'opacity: 0.5; cursor: not-allowed;' : ''}"
+                      ${detail.adjustedQuantity >= detail.quantity ? 'disabled' : ''}
+                    >+</button>
+                    <span style="color: #6b7280; font-size: 0.85rem;">/ ${detail.quantity}</span>
+                    <span style="margin-left: 0.5rem; font-weight: 600; color: #059669; min-width: 80px; text-align: right;" id="amount-${idx}">
+                      $${(detail.adjustedQuantity * detail.unitPrice).toFixed(2)}
+                    </span>
+                  </div>
+                </div>`
+            )
+            .join("");
+
+          return `
+            <div style="text-align: left; margin-top: 1rem;">
+              <p style="font-weight: 600; margin-bottom: 0.75rem; font-size: 1rem;">Cliente: <strong>${client}</strong></p>
+              <p style="font-size: 0.9rem; color: #6b7280; margin-bottom: 1rem;">
+                Ajuste las cantidades si el cliente trajo algunos envases:
+              </p>
+              <div style="margin: 1rem 0; max-height: 300px; overflow-y: auto;">
+                ${detailsHtml}
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; margin-top: 0.5rem; border-top: 2px solid #1f2937; font-size: 1.1rem;">
+                <span><strong>Total de envases:</strong> <span id="total-count">${totalCount}</span></span>
+                <span><strong>Total a cobrar:</strong> <span style="color: #059669;" id="total-amount">$${totalAmount.toFixed(2)}</span></span>
+              </div>
+              <p style="margin-top: 1rem; font-size: 0.9rem; color: #6b7280; font-style: italic;">
+                Este importe se agregará al total de la venta y se registrará como depósito de envases.
+              </p>
+            </div>
+          `;
+        };
+
+        // Mostrar modal interactivo
+        const { value: confirmed } = await Swal.fire({
+          icon: "info",
+          title: "📋 Resumen de Envases",
+          html: createModalHTML(adjustedDetails),
+          showCancelButton: true,
+          confirmButtonText: "Continuar con el cobro",
+          cancelButtonText: "Cancelar",
+          confirmButtonColor: "#667eea",
+          cancelButtonColor: "#6b7280",
+          didOpen: () => {
+            // Función para actualizar la UI
+            const updateUI = () => {
+              const { totalCount, totalAmount } = recalculateTotals(adjustedDetails);
+              const totalCountEl = document.getElementById('total-count');
+              const totalAmountEl = document.getElementById('total-amount');
+              if (totalCountEl) totalCountEl.textContent = totalCount.toString();
+              if (totalAmountEl) totalAmountEl.textContent = `$${totalAmount.toFixed(2)}`;
+            };
+
+            // Agregar event listeners para los botones de incremento/decremento
+            adjustedDetails.forEach((detail, idx) => {
+              const decreaseBtn = document.querySelector(`.btn-decrease-${idx}`) as HTMLButtonElement;
+              const increaseBtn = document.querySelector(`.btn-increase-${idx}`) as HTMLButtonElement;
+              const quantityInput = document.getElementById(`quantity-${idx}`) as HTMLInputElement;
+              const amountSpan = document.getElementById(`amount-${idx}`) as HTMLElement;
+
+              const updateButtons = () => {
+                if (decreaseBtn) {
+                  decreaseBtn.disabled = detail.adjustedQuantity <= 0;
+                  decreaseBtn.style.opacity = detail.adjustedQuantity <= 0 ? '0.5' : '1';
+                  decreaseBtn.style.cursor = detail.adjustedQuantity <= 0 ? 'not-allowed' : 'pointer';
+                }
+                if (increaseBtn) {
+                  increaseBtn.disabled = detail.adjustedQuantity >= detail.quantity;
+                  increaseBtn.style.opacity = detail.adjustedQuantity >= detail.quantity ? '0.5' : '1';
+                  increaseBtn.style.cursor = detail.adjustedQuantity >= detail.quantity ? 'not-allowed' : 'pointer';
+                }
+              };
+
+              if (decreaseBtn && quantityInput && amountSpan) {
+                decreaseBtn.addEventListener('click', () => {
+                  if (detail.adjustedQuantity > 0) {
+                    detail.adjustedQuantity--;
+                    quantityInput.value = detail.adjustedQuantity.toString();
+                    amountSpan.textContent = `$${(detail.adjustedQuantity * detail.unitPrice).toFixed(2)}`;
+                    updateButtons();
+                    updateUI();
+                  }
+                });
+
+                if (increaseBtn) {
+                  increaseBtn.addEventListener('click', () => {
+                    if (detail.adjustedQuantity < detail.quantity) {
+                      detail.adjustedQuantity++;
+                      quantityInput.value = detail.adjustedQuantity.toString();
+                      amountSpan.textContent = `$${(detail.adjustedQuantity * detail.unitPrice).toFixed(2)}`;
+                      updateButtons();
+                      updateUI();
+                    }
+                  });
+                }
+
+                quantityInput.addEventListener('input', (e) => {
+                  const newValue = Math.max(0, Math.min(detail.quantity, parseInt((e.target as HTMLInputElement).value) || 0));
+                  detail.adjustedQuantity = newValue;
+                  quantityInput.value = newValue.toString();
+                  amountSpan.textContent = `$${(detail.adjustedQuantity * detail.unitPrice).toFixed(2)}`;
+                  updateButtons();
+                  updateUI();
+                });
+
+                // Inicializar estado de botones
+                updateButtons();
+              }
+            });
+          },
+        });
+
+        if (!confirmed) {
+          // Usuario canceló, limpiar información de depósitos
+          setContainersDepositInfo(null);
+          return;
+        }
+
+        // Recalcular con las cantidades ajustadas
+        const finalTotals = recalculateTotals(adjustedDetails);
+        const finalDetails = adjustedDetails
+          .filter(d => d.adjustedQuantity > 0) // Solo incluir envases con cantidad > 0
+          .map(d => ({
+            name: d.name,
+            quantity: d.adjustedQuantity,
+            amount: d.adjustedQuantity * d.unitPrice,
+          }));
+
+        // Guardar información de depósitos ajustada
+        const adjustedContainersInfo = {
+          total: finalTotals.totalAmount,
+          count: finalTotals.totalCount,
+          details: finalDetails,
+        };
+
+        setContainersDepositInfo(adjustedContainersInfo);
+
+        // Continuar con el flujo normal - el importe se agregará al total en el modal
+        setShowModal(true);
+      }
+    } else {
+      // No hay envases - flujo normal
+      setShowModal(true);
+    }
+  }, [cart, activeShift, selectedClient, client]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "F2") {
         e.preventDefault();
         console.log('cart', cart)
         if (cart.length >= 1) {
-          // Validar que haya turno activo antes de permitir venta
-          if (!activeShift) {
-            Swal.fire({
-              icon: "warning",
-              title: "Turno no activo",
-              text: "Debe abrir un turno de caja antes de realizar ventas",
-              confirmButtonText: "Abrir Turno",
-              showCancelButton: true,
-              cancelButtonText: "Cancelar",
-            }).then((result) => {
-              if (result.isConfirmed) {
-                setShowShiftModal(true);
-              }
-            });
-            return;
-          }
-          setShowModal(true); 
+          handleCheckoutWithContainers();
         }
       } else if (e.key === "F3") {
         e.preventDefault();
@@ -241,7 +564,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [cart, handleAddCommonProduct, activeShift]);
+  }, [cart, handleAddCommonProduct, activeShift, handleCheckoutWithContainers]);
 
   // Cada vez que cambie el carrito, lo guardamos
   useEffect(() => {
@@ -599,6 +922,14 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
   }, 0);
 
   const confirmPayment = async (data: ConfirmPaymentData) => {
+    console.log("💰 Confirmando pago, datos recibidos:", {
+      paymentType: data.paymentType,
+      amountReceived: data.amountReceived,
+      containersDepositInfo: data.containersDepositInfo,
+      selectedClient,
+      activeShift: activeShift?.id,
+    });
+
     // Validar que haya turno activo
     if (!activeShift) {
       Swal.fire({
@@ -693,9 +1024,14 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         paymentMethod = "Regalo";
       }
 
+      // IMPORTANTE: El total de la venta es solo el subtotal de productos
+      // El depósito de envases NO se suma al total de la venta porque:
+      // 1. Se registra como movimiento de efectivo (ENTRADA) separado
+      // 2. Esto permite que el cierre de turno cuadre correctamente
+      // 3. El cliente paga el total (productos + depósito), pero la venta solo registra productos
       const sale: Omit<SaleInput, "createdAt"> = {
         folio: "",
-        total: total,
+        total: total, // Solo subtotal de productos (sin depósito de envases)
         status: "Pagado",
         paymentMethod: paymentMethod,
         clientName: client,
@@ -707,6 +1043,97 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       // 1️⃣ Crear la venta
       const responseCreateSale = await createSale(sale);
       console.log("responseCreateSale", responseCreateSale);
+      
+      // 1.5️⃣ Si hay depósito de envases, crear movimiento de efectivo y guardar depósito
+      console.log("🔍 Verificando condiciones para crear movimiento de envases:", {
+        hasContainersDepositInfo: !!data.containersDepositInfo,
+        containersTotal: data.containersDepositInfo?.total,
+        hasSelectedClient: !!selectedClient,
+        hasActiveShift: !!activeShift,
+        activeShiftId: activeShift?.id,
+        client,
+      });
+
+      if (data.containersDepositInfo && data.containersDepositInfo.total > 0 && selectedClient && activeShift) {
+        try {
+          console.log("🍺 Creando movimiento de efectivo por depósito de envases:", {
+            containersDepositInfo: data.containersDepositInfo,
+            selectedClient: selectedClient.id,
+            activeShift: activeShift.id,
+            client,
+          });
+
+          // Preparar detalles de envases para las notas
+          const containersDetails = data.containersDepositInfo.details
+            .map(detail => `${detail.name} (${detail.quantity}) - $${detail.amount.toFixed(2)}`)
+            .join(" | ");
+          
+          // Crear movimiento de efectivo (ENTRADA)
+          const cashMovementInput = {
+            shiftId: activeShift.id,
+            type: "ENTRADA" as const,
+            amount: data.containersDepositInfo.total,
+            reason: `Importe de envase - ${client}`,
+            notes: containersDetails,
+          };
+
+          console.log("📝 Datos del movimiento a crear:", cashMovementInput);
+
+          const cashMovement = await createCashMovement(cashMovementInput);
+          
+          console.log("✅ Movimiento de efectivo creado exitosamente:", cashMovement);
+
+          // Guardar depósitos de envases (uno por cada tipo de envase)
+          for (const detail of data.containersDepositInfo.details) {
+            // Calcular precio unitario
+            const unitPrice = detail.amount / detail.quantity;
+            
+            await createClientContainerDeposit({
+              clientId: selectedClient.id,
+              saleId: responseCreateSale.id,
+              containerName: detail.name,
+              quantity: detail.quantity,
+              importAmount: detail.amount,
+              unitPrice: unitPrice,
+              shiftId: activeShift.id,
+              cashMovementId: cashMovement.id,
+              notes: `Depósito generado automáticamente por venta #${responseCreateSale.id}`,
+            });
+          }
+        } catch (error: any) {
+          console.error("❌ Error al crear movimiento de efectivo por depósito de envases:", error);
+          console.error("❌ Detalles del error:", {
+            message: error?.message,
+            response: error?.response?.data,
+            status: error?.response?.status,
+            stack: error?.stack,
+          });
+          // No bloquear la venta si falla, pero mostrar advertencia
+          Swal.fire({
+            icon: "warning",
+            title: "Venta completada",
+            html: `
+              <p>La venta se registró correctamente, pero hubo un error al registrar el depósito de envases.</p>
+              <p style="margin-top: 10px; font-size: 0.9rem; color: #dc2626;">
+                Error: ${error?.response?.data?.error || error?.message || "Error desconocido"}
+              </p>
+              <p style="margin-top: 10px;">Por favor regístrelo manualmente.</p>
+            `,
+            confirmButtonText: "Entendido",
+          });
+        }
+      } else {
+        console.warn("⚠️ No se creó movimiento de envases porque faltan condiciones:", {
+          hasContainersDepositInfo: !!data.containersDepositInfo,
+          containersTotal: data.containersDepositInfo?.total,
+          containersCount: data.containersDepositInfo?.count,
+          hasSelectedClient: !!selectedClient,
+          selectedClientId: selectedClient?.id,
+          hasActiveShift: !!activeShift,
+          activeShiftId: activeShift?.id,
+          activeShiftStatus: activeShift?.status,
+        });
+      }
       
       // 2️⃣ Si hay crédito, registrarlo
       if (data.creditAmount && data.creditAmount > 0 && selectedClient) {
@@ -732,9 +1159,10 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       // 3️⃣ Descontar inventario después de crear la venta exitosamente
       await updateInventoryFromSale(cart, branch);
       
-      // 4️⃣ Limpiar carrito, reiniciar contador y actualizar turno activo
+      // 4️⃣ Limpiar carrito, reiniciar contador, limpiar depósitos y actualizar turno activo
       setCart([]);
       setProductCounter(1); // Reiniciar contador de productos no registrados
+      setContainersDepositInfo(null); // Limpiar información de depósitos
       
       // Actualizar información del turno activo
       await checkActiveShift();
@@ -1440,7 +1868,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       <Footer
         cartLength={cart.length}
         total={total}
-        onCheckout={() => setShowModal(true)}
+        onCheckout={handleCheckoutWithContainers}
         onSaleToPending={saleToPending}
         showPendingCarts={showPendingCarts}
         onFocusSearch={() => {
@@ -1456,8 +1884,10 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
           <PaymentModal
             total={total}
             client={selectedClient}
+            containersDepositInfo={containersDepositInfo}
             onClose={() => {
               setShowModal(false);
+              setContainersDepositInfo(null); // Limpiar información de depósitos
               // Enfocar el input de búsqueda después de cerrar el modal
               setTimeout(() => {
                 inputRef.current?.focus();

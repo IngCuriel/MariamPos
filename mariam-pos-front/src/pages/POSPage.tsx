@@ -14,6 +14,7 @@ interface POSPageProps {
   onShiftHistoryClick?:() => void;
   onCashMovementsHistoryClick?:() => void;
   onCopiesClick?:() => void;
+  onContainersClick?:() => void;
   onHelpClick?:() => void;
 }
 
@@ -28,6 +29,7 @@ const POSPage: React.FC<POSPageProps> = ({
   onShiftHistoryClick, 
   onCashMovementsHistoryClick,
   onCopiesClick,
+  onContainersClick,
   onHelpClick
 }) => {
   return (
@@ -94,6 +96,19 @@ const POSPage: React.FC<POSPageProps> = ({
                   <div className="pos-module-icon">🖨️</div>
                   <h3 className="pos-module-title">Copias</h3>
                   <p className="pos-module-description">Imprimir documentos y copias</p>
+                </Card>
+              )}
+
+              {onContainersClick && (
+                <Card
+                  variant="feature"
+                  className="pos-module-card containers"
+                  onClick={onContainersClick}
+                  hoverable
+                >
+                  <div className="pos-module-icon">🍺</div>
+                  <h3 className="pos-module-title">Envases</h3>
+                  <p className="pos-module-description">Gestionar envases retornables</p>
                 </Card>
               )}
             </div>

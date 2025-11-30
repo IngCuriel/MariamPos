@@ -4,11 +4,14 @@ import Header from '../../components/Header';
 import type {Client, ClientCredit} from '../../types/index'
 import { getClients, createClient, updateClient } from "../../api/clients";
 import { getClientCredits, getClientCreditSummary } from "../../api/credits";
+import { getClientPendingDeposits } from "../../api/clientContainerDeposits";
+import { getActiveShift } from "../../api/cashRegister";
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import ClientModal from './ClientModal';
 import CreditPaymentModal from './CreditPaymentModal';
 import ClientCreditHistoryModal from './ClientCreditHistoryModal';
+import ClientContainerDepositsModal from './ClientContainerDepositsModal';
 import Swal from 'sweetalert2';
 
 interface ClientPageProps {
@@ -21,10 +24,13 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
   const [clientToEdit, setClientToEdit] = useState<Client | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [clientCredits, setClientCredits] = useState<Record<string, { totalPending: number; credits: ClientCredit[] }>>({});
+  const [clientContainerDeposits, setClientContainerDeposits] = useState<Record<string, { totalContainers: number; totalAmount: number; summary: any[] }>>({});
   const [selectedCredit, setSelectedCredit] = useState<ClientCredit | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showCreditHistory, setShowCreditHistory] = useState(false);
   const [selectedClientForHistory, setSelectedClientForHistory] = useState<Client | null>(null);
+  const [showContainerDeposits, setShowContainerDeposits] = useState(false);
+  const [selectedClientForDeposits, setSelectedClientForDeposits] = useState<Client | null>(null);
   const [_loadingCredits, setLoadingCredits] = useState(false);
   
   // 🟢 Llamada al API cuando el hook se monta
@@ -32,10 +38,11 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
     fetchClients();
   }, []);
 
-  // Cargar créditos pendientes cuando se cargan los clientes
+  // Cargar créditos y depósitos pendientes cuando se cargan los clientes
   useEffect(() => {
     if (clients.length > 0) {
       loadAllClientCredits();
+      loadAllClientContainerDeposits();
     }
   }, [clients]);
 
@@ -80,13 +87,58 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
     }
   };
 
+  const loadAllClientContainerDeposits = async () => {
+    try {
+      const depositsMap: Record<string, { totalContainers: number; totalAmount: number; summary: any[] }> = {};
+      
+      await Promise.all(
+        clients.map(async (client) => {
+          try {
+            const depositsData = await getClientPendingDeposits(client.id);
+            if (depositsData.totalContainers > 0) {
+              depositsMap[client.id] = {
+                totalContainers: depositsData.totalContainers,
+                totalAmount: depositsData.totalAmount,
+                summary: depositsData.summary,
+              };
+            }
+          } catch (error) {
+            console.error(`Error al cargar depósitos de ${client.name}:`, error);
+          }
+        })
+      );
+      
+      setClientContainerDeposits(depositsMap);
+    } catch (error) {
+      console.error("Error al cargar depósitos de envases:", error);
+    }
+  };
+
   const handlePaymentSuccess = () => {
     loadAllClientCredits();
+    loadAllClientContainerDeposits();
     fetchClients(); // Recargar clientes por si cambió algo
   };
 
   const handleOpenPaymentModal = async (clientId: string) => {
     try {
+      // Validar que haya turno activo antes de permitir abono
+      const branch = localStorage.getItem('sucursal') || 'Sucursal Principal';
+      const cashRegister = localStorage.getItem('caja') || 'Caja 1';
+      
+      const activeShift = await getActiveShift(branch, cashRegister);
+      
+      if (!activeShift) {
+        Swal.fire({
+          icon: "warning",
+          title: "Turno no activo",
+          text: "Debe abrir un turno de caja antes de registrar un abono",
+          confirmButtonText: "Entendido",
+          confirmButtonColor: "#f59e0b",
+        });
+        return;
+      }
+
       const credits = await getClientCredits(clientId, "PENDING");
       const partiallyPaid = await getClientCredits(clientId, "PARTIALLY_PAID");
       const allPending = [...credits, ...partiallyPaid];
@@ -237,6 +289,26 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
               </div>
             )}
 
+            {/* Alerta de clientes con depósitos de envases pendientes */}
+            {Object.keys(clientContainerDeposits).length > 0 && (
+              <div style={{ 
+                marginBottom: "16px", 
+                backgroundColor: "#ecfdf5", 
+                border: "1px solid #059669",
+                borderRadius: "8px",
+                padding: "16px"
+              }}>
+                <Card className="search-card">
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{ fontSize: "1.2rem" }}>🍺</span>
+                  <strong style={{ color: "#065f46" }}>
+                    {Object.keys(clientContainerDeposits).length} cliente(s) con depósitos de envases pendientes
+                  </strong>
+                </div>
+                </Card>
+              </div>
+            )}
+
             {/* Tabla de clientes */}
             <table className="client-table">
               <thead>
@@ -248,6 +320,7 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
                   <th>Crédito</th>
                   <th>Límite</th>
                   <th>Pendiente</th>
+                  <th>Envases</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
@@ -255,11 +328,19 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
                 {filteredClients.map(client => {
                   const credits = clientCredits[client.id];
                   const hasPending = credits && credits.totalPending > 0;
+                  const deposits = clientContainerDeposits[client.id];
+                  const hasDeposits = deposits && deposits.totalContainers > 0;
                   
                   return (
                     <tr 
                       key={client.id}
-                      style={hasPending ? { backgroundColor: "#fef3c7" } : {}}
+                      style={
+                        hasPending 
+                          ? { backgroundColor: "#fef3c7" } 
+                          : hasDeposits 
+                          ? { backgroundColor: "#ecfdf5" } 
+                          : {}
+                      }
                     >
                       <td>{client.id}</td>
                       <td>
@@ -292,6 +373,33 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
                               currency: "MXN" 
                             })}
                           </strong>
+                        ) : '-'}
+                      </td>
+                      <td>
+                        {hasDeposits ? (
+                          <div 
+                            style={{ 
+                              display: "flex", 
+                              flexDirection: "column", 
+                              gap: "2px",
+                              cursor: "pointer",
+                            }}
+                            onClick={() => {
+                              setSelectedClientForDeposits(client);
+                              setShowContainerDeposits(true);
+                            }}
+                            title="Click para ver detalle de envases"
+                          >
+                            <strong style={{ color: "#059669", fontSize: "0.9rem" }}>
+                              {deposits.totalContainers} envase{deposits.totalContainers !== 1 ? 's' : ''}
+                            </strong>
+                            <span style={{ color: "#059669", fontSize: "0.85rem" }}>
+                              ${deposits.totalAmount.toFixed(2)}
+                            </span>
+                            <span style={{ color: "#059669", fontSize: "0.75rem", fontStyle: "italic" }}>
+                              (Click para ver detalle)
+                            </span>
+                          </div>
                         ) : '-'}
                       </td>
                       <td>
@@ -355,6 +463,20 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
             onClose={() => {
               setShowCreditHistory(false);
               setSelectedClientForHistory(null);
+            }}
+          />
+
+         {/* Modal para ver detalle de depósitos de envases */}
+         <ClientContainerDepositsModal
+            isOpen={showContainerDeposits}
+            client={selectedClientForDeposits}
+            onClose={() => {
+              setShowContainerDeposits(false);
+              setSelectedClientForDeposits(null);
+            }}
+            onReturnSuccess={() => {
+              // Recargar depósitos cuando se regresa el importe
+              loadAllClientContainerDeposits();
             }}
           />
       </div>
