@@ -930,7 +930,7 @@ export const deleteCashMovement = async (req, res) => {
 // ============================================================
 export const getCashMovementsHistory = async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, cashRegister } = req.query;
 
     if (!startDate || !endDate) {
       return res.status(400).json({ error: "Debe proporcionar startDate y endDate" });
@@ -939,13 +939,22 @@ export const getCashMovementsHistory = async (req, res) => {
     const start = new Date(`${startDate}T00:00:00.000`);
     const end = new Date(`${endDate}T23:59:59.999`);
 
-    const movements = await prisma.cashMovement.findMany({
-      where: {
-        createdAt: {
-          gte: start,
-          lte: end,
-        },
+    const where = {
+      createdAt: {
+        gte: start,
+        lte: end,
       },
+    };
+
+    // Agregar filtro de caja si se especifica
+    if (cashRegister) {
+      where.shift = {
+        cashRegister: cashRegister,
+      };
+    }
+
+    const movements = await prisma.cashMovement.findMany({
+      where,
       include: {
         shift: {
           select: {

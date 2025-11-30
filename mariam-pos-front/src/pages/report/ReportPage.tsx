@@ -18,6 +18,7 @@ import Header from "../../components/Header";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { 
+  getSales,
   getSalesSummary, 
   getDailySales, 
   getTopProducts, 
@@ -71,20 +72,46 @@ const DashboardSalesPage: React.FC<DashboardSalesPageProps> = ({ onBack }) => {
   const [filter, setFilter] = useState<"day" | "week" | "month" | "custom">("day");
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
+  const [selectedCashRegister, setSelectedCashRegister] = useState<string>("all");
+  const [availableCashRegisters, setAvailableCashRegisters] = useState<string[]>([]);
+
+  useEffect(() => {
+    loadCashRegisters();
+  }, []);
 
   useEffect(() => {
     fetchData();
-  }, [filter, startDate, endDate]);
+  }, [filter, startDate, endDate, selectedCashRegister]);
+
+  const loadCashRegisters = async () => {
+    try {
+      const sales = await getSales();
+      // Obtener cajas únicas de las ventas
+      const uniqueCashRegisters = Array.from(
+        new Set(sales.map(sale => sale.cashRegister).filter(Boolean))
+      ).sort() as string[];
+      setAvailableCashRegisters(uniqueCashRegisters);
+    } catch (error) {
+      console.error("Error al cargar cajas:", error);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const params: Record<string, string> = {};
       if (filter === "custom" && startDate && endDate) {
-        params.start = startDate.toISOString().split('T')[0];
-        params.end = endDate.toISOString().split('T')[0];
+        // Usar toLocaleDateString para obtener la fecha en hora local (YYYY-MM-DD)
+        // Esto evita problemas de zona horaria con toISOString()
+        params.start = startDate.toLocaleDateString('en-CA');
+        params.end = endDate.toLocaleDateString('en-CA');
       } else {
         params.range = filter;
+      }
+      
+      // Agregar filtro de caja si no es "all"
+      if (selectedCashRegister && selectedCashRegister !== "all") {
+        params.cashRegister = selectedCashRegister;
       }
 
       const [
@@ -213,6 +240,24 @@ const DashboardSalesPage: React.FC<DashboardSalesPageProps> = ({ onBack }) => {
               </div>
             </div>
           )}
+
+          {/* Filtro de Caja */}
+          <div className="cash-register-filter">
+            <label htmlFor="cashRegister-select">🏪 Caja:</label>
+            <select
+              id="cashRegister-select"
+              value={selectedCashRegister}
+              onChange={(e) => setSelectedCashRegister(e.target.value)}
+              className="cash-register-select"
+            >
+              <option value="all">Todas las cajas</option>
+              {availableCashRegisters.map((cashRegister) => (
+                <option key={cashRegister} value={cashRegister}>
+                  {cashRegister}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {loading ? (

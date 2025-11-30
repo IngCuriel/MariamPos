@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Header from "../../components/Header";
 import type { CashMovement } from "../../types/index";
-import { getCashMovementsHistory } from "../../api/cashRegister";
+import { getCashMovementsHistory, getShiftsByDateRange } from "../../api/cashRegister";
 import DatePicker, { registerLocale } from "react-datepicker";
 import { es } from "date-fns/locale/es";
 import "react-datepicker/dist/react-datepicker.css";
@@ -13,34 +13,68 @@ interface CashMovementsHistoryPageProps {
   onBack: () => void;
 }
 
+interface CashMovementWithShift extends CashMovement {
+  shift?: {
+    id: number;
+    shiftNumber: string;
+    branch: string;
+    cashRegister: string;
+    cashierName?: string;
+    startTime: Date;
+    endTime?: Date;
+    status: string;
+  };
+}
+
 export default function CashMovementsHistoryPage({
   onBack,
 }: CashMovementsHistoryPageProps) {
-  const [movements, setMovements] = useState<CashMovement[]>([]);
+  const [movements, setMovements] = useState<CashMovementWithShift[]>([]);
   const [startDate, setStartDate] = useState<Date>(
-    new Date(new Date().setDate(new Date().getDate() - 7))
+    new Date(new Date().setDate(new Date().getDate() /*- 7*/))
   );
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(false);
+  const [selectedCashRegister, setSelectedCashRegister] = useState<string>("all");
+  const [availableCashRegisters, setAvailableCashRegisters] = useState<string[]>([]);
 
-  useEffect(() => {
-    fetchMovements();
+  const loadCashRegisters = useCallback(async () => {
+    try {
+      const start = startDate.toLocaleDateString("en-CA");
+      const end = endDate.toLocaleDateString("en-CA");
+      const shifts = await getShiftsByDateRange({ startDate: start, endDate: end });
+      // Obtener cajas únicas de los turnos
+      const uniqueCashRegisters = Array.from(
+        new Set(shifts.map(shift => shift.cashRegister).filter(Boolean))
+      ).sort() as string[];
+      setAvailableCashRegisters(uniqueCashRegisters);
+    } catch (error) {
+      console.error("Error al cargar cajas:", error);
+    }
   }, [startDate, endDate]);
 
-  const fetchMovements = async () => {
+  const fetchMovements = useCallback(async () => {
     try {
       setLoading(true);
       const start = startDate.toLocaleDateString("en-CA");
       const end = endDate.toLocaleDateString("en-CA");
 
-      const data = await getCashMovementsHistory(start, end);
-      setMovements(data);
+      const data = await getCashMovementsHistory(start, end, selectedCashRegister !== "all" ? selectedCashRegister : undefined);
+      setMovements(data as CashMovementWithShift[]);
     } catch (error) {
       console.error("Error al cargar movimientos:", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [startDate, endDate, selectedCashRegister]);
+
+  useEffect(() => {
+    loadCashRegisters();
+  }, [loadCashRegisters]);
+
+  useEffect(() => {
+    fetchMovements();
+  }, [fetchMovements]);
 
   const formatDate = (date: Date | string) => {
     const d = new Date(date);
@@ -53,7 +87,7 @@ export default function CashMovementsHistoryPage({
     });
   };
 
-  // Calcular totales
+  // Calcular totales (sin neto)
   const totals = movements.reduce(
     (acc, movement) => {
       if (movement.type === "ENTRADA") {
@@ -61,11 +95,9 @@ export default function CashMovementsHistoryPage({
       } else {
         acc.totalSalidas += movement.amount;
       }
-      acc.neto +=
-        movement.type === "ENTRADA" ? movement.amount : -movement.amount;
       return acc;
     },
-    { totalEntradas: 0, totalSalidas: 0, neto: 0 }
+    { totalEntradas: 0, totalSalidas: 0 }
   );
 
   return (
@@ -101,6 +133,21 @@ export default function CashMovementsHistoryPage({
             />
           </div>
           <div className="filter-group">
+            <label className="filter-label">🏪 Caja:</label>
+            <select
+              value={selectedCashRegister}
+              onChange={(e) => setSelectedCashRegister(e.target.value)}
+              className="cash-register-select"
+            >
+              <option value="all">Todas las cajas</option>
+              {availableCashRegisters.map((cashRegister) => (
+                <option key={cashRegister} value={cashRegister}>
+                  {cashRegister}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="filter-group">
             <button
               className="refresh-btn"
               onClick={fetchMovements}
@@ -131,22 +178,6 @@ export default function CashMovementsHistoryPage({
               })}
             </span>
           </div>
-          <div className="total-item neto">
-            <span className="total-label">📊 Neto:</span>
-            <span
-              className="total-value"
-              style={{
-                color: totals.neto >= 0 ? "#059669" : "#dc2626",
-                fontWeight: "700",
-              }}
-            >
-              {totals.neto >= 0 ? "+" : ""}
-              {totals.neto.toLocaleString("es-MX", {
-                style: "currency",
-                currency: "MXN",
-              })}
-            </span>
-          </div>
           <div className="total-item count">
             <span className="total-label">📋 Total Movimientos:</span>
             <span className="total-value">{movements.length}</span>
@@ -167,10 +198,9 @@ export default function CashMovementsHistoryPage({
                   <th>Tipo</th>
                   <th>Monto</th>
                   <th>Razón</th>
-                  <th>Turno</th>
+                  <th>Caja</th>
                   <th>Cajero</th>
-                  <th>Sucursal/Caja</th>
-                  <th>Registrado por</th>
+                  <th>Turno</th>
                   <th>Notas</th>
                 </tr>
               </thead>
@@ -207,23 +237,18 @@ export default function CashMovementsHistoryPage({
                     <td className="reason-cell">
                       {movement.reason || "-"}
                     </td>
-                    <td className="shift-cell">
-                      {movement.shiftId ? (
-                        <div>
-                          <strong>#{movement.shiftId}</strong>
-                        </div>
-                      ) : (
-                        "-"
-                      )}
+                    <td className="cash-register-cell">
+                      {movement.shift?.cashRegister || "-"}
                     </td>
                     <td className="cashier-cell">
-                      {movement.createdBy || "Anónimo"}
+                      {movement.shift?.cashierName || movement.createdBy || "Anónimo"}
                     </td>
-                    <td className="location-cell">
-                      -
-                    </td>
-                    <td className="created-by-cell">
-                      {movement.createdBy || "-"}
+                    <td className="shift-cell">
+                      {movement.shift?.shiftNumber 
+                        ? `#${movement.shift.shiftNumber}` 
+                        : movement.shiftId 
+                        ? `#${movement.shiftId}` 
+                        : "-"}
                     </td>
                     <td className="notes-cell">
                       {movement.notes || "-"}

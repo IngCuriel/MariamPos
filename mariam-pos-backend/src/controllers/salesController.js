@@ -97,8 +97,8 @@ export const createSales = async (req, res) => {
 
 export const getSalesByDateRange = async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
-    console.log('startDate, endDate',startDate, endDate);
+    const { startDate, endDate, cashRegister } = req.query;
+    console.log('startDate, endDate, cashRegister',startDate, endDate, cashRegister);
     if (!startDate || !endDate) {
       return res
         .status(400)
@@ -115,13 +115,20 @@ export const getSalesByDateRange = async (req, res) => {
       return res.status(400).json({ message: "Fechas inválidas" });
     } 
 
-    const sales = await prisma.sale.findMany({
-      where: {
-        createdAt: {
-          gte: start, // mayor o igual que startDate
-          lte: end, // menor o igual que endDate
-        },
+    const where = {
+      createdAt: {
+        gte: start, // mayor o igual que startDate
+        lte: end, // menor o igual que endDate
       },
+    };
+
+    // Agregar filtro de caja si se especifica
+    if (cashRegister) {
+      where.cashRegister = cashRegister;
+    }
+
+    const sales = await prisma.sale.findMany({
+      where,
       orderBy: {
         createdAt: "desc",
       },
@@ -144,7 +151,7 @@ export const getSalesByDateRange = async (req, res) => {
 //Reportes
 //Devuelve totales generales
 export const getSalesSummary = async (req, res) => {
-  const { range, start, end } = req.query;
+  const { range, start, end, cashRegister } = req.query;
   let where = {};
   const now = new Date();
 
@@ -162,7 +169,16 @@ export const getSalesSummary = async (req, res) => {
     const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     where = { createdAt: { gte: startMonth } };
   } else if (start && end) {
-    where = { createdAt: { gte: new Date(start), lte: new Date(end) } };
+    // Ajustar el rango completo del día para fechas personalizadas
+    // Formato esperado: YYYY-MM-DD
+    const startDate = new Date(`${start}T00:00:00.000`);
+    const endDate = new Date(`${end}T23:59:59.999`);
+    where = { createdAt: { gte: startDate, lte: endDate } };
+  }
+
+  // Agregar filtro de caja si se especifica
+  if (cashRegister) {
+    where.cashRegister = cashRegister;
   }
 
   try {
@@ -183,7 +199,7 @@ export const getSalesSummary = async (req, res) => {
 //Mostrar ventas por día o semana
 export const getDailySales = async (req, res) => {
   try {
-    const { range, start, end } = req.query;
+    const { range, start, end, cashRegister } = req.query;
 
     const now = new Date();
     let where = {};
@@ -202,18 +218,49 @@ export const getDailySales = async (req, res) => {
       const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       where = { createdAt: { gte: startMonth } };
     } else if (start && end) {
-      where = { createdAt: { gte: new Date(start), lte: new Date(end) } };
-    } 
-    const dailySales = await prisma.$queryRaw`
-      SELECT 
-        createdAt as date,
-         SUM(total) AS total
-      FROM Sale
-       WHERE "createdAt" >= ${where.createdAt?.gte || new Date(0)}
-        AND "createdAt" <= ${where.createdAt?.lte || new Date()}
-      GROUP BY createdAt
-      ORDER BY date DESC;
-    `;
+      // Ajustar el rango completo del día para fechas personalizadas
+      // Formato esperado: YYYY-MM-DD
+      const startDate = new Date(`${start}T00:00:00.000`);
+      const endDate = new Date(`${end}T23:59:59.999`);
+      where = { createdAt: { gte: startDate, lte: endDate } };
+    }
+    
+    // Agregar filtro de caja si se especifica
+    if (cashRegister) {
+      where.cashRegister = cashRegister;
+    }
+    
+    // Construir la consulta SQL con filtros
+    const startDate = where.createdAt?.gte || new Date(0);
+    const endDate = where.createdAt?.lte || new Date();
+    
+    let query;
+    if (cashRegister) {
+      query = prisma.$queryRaw`
+        SELECT 
+          createdAt as date,
+          SUM(total) AS total
+        FROM Sale
+        WHERE "createdAt" >= ${startDate}
+          AND "createdAt" <= ${endDate}
+          AND "cashRegister" = ${cashRegister}
+        GROUP BY createdAt
+        ORDER BY date DESC;
+      `;
+    } else {
+      query = prisma.$queryRaw`
+        SELECT 
+          createdAt as date,
+          SUM(total) AS total
+        FROM Sale
+        WHERE "createdAt" >= ${startDate}
+          AND "createdAt" <= ${endDate}
+        GROUP BY createdAt
+        ORDER BY date DESC;
+      `;
+    }
+    
+    const dailySales = await query;
     console.log('dailySales', dailySales)
     const result = dailySales.reduce((acc, sale) => {
               const dateOnly = new Date(sale.date).toLocaleDateString('en-CA'); // 'YYYY-MM-DD'
@@ -234,7 +281,7 @@ export const getDailySales = async (req, res) => {
 
 export const getTopProducts = async (req, res) => {
   try {
-    const { range, start, end } = req.query;
+    const { range, start, end, cashRegister } = req.query;
     let where = {};
     const now = new Date();
   
@@ -252,8 +299,20 @@ export const getTopProducts = async (req, res) => {
       const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       where = { createdAt: { gte: startMonth } };
     } else if (start && end) {
-      where = { createdAt: { gte: new Date(start), lte: new Date(end) } };
+      // Ajustar el rango completo del día para fechas personalizadas
+      // Formato esperado: YYYY-MM-DD
+      const startDate = new Date(`${start}T00:00:00.000`);
+      const endDate = new Date(`${end}T23:59:59.999`);
+      where = { createdAt: { gte: startDate, lte: endDate } };
     }
+    
+    // Agregar filtro de caja si se especifica
+    if (cashRegister) {
+      where.sale = {
+        cashRegister: cashRegister
+      };
+    }
+    
     const topProducts = await prisma.saleDetail.groupBy({
       by: ["productName"],
       _sum: { quantity: true },
@@ -270,7 +329,7 @@ export const getTopProducts = async (req, res) => {
 
 export const getSalesByPaymentMethod = async (req, res) => {
   try {
-    const { range, start, end } = req.query;
+    const { range, start, end, cashRegister } = req.query;
     let where = {};
     const now = new Date();
   
@@ -288,7 +347,16 @@ export const getSalesByPaymentMethod = async (req, res) => {
       const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       where = { createdAt: { gte: startMonth } };
     } else if (start && end) {
-      where = { createdAt: { gte: new Date(start), lte: new Date(end) } };
+      // Ajustar el rango completo del día para fechas personalizadas
+      // Formato esperado: YYYY-MM-DD
+      const startDate = new Date(`${start}T00:00:00.000`);
+      const endDate = new Date(`${end}T23:59:59.999`);
+      where = { createdAt: { gte: startDate, lte: endDate } };
+    }
+
+    // Agregar filtro de caja si se especifica
+    if (cashRegister) {
+      where.cashRegister = cashRegister;
     }
 
     // Obtener todas las ventas para poder agrupar los mixtos manualmente
@@ -341,7 +409,7 @@ export const getSalesByPaymentMethod = async (req, res) => {
 // Ventas por categoría/departamento
 export const getSalesByCategory = async (req, res) => {
   try {
-    const { range, start, end } = req.query;
+    const { range, start, end, cashRegister } = req.query;
     let where = {};
     const now = new Date();
   
@@ -359,7 +427,16 @@ export const getSalesByCategory = async (req, res) => {
       const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       where = { createdAt: { gte: startMonth } };
     } else if (start && end) {
-      where = { createdAt: { gte: new Date(start), lte: new Date(end) } };
+      // Ajustar el rango completo del día para fechas personalizadas
+      // Formato esperado: YYYY-MM-DD
+      const startDate = new Date(`${start}T00:00:00.000`);
+      const endDate = new Date(`${end}T23:59:59.999`);
+      where = { createdAt: { gte: startDate, lte: endDate } };
+    }
+
+    // Agregar filtro de caja si se especifica
+    if (cashRegister) {
+      where.cashRegister = cashRegister;
     }
 
     const sales = await prisma.sale.findMany({
@@ -400,7 +477,7 @@ export const getSalesByCategory = async (req, res) => {
 // Ventas por cliente
 export const getSalesByClient = async (req, res) => {
   try {
-    const { range, start, end } = req.query;
+    const { range, start, end, cashRegister } = req.query;
     let where = {};
     const now = new Date();
   
@@ -418,7 +495,16 @@ export const getSalesByClient = async (req, res) => {
       const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       where = { createdAt: { gte: startMonth } };
     } else if (start && end) {
-      where = { createdAt: { gte: new Date(start), lte: new Date(end) } };
+      // Ajustar el rango completo del día para fechas personalizadas
+      // Formato esperado: YYYY-MM-DD
+      const startDate = new Date(`${start}T00:00:00.000`);
+      const endDate = new Date(`${end}T23:59:59.999`);
+      where = { createdAt: { gte: startDate, lte: endDate } };
+    }
+
+    // Agregar filtro de caja si se especifica
+    if (cashRegister) {
+      where.cashRegister = cashRegister;
     }
 
     const salesByClient = await prisma.sale.groupBy({

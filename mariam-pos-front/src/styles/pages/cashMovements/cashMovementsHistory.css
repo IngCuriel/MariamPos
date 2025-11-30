@@ -25,7 +25,7 @@
 /* ===== FILTROS ===== */
 .filters-section {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr 1fr auto;
   gap: 1rem;
   align-items: end;
   padding: 1rem;
@@ -77,12 +77,33 @@
   cursor: not-allowed;
 }
 
+.cash-register-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.cash-register-select:hover {
+  border-color: #3b82f6;
+}
+
+.cash-register-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
 /* ===== RESUMEN DE TOTALES ===== */
 .totals-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  padding: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  padding: 0.75rem;
   background: white;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -92,8 +113,8 @@
 .total-item {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 1rem;
+  gap: 0.4rem;
+  padding: 0.75rem;
   border-radius: 8px;
   background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
   border: 1px solid #e5e7eb;
@@ -128,7 +149,7 @@
 }
 
 .total-value {
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: #1f2937;
 }
@@ -157,19 +178,20 @@
 }
 
 .movements-table th {
-  padding: 1rem;
+  padding: 0.5rem 0.75rem;
   text-align: left;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: #374151;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   border-bottom: 2px solid #e5e7eb;
+  white-space: nowrap;
 }
 
 .movements-table td {
-  padding: 0.75rem 1rem;
-  font-size: 0.9rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
   border-bottom: 1px solid #f3f4f6;
 }
 
@@ -187,10 +209,11 @@
 
 .type-badge {
   display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.85rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .type-badge.entrada {

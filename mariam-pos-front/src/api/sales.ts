@@ -9,9 +9,16 @@ export const getSales = async (): Promise<Sale[]> => {
   return data;
 };
 
-export const getSalesByDateRange = async (startDate:string, endDate:string): Promise<Sale[]> => {
+export const getSalesByDateRange = async (startDate:string, endDate:string, cashRegister?: string): Promise<Sale[]> => {
+  const params = new URLSearchParams({
+    startDate,
+    endDate,
+  });
+  if (cashRegister) {
+    params.append('cashRegister', cashRegister);
+  }
   const clientAxios = await getAxiosClient();
-  const { data } = await clientAxios.get<Sale[]>(`/sales/by-date-range?startDate=${startDate}&endDate=${endDate}`);
+  const { data } = await clientAxios.get<Sale[]>(`/sales/by-date-range?${params.toString()}`);
   return data;
 };
 

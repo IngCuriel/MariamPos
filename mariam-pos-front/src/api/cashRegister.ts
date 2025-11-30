@@ -167,11 +167,19 @@ export const getCashMovementsByDateRange = async (
 // ============================================================
 export const getCashMovementsHistory = async (
   startDate: string,
-  endDate: string
+  endDate: string,
+  cashRegister?: string
 ): Promise<CashMovement[]> => {
+  const params = new URLSearchParams({
+    startDate,
+    endDate,
+  });
+  if (cashRegister) {
+    params.append('cashRegister', cashRegister);
+  }
   const clientAxios = await getAxiosClient();
   const { data } = await clientAxios.get<CashMovement[]>(
-    `/cash-register/cash-movements/history?startDate=${startDate}&endDate=${endDate}`
+    `/cash-register/cash-movements/history?${params.toString()}`
   );
   return data;
 };

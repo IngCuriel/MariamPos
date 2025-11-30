@@ -4,7 +4,7 @@ export const APP_CONFIG = {
   name: 'Mini Super / Papelería CURIEL',
   subtitle: 'Sistema de Gestión Comercial',
   version: '1.0.0',
-  author: 'Curiel POS',
+  author: 'Mariam POS',
 } as const;
 
 export const ROUTES = {

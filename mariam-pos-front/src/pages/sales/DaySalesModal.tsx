@@ -1,4 +1,4 @@
-import  { useEffect, useState } from "react";
+import  { useEffect, useState, useCallback } from "react";
 import "../../styles/pages/sales/daySalesModal.css";
 import type {Sale, ClientCredit, CreditPayment, CashMovement} from '../../types/index'
 import { getSalesByDateRange} from '../../api/sales'
@@ -28,6 +28,33 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
   const [credits, setCredits] = useState<ClientCredit[]>([])
   const [creditPayments, setCreditPayments] = useState<CreditPayment[]>([])
   const [cashMovements, setCashMovements] = useState<CashMovement[]>([])
+  const [selectedCashRegister, setSelectedCashRegister] = useState<string>(() => {
+    return localStorage.getItem('caja') || 'all';
+  });
+  const [availableCashRegisters, setAvailableCashRegisters] = useState<string[]>([]);
+
+  const loadCashRegisters = async (startDate: string, endDate: string) => {
+    try {
+      const allSales = await getSalesByDateRange(startDate, endDate);
+      // Obtener cajas únicas de las ventas
+      const uniqueCashRegisters = Array.from(
+        new Set(allSales.map(sale => sale.cashRegister).filter(Boolean))
+      ).sort() as string[];
+      setAvailableCashRegisters(uniqueCashRegisters);
+    } catch (error) {
+      console.error("Error al cargar cajas:", error);
+    }
+  };
+
+  const fetchSalesByDateRange = useCallback(async(startDate:string, endDate:string ) =>{
+     try {
+        const cashRegisterFilter = selectedCashRegister !== "all" ? selectedCashRegister : undefined;
+        const fetchSales = await getSalesByDateRange(startDate, endDate, cashRegisterFilter)
+        setSales(fetchSales);
+     } catch (error) {
+      console.log('Error', error);
+     }
+  }, [selectedCashRegister]);
 
    useEffect(() => { 
     if(isOpen) {
@@ -41,8 +68,9 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
       fetchCreditsByDateRange(start, end);
       fetchCreditPaymentsByDateRange(start, end);
       fetchCashMovementsByDateRange(start, end);
+      loadCashRegisters(start, end);
     }
-  }, [dateToday, isOpen]);
+  }, [dateToday, isOpen, fetchSalesByDateRange]);
 
   const openModal = async () => {
        setIsOpen(true)
@@ -132,15 +160,6 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
     }, 0),
     movementsCount: cashMovements.length,
   };
-
-  const fetchSalesByDateRange = async(startDate:string, endDate:string ) =>{
-     try {
-        const fetchSales = await getSalesByDateRange(startDate, endDate)
-        setSales(fetchSales);
-     } catch (error) {
-      console.log('Error', error);
-     }
-  }
 
   const fetchCreditsByDateRange = async(startDate:string, endDate:string ) =>{
      try {
@@ -710,7 +729,21 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
                       locale="es"
                       dateFormat="yyyy-MM-dd"
                       className="datepicker-input"
-                      /> 
+                      />
+                    <label className="datepicker-label" style={{ marginTop: '0.5rem' }}>🏪 Caja:</label>
+                    <select
+                      value={selectedCashRegister}
+                      onChange={(e) => setSelectedCashRegister(e.target.value)}
+                      className="datepicker-input"
+                      style={{ marginTop: '0.25rem' }}
+                    >
+                      <option value="all">Todas las cajas</option>
+                      {availableCashRegisters.map((cashRegister) => (
+                        <option key={cashRegister} value={cashRegister}>
+                          {cashRegister}
+                        </option>
+                      ))}
+                    </select>
                     <div className="folio-count">
                       <span className="folio-label">Total de folios:</span>
                       <span className="folio-number">{sales.length}</span>

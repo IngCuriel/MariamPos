@@ -15,10 +15,42 @@ const HomePage: React.FC<HomePageProps> = ({ onPOSClick }) => {
   const [cashiers, setCashiers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [branchName, setBranchName] = useState<string>(APP_CONFIG.name);
 
   useEffect(() => {
     loadCashiers();
+    loadBranchInfo();
   }, []);
+
+  const loadBranchInfo = () => {
+    const sucursal = localStorage.getItem('sucursal');
+    const caja = localStorage.getItem('caja');
+    
+    if (sucursal) {
+      // Si hay caja, mostrar "Sucursal - Caja", si no, solo "Sucursal"
+      const displayName = caja ? `${sucursal} - ${caja}` : sucursal;
+      setBranchName(displayName);
+    } else {
+      // Si no hay configuración, intentar cargar desde config.json
+      fetch('/config.json')
+        .then(res => res.json())
+        .then(config => {
+          if (config.sucursal) {
+            const displayName = config.caja ? `${config.sucursal} - ${config.caja}` : config.sucursal;
+            setBranchName(displayName);
+            // Guardar en localStorage para futuras referencias
+            localStorage.setItem('sucursal', config.sucursal);
+            if (config.caja) {
+              localStorage.setItem('caja', config.caja);
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error al cargar configuración:', error);
+          // Mantener el valor por defecto si falla
+        });
+    }
+  };
 
   const loadCashiers = async () => {
     try {
@@ -87,7 +119,7 @@ const HomePage: React.FC<HomePageProps> = ({ onPOSClick }) => {
         <div className="home-header">
           <div className="home-logo">
             <div className="logo-icon">🏪</div>
-            <h1 className="home-title">{APP_CONFIG.name}</h1>
+            <h1 className="home-title">{branchName}</h1>
           </div>
           <p className="home-subtitle">{APP_CONFIG.subtitle}</p>
         </div>
