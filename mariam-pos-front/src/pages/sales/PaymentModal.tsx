@@ -51,6 +51,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
   useEffect(() => {
     if (paymentType === "mixto") {
       setAmountReceived("");
+      // Si hay importe de envases, inicializar el efectivo con el mínimo requerido
+      if (containersDepositInfo && containersDepositInfo.total > 0) {
+        setCashAmount(containersDepositInfo.total.toFixed(2));
+      } else {
+        setCashAmount("");
+      }
     } else if (paymentType === "regalo") {
       setAmountReceived("");
       setCashAmount("");
@@ -59,10 +65,76 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
       setCashAmount("");
       setCardAmount("");
     }
-  }, [paymentType]);
+  }, [paymentType, containersDepositInfo]);
+
+  // Si hay importe de envases, solo permitir efectivo o mixto
+  useEffect(() => {
+    if (containersDepositInfo && containersDepositInfo.total > 0) {
+      if (paymentType === "tarjeta" || paymentType === "regalo") {
+        // Cambiar automáticamente a efectivo si se intenta usar tarjeta o regalo
+        setPaymentType("efectivo");
+        Swal.fire({
+          icon: "info",
+          title: "💵 Pago de Envases",
+          html: `
+            <p>El importe de envases ($${containersDepositInfo.total.toFixed(2)}) debe pagarse en <strong>efectivo</strong>.</p>
+            <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #6b7280;">
+              Puede pagar los productos con tarjeta usando la opción "Mixto", pero el depósito de envases siempre debe ser en efectivo.
+            </p>
+          `,
+          confirmButtonText: "Entendido",
+          confirmButtonColor: "#059669",
+          timer: 4000,
+        });
+      }
+    }
+  }, [containersDepositInfo, paymentType]);
 
   const handleConfirm = useCallback(async () => {
+    // Validar que si hay importe de envases, se pague en efectivo
+    if (containersDepositInfo && containersDepositInfo.total > 0) {
+      if (paymentType === "tarjeta") {
+        Swal.fire({
+          icon: "warning",
+          title: "💵 Pago de Envases Requerido",
+          html: `
+            <p>El importe de envases ($${containersDepositInfo.total.toFixed(2)}) debe pagarse en <strong>efectivo</strong>.</p>
+            <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #6b7280;">
+              Puede pagar los productos ($${total.toFixed(2)}) con tarjeta usando la opción "Mixto", pero el depósito de envases siempre debe ser en efectivo.
+            </p>
+          `,
+          confirmButtonText: "Entendido",
+          confirmButtonColor: "#059669",
+        });
+        return;
+      }
+
+      if (paymentType === "regalo") {
+        Swal.fire({
+          icon: "warning",
+          title: "💵 Pago de Envases Requerido",
+          html: `
+            <p>El importe de envases ($${containersDepositInfo.total.toFixed(2)}) debe pagarse en <strong>efectivo</strong>.</p>
+            <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #6b7280;">
+              No se puede registrar como regalo cuando hay depósito de envases.
+            </p>
+          `,
+          confirmButtonText: "Entendido",
+          confirmButtonColor: "#059669",
+        });
+        return;
+      }
+    }
+
     if (paymentType === "mixto") {
+      // Calcular efectivo para productos (efectivo total - envases)
+      const cashForProducts = containersDepositInfo && containersDepositInfo.total > 0
+        ? Math.max(0, cashReceived - containersDepositInfo.total)
+        : cashReceived;
+      
+      // Total para productos (efectivo para productos + tarjeta)
+      const totalForProducts = cashForProducts + cardReceived;
+      
       // Validar pago mixto
       if (totalMixed === 0) {
         Swal.fire({
@@ -74,10 +146,42 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
         return;
       }
 
-      if (totalMixed !== totalNumber) {
+      // Validar que el total para productos sea igual al total de productos
+      if (Math.abs(totalForProducts - total) > 0.01) {
         Swal.fire({
           title: "💵 Monto incorrecto",
-          text: `La suma de efectivo ($${cashReceived.toFixed(2)}) y tarjeta ($${cardReceived.toFixed(2)}) = $${totalMixed.toFixed(2)}, pero el total es $${totalNumber.toFixed(2)}.`,
+          html: `
+            <p>La suma de pagos para productos no coincide:</p>
+            <p style="margin-top: 0.5rem;">
+              ${containersDepositInfo && containersDepositInfo.total > 0 
+                ? `🍺 Efectivo para envases: <strong>$${containersDepositInfo.total.toFixed(2)}</strong><br/>` 
+                : ''}
+              💰 Efectivo para productos: <strong>$${cashForProducts.toFixed(2)}</strong><br/>
+              💳 Tarjeta: <strong>$${cardReceived.toFixed(2)}</strong><br/>
+              <span style="color: #dc2626;">Total productos: <strong>$${totalForProducts.toFixed(2)}</strong></span><br/>
+              <span style="color: #059669;">Total requerido: <strong>$${total.toFixed(2)}</strong></span>
+            </p>
+          `,
+          icon: "warning",
+          confirmButtonText: "Entendido",
+          confirmButtonColor: "#3085d6",
+        });
+        return;
+      }
+
+      // Validar que el total mixto (efectivo + tarjeta) sea igual al totalNumber (productos + envases)
+      if (Math.abs(totalMixed - totalNumber) > 0.01) {
+        Swal.fire({
+          title: "💵 Monto total incorrecto",
+          html: `
+            <p>La suma total no coincide:</p>
+            <p style="margin-top: 0.5rem;">
+              💵 Efectivo total: <strong>$${cashReceived.toFixed(2)}</strong><br/>
+              💳 Tarjeta: <strong>$${cardReceived.toFixed(2)}</strong><br/>
+              <span style="color: #dc2626;">Suma: <strong>$${totalMixed.toFixed(2)}</strong></span><br/>
+              <span style="color: #059669;">Total requerido: <strong>$${totalNumber.toFixed(2)}</strong></span>
+            </p>
+          `,
           icon: "warning",
           confirmButtonText: "Entendido",
           confirmButtonColor: "#3085d6",
@@ -95,12 +199,43 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
         return;
       }
 
+      // Si hay importe de envases, validar que el efectivo cubra al menos el importe de envases
+      if (containersDepositInfo && containersDepositInfo.total > 0) {
+        if (cashReceived < containersDepositInfo.total) {
+          Swal.fire({
+            icon: "warning",
+            title: "💵 Efectivo Insuficiente para Envases",
+            html: `
+              <p>El importe de envases ($${containersDepositInfo.total.toFixed(2)}) debe pagarse completamente en <strong>efectivo</strong>.</p>
+              <p style="margin-top: 0.5rem;">
+                Efectivo ingresado: <strong>$${cashReceived.toFixed(2)}</strong><br/>
+                Requerido para envases: <strong style="color: #dc2626;">$${containersDepositInfo.total.toFixed(2)}</strong>
+              </p>
+              <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #6b7280;">
+                Puede pagar los productos ($${total.toFixed(2)}) con tarjeta, pero el depósito de envases siempre debe ser en efectivo.
+              </p>
+            `,
+            confirmButtonText: "Entendido",
+            confirmButtonColor: "#059669",
+          });
+          return;
+        }
+      }
+
+      // Calcular efectivo para productos (efectivo total - envases)
+      const cashForProductsFinal = containersDepositInfo && containersDepositInfo.total > 0
+        ? Math.max(0, cashReceived - containersDepositInfo.total)
+        : cashReceived;
+
       Swal.fire({
         title: "✅ Cobro exitoso",
         html: `
           <p>Pago mixto registrado correctamente:</p>
           <p style="margin-top: 10px;">
-            💵 Efectivo: <strong>$${cashReceived.toFixed(2)}</strong><br/>
+            ${containersDepositInfo && containersDepositInfo.total > 0 
+              ? `🍺 Efectivo para envases: <strong>$${containersDepositInfo.total.toFixed(2)}</strong><br/>` 
+              : ''}
+            💰 Efectivo para productos: <strong>$${cashForProductsFinal.toFixed(2)}</strong><br/>
             💳 Tarjeta: <strong>$${cardReceived.toFixed(2)}</strong><br/>
             <span style="color: #059669; font-weight: 600; font-size: 1.1rem;">Total: $${totalNumber.toFixed(2)}</span>
           </p>
@@ -114,7 +249,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
         paymentType: "mixto",
         amountReceived: totalNumber,
         change: 0,
-        cashAmount: cashReceived,
+        cashAmount: cashForProductsFinal, // Solo efectivo para productos (sin envases)
         cardAmount: cardReceived,
         containersDepositInfo: containersDepositInfo || null,
       });
@@ -285,11 +420,19 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
       } else if (e.code === "Space") {
         e.preventDefault();
         // Ciclar entre efectivo -> tarjeta -> mixto -> regalo -> efectivo
+        // Si hay envases, saltar tarjeta y regalo
         setPaymentType((prev) => {
-          if (prev === "efectivo") return "tarjeta";
-          if (prev === "tarjeta") return "mixto";
-          if (prev === "mixto") return "regalo";
-          return "efectivo";
+          if (containersDepositInfo && containersDepositInfo.total > 0) {
+            // Con envases: solo efectivo y mixto
+            if (prev === "efectivo") return "mixto";
+            return "efectivo";
+          } else {
+            // Sin envases: todos los métodos
+            if (prev === "efectivo") return "tarjeta";
+            if (prev === "tarjeta") return "mixto";
+            if (prev === "mixto") return "regalo";
+            return "efectivo";
+          }
         });
       }
     };
@@ -362,7 +505,30 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
           </button>
           <button
             className={`payment-btn ${paymentType === "tarjeta" ? "active" : ""}`}
-            onClick={() => setPaymentType("tarjeta")}
+            onClick={() => {
+              if (containersDepositInfo && containersDepositInfo.total > 0) {
+                Swal.fire({
+                  icon: "info",
+                  title: "💵 Pago de Envases",
+                  html: `
+                    <p>El importe de envases ($${containersDepositInfo.total.toFixed(2)}) debe pagarse en <strong>efectivo</strong>.</p>
+                    <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #6b7280;">
+                      Use la opción "Mixto" para pagar productos con tarjeta y envases en efectivo.
+                    </p>
+                  `,
+                  confirmButtonText: "Entendido",
+                  confirmButtonColor: "#059669",
+                });
+              } else {
+                setPaymentType("tarjeta");
+              }
+            }}
+            disabled={containersDepositInfo && containersDepositInfo.total > 0}
+            style={{
+              opacity: containersDepositInfo && containersDepositInfo.total > 0 ? 0.5 : 1,
+              cursor: containersDepositInfo && containersDepositInfo.total > 0 ? "not-allowed" : "pointer",
+            }}
+            title={containersDepositInfo && containersDepositInfo.total > 0 ? "El importe de envases debe pagarse en efectivo" : ""}
           >
             <FaCreditCard size={30} />
             Tarjeta
@@ -385,11 +551,32 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
           </button>
           <button
             className={`payment-btn ${paymentType === "regalo" ? "active" : ""}`}
-            onClick={() => setPaymentType("regalo")}
+            onClick={() => {
+              if (containersDepositInfo && containersDepositInfo.total > 0) {
+                Swal.fire({
+                  icon: "warning",
+                  title: "💵 Pago de Envases",
+                  html: `
+                    <p>El importe de envases ($${containersDepositInfo.total.toFixed(2)}) debe pagarse en <strong>efectivo</strong>.</p>
+                    <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #6b7280;">
+                      No se puede registrar como regalo cuando hay depósito de envases.
+                    </p>
+                  `,
+                  confirmButtonText: "Entendido",
+                  confirmButtonColor: "#059669",
+                });
+              } else {
+                setPaymentType("regalo");
+              }
+            }}
+            disabled={containersDepositInfo && containersDepositInfo.total > 0}
             style={{
               backgroundColor: paymentType === "regalo" ? "#aeae40" : "#f3f4f6",
               borderColor: paymentType === "regalo" ? "#f59e0b" : "#d1d5db",
+              opacity: containersDepositInfo && containersDepositInfo.total > 0 ? 0.5 : 1,
+              cursor: containersDepositInfo && containersDepositInfo.total > 0 ? "not-allowed" : "pointer",
             }}
+            title={containersDepositInfo && containersDepositInfo.total > 0 ? "No disponible cuando hay depósito de envases" : ""}
           >
             <FaGift size={30} />
             Regalo
@@ -443,14 +630,31 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
 
         {paymentType === "mixto" && (
           <div className="input-section">
-            {/*<label style={{ marginBottom: "15px", display: "block", fontWeight: "600" }}>
-              Desglose de Pago Mixto:
-            </label> */}
+            {containersDepositInfo && containersDepositInfo.total > 0 && (
+              <div style={{
+                marginBottom: "15px",
+                padding: "0.75rem",
+                backgroundColor: "#fef3c7",
+                border: "1px solid #f59e0b",
+                borderRadius: "4px",
+              }}>
+                <p style={{ fontSize: "0.85rem", color: "#92400e", margin: 0 }}>
+                  <strong>⚠️ Importante:</strong> El importe de envases (${containersDepositInfo.total.toFixed(2)}) debe pagarse en efectivo.
+                  <br />
+                  Mínimo requerido en efectivo: <strong>${containersDepositInfo.total.toFixed(2)}</strong>
+                </p>
+              </div>
+            )}
 
             {/* Efectivo */}
             <div style={{ marginBottom: "15px" }}>
               <label style={{ display: "block", marginBottom: "8px", fontSize: "0.9rem" }}>
                 💵 Monto en Efectivo:
+                {containersDepositInfo && containersDepositInfo.total > 0 && (
+                  <span style={{ color: "#dc2626", fontSize: "0.85rem", marginLeft: "0.5rem" }}>
+                    (Mínimo: ${containersDepositInfo.total.toFixed(2)})
+                  </span>
+                )}
               </label>
               <div className="bills-grid" style={{ marginBottom: "10px" }}>
                 {bills.map((b) => (
@@ -472,9 +676,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
                   type="number"
                   step="0.01"
                   min="0"
-                  placeholder="0.00"
+                  placeholder={containersDepositInfo && containersDepositInfo.total > 0 ? `Mínimo: ${containersDepositInfo.total.toFixed(2)}` : "0.00"}
                   value={cashAmount}
-                  onChange={(e) => setCashAmount(e.target.value)}
+                  onChange={(e) => {
+                    // Permitir cualquier valor mientras se escribe (validación al confirmar)
+                    setCashAmount(e.target.value);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Tab" && !e.shiftKey) {
                       e.preventDefault();
@@ -489,17 +696,57 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
                       setCashAmount("");
                       cashInputRef.current?.focus();
                     }}
+                    title="Limpiar"
                   >
                     ❌
                   </button>
                 )}
               </div>
+              {/* Desglose del efectivo cuando hay envases */}
+              {containersDepositInfo && containersDepositInfo.total > 0 && (
+                <div style={{
+                  marginTop: "0.5rem",
+                  padding: "0.5rem",
+                  backgroundColor: cashReceived >= containersDepositInfo.total ? "#f0fdf4" : "#fef3c7",
+                  border: `1px solid ${cashReceived >= containersDepositInfo.total ? "#059669" : "#f59e0b"}`,
+                  borderRadius: "4px",
+                  fontSize: "0.85rem",
+                }}>
+                  {cashReceived >= containersDepositInfo.total ? (
+                    <>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
+                        <span style={{ color: "#065f46" }}>🍺 Efectivo para envases:</span>
+                        <strong style={{ color: "#059669" }}>${containersDepositInfo.total.toFixed(2)}</strong>
+                      </div>
+                      {cashReceived > containersDepositInfo.total && (
+                        <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "0.25rem", borderTop: "1px solid #059669" }}>
+                          <span style={{ color: "#065f46" }}>💰 Efectivo para productos:</span>
+                          <strong style={{ color: "#059669" }}>${(cashReceived - containersDepositInfo.total).toFixed(2)}</strong>
+                        </div>
+                      )}
+                      <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "0.25rem", borderTop: "1px solid #059669", marginTop: "0.25rem", fontWeight: "600" }}>
+                        <span style={{ color: "#065f46" }}>Total efectivo:</span>
+                        <strong style={{ color: "#059669" }}>${cashReceived.toFixed(2)}</strong>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ color: "#92400e" }}>
+                      <strong>⚠️ Efectivo insuficiente:</strong> Se requiere al menos ${containersDepositInfo.total.toFixed(2)} para envases.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Tarjeta */}
             <div style={{ marginBottom: "15px" }}>
               <label style={{ display: "block", marginBottom: "8px", fontSize: "0.9rem" }}>
                 💳 Monto en Tarjeta:
+                {containersDepositInfo && containersDepositInfo.total > 0 && (
+                  <span style={{ color: "#6b7280", fontSize: "0.85rem", marginLeft: "0.5rem" }}>
+                    (Máximo: ${total.toFixed(2)} - solo productos)
+                  </span>
+                )}
               </label>
               <div className="input-wrapper">
                 <input
