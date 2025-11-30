@@ -86,19 +86,6 @@ const POSPage: React.FC<POSPageProps> = ({
                 <p className="pos-module-description">Control de stock y existencias</p>
               </Card>
 
-              {onCopiesClick && (
-                <Card
-                  variant="feature"
-                  className="pos-module-card copies"
-                  onClick={onCopiesClick}
-                  hoverable
-                >
-                  <div className="pos-module-icon">🖨️</div>
-                  <h3 className="pos-module-title">Copias</h3>
-                  <p className="pos-module-description">Imprimir documentos y copias</p>
-                </Card>
-              )}
-
               {onContainersClick && (
                 <Card
                   variant="feature"
@@ -145,6 +132,31 @@ const POSPage: React.FC<POSPageProps> = ({
                   <div className="pos-module-icon">👤</div>
                   <h3 className="pos-module-title">Cajeros</h3>
                   <p className="pos-module-description">Gestionar usuarios y cajeros</p>
+                </Card>
+              )}
+            </div>
+          </div>
+
+          {/* Sección: Papelería */}
+          <div className="pos-section">
+            <div className="pos-section-header">
+              <h2 className="pos-section-title">
+                <span className="section-icon">📄</span>
+                Papelería
+              </h2>
+              <p className="pos-section-description">Impresión, copias y ayuda del sistema</p>
+            </div>
+            <div className="pos-modules-grid">
+              {onCopiesClick && (
+                <Card
+                  variant="feature"
+                  className="pos-module-card copies"
+                  onClick={onCopiesClick}
+                  hoverable
+                >
+                  <div className="pos-module-icon">🖨️</div>
+                  <h3 className="pos-module-title">Copias</h3>
+                  <p className="pos-module-description">Imprimir documentos y copias</p>
                 </Card>
               )}
 

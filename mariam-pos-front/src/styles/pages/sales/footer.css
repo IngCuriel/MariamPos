@@ -133,14 +133,23 @@
   white-space: nowrap;
 }
 
-.touch-btn:hover {
+.touch-btn:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.touch-btn:active {
+.touch-btn:active:not(:disabled) {
   transform: translateY(0) scale(0.98);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.touch-btn:disabled {
+  background: #d1d5db !important;
+  color: #9ca3af !important;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+  opacity: 0.6;
 }
 
 /* ====== BUTTON COLORS ====== */

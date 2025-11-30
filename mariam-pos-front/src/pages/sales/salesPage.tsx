@@ -1318,9 +1318,45 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       cancelButtonText: "Cancelar",
       confirmButtonColor: "#4CAF50",
       cancelButtonColor: "#d33",
+      allowOutsideClick: false,
+      allowEscapeKey: true,
+      didClose: () => {
+        // Cuando se cierra el modal (por cancelar o ESC), enfocar el input
+        // Usar múltiples intentos para asegurar que el foco se mantenga y no vuelva al botón
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            if (inputRef.current) {
+              // Quitar el foco de cualquier elemento que lo tenga (como el botón)
+              if (document.activeElement && document.activeElement instanceof HTMLElement && document.activeElement !== inputRef.current) {
+                document.activeElement.blur();
+              }
+              inputRef.current.focus();
+              // Verificar y re-enfocar múltiples veces para asegurar que se mantenga
+              setTimeout(() => {
+                if (inputRef.current && document.activeElement !== inputRef.current) {
+                  if (document.activeElement && document.activeElement instanceof HTMLElement) {
+                    document.activeElement.blur();
+                  }
+                  inputRef.current.focus();
+                }
+              }, 50);
+              // Tercer intento después de un delay adicional
+              setTimeout(() => {
+                if (inputRef.current && document.activeElement !== inputRef.current) {
+                  if (document.activeElement && document.activeElement instanceof HTMLElement) {
+                    document.activeElement.blur();
+                  }
+                  inputRef.current.focus();
+                }
+              }, 150);
+            }
+          }, 150);
+        });
+      },
     });
 
     if (!confirm) {
+      // El enfoque se maneja en didClose del Swal.fire
       return;
     }
 
@@ -1339,15 +1375,51 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       showCancelButton: true,
       confirmButtonText: "Guardar",
       cancelButtonText: "Cancelar",
+      allowOutsideClick: false,
+      allowEscapeKey: true,
       inputValidator: (value) => {
         if (!value || value.trim() === "") {
           return "Debes ingresar un nombre";
         }
         return null;
       },
+      didClose: () => {
+        // Cuando se cierra el modal (por cancelar o ESC), enfocar el input
+        // Usar múltiples intentos para asegurar que el foco se mantenga y no vuelva al botón
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            if (inputRef.current) {
+              // Quitar el foco de cualquier elemento que lo tenga (como el botón)
+              if (document.activeElement && document.activeElement instanceof HTMLElement && document.activeElement !== inputRef.current) {
+                document.activeElement.blur();
+              }
+              inputRef.current.focus();
+              // Verificar y re-enfocar múltiples veces para asegurar que se mantenga
+              setTimeout(() => {
+                if (inputRef.current && document.activeElement !== inputRef.current) {
+                  if (document.activeElement && document.activeElement instanceof HTMLElement) {
+                    document.activeElement.blur();
+                  }
+                  inputRef.current.focus();
+                }
+              }, 50);
+              // Tercer intento después de un delay adicional
+              setTimeout(() => {
+                if (inputRef.current && document.activeElement !== inputRef.current) {
+                  if (document.activeElement && document.activeElement instanceof HTMLElement) {
+                    document.activeElement.blur();
+                  }
+                  inputRef.current.focus();
+                }
+              }, 150);
+            }
+          }, 150);
+        });
+      },
     });
 
     if (!clientName) {
+      // El enfoque se maneja en didClose del Swal.fire
       return;
     }
 
@@ -1383,9 +1455,12 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       });
 
       // Limpiar el carrito
-      setCart(() => []);
+      setCart([]);
+      setProductCounter(1);
+      localStorage.removeItem("cart");
 
-      Swal.fire({
+      // Mostrar mensaje de éxito que desaparece automáticamente
+      await Swal.fire({
         icon: "success",
         title: "Venta guardada",
         html: `
@@ -1395,6 +1470,30 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
           </p>
           <p style="margin-top: 5px;">Cliente: ${pendingSale.clientName}</p>
         `,
+        timer: 2000,
+        showConfirmButton: false,
+      });
+
+      // Enfocar el input de búsqueda después de que desaparezca el mensaje (timer: 2000ms + delay adicional)
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (inputRef.current) {
+            // Quitar el foco de cualquier elemento que lo tenga
+            if (document.activeElement && document.activeElement instanceof HTMLElement && document.activeElement !== inputRef.current) {
+              document.activeElement.blur();
+            }
+            inputRef.current.focus();
+            // Verificar y re-enfocar si es necesario
+            setTimeout(() => {
+              if (inputRef.current && document.activeElement !== inputRef.current) {
+                if (document.activeElement && document.activeElement instanceof HTMLElement) {
+                  document.activeElement.blur();
+                }
+                inputRef.current.focus();
+              }
+            }, 50);
+          }
+        }, 100);
       });
     } catch (error) {
       console.error("Error al guardar venta pendiente:", error);
@@ -1459,6 +1558,9 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
     // Cargar el carrito
     setCart(() => cartItems);
 
+    // Cerrar el modal
+    setShowPendingSalesModal(false);
+
     Swal.fire({
       icon: "success",
       title: "Venta cargada",
@@ -1469,6 +1571,11 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       timer: 2000,
       showConfirmButton: false,
     });
+
+    // Enfocar el input de búsqueda después de cargar la venta pendiente
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
   };
  
   return (
@@ -1900,9 +2007,10 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
           <CategoryProductModal
             onClose={() => {
               setShowCategoryModal(false);
-              /*setTimeout(() => {
+              // Enfocar el input de búsqueda después de cerrar el modal
+              setTimeout(() => {
                 inputRef.current?.focus();
-              }, 100);*/
+              }, 100);
             }}
             onSelectProduct={handleAdd}
           />
@@ -2017,7 +2125,13 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         )}
         <PendingSalesModal
           isOpen={showPendingSalesModal}
-          onClose={() => setShowPendingSalesModal(false)}
+          onClose={() => {
+            setShowPendingSalesModal(false);
+            // Enfocar el input de búsqueda después de cerrar el modal
+            setTimeout(() => {
+              inputRef.current?.focus();
+            }, 100);
+          }}
           onSelect={handlePendingSaleSelect}
         />
       </div>

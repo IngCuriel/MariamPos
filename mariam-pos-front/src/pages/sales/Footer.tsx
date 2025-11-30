@@ -25,7 +25,13 @@ const Footer:React.FC<FooterProps>= ({
     <footer className="pos-footer">
         <div className="column left">
             <button className="btn touch-btn print-last" onClick={showPendingCarts}> 🖨 Cargar Pendiente</button>
-            <button className="btn touch-btn pending" onClick={onSaleToPending}>🕓 Poner Pendiente</button>
+            <button 
+                className="btn touch-btn pending" 
+                onClick={onSaleToPending}
+                disabled={cartLength === 0}
+            >
+                🕓 Poner Pendiente
+            </button>
             <DaySalesModal onClose={onFocusSearch}/>
         </div>
         <div className="column center">
