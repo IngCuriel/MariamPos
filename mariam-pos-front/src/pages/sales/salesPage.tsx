@@ -1634,14 +1634,34 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
             {!showCalculator ? (
               <>
                 <div className="venta-search">
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    placeholder="Buscar producto..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    onKeyDown={handleSearchKeyDown}
-                  />
+                  <div className="search-input-wrapper">
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      placeholder="Buscar producto..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      onKeyDown={handleSearchKeyDown}
+                      className="search-input-modern"
+                    />
+                    {search && (
+                      <button
+                        type="button"
+                        className="clear-search-btn"
+                        onClick={() => {
+                          setSearch("");
+                          inputRef.current?.focus();
+                        }}
+                        onMouseDown={(e) => {
+                          e.preventDefault(); // Prevenir que el input pierda el focus
+                        }}
+                        title="Limpiar búsqueda"
+                        aria-label="Limpiar búsqueda"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
                   <button
                     className="btn-common-product"
                     type="button"
