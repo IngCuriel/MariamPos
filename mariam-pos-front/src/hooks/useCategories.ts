@@ -5,25 +5,30 @@ import { getCategories, createCategory, updateCategory as putCategory, deleteCat
 
 export const useCategories = () => {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState<boolean>(false);
 
-  // 🟢 Llamada al API cuando el hook se monta
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        setLoading(true);
-        const data = await getCategories();
-        setCategories(data);
-      } catch (err) {
-        console.error(err);
-        setError("Error al cargar las categorías");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCategories();
-  }, []);
+  // 🟢 Función para cargar categorías manualmente
+  const loadCategories = useCallback(async () => {
+    // Si ya están cargadas, no volver a cargar
+    if (loaded) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getCategories();
+      setCategories(data);
+      setLoaded(true);
+    } catch (err) {
+      console.error(err);
+      setError("Error al cargar las categorías");
+    } finally {
+      setLoading(false);
+    }
+  }, [loaded]);
 
   // 🔵 Funciones locales (a futuro puedes conectarlas con el backend)
   const addCategory = useCallback( async(category: Omit<Category, "id" | "createdAt">) => {
@@ -81,6 +86,8 @@ export const useCategories = () => {
     categories,
     loading,
     error,
+    loaded,
+    loadCategories,
     addCategory,
     updateCategory,
     deleteCategory,

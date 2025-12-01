@@ -1,5 +1,7 @@
+import React from 'react';
 import { useNavigation } from './hooks/useNavigation';
 import { useCategories } from './hooks/useCategories';
+import { useShiftReminder } from './hooks/useShiftReminder';
 import HomePage from './pages/HomePage';
 import HelpPage from './pages/HelpPage';
 import POSPage from './pages/POSPage';
@@ -39,7 +41,17 @@ function App() {
     goToKit,
   } = useNavigation();
   
-  const { categories, addCategory, updateCategory, deleteCategory } = useCategories();
+  const { categories, addCategory, updateCategory, deleteCategory, loadCategories } = useCategories();
+  
+  // Inicializar recordatorio de turnos (verifica turnos abiertos al iniciar y maneja el cierre)
+  useShiftReminder();
+
+  // Cargar categorías solo cuando se abre el módulo de categorías
+  React.useEffect(() => {
+    if (currentView === 'categories') {
+      loadCategories();
+    }
+  }, [currentView, loadCategories]);
 
   const renderCurrentView = () => {
     switch (currentView) {

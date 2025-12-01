@@ -1,5 +1,5 @@
 // main.js
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import path from "path";
 import fs from "fs";
 import os from "os";
@@ -42,6 +42,7 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      preload: path.join(__dirname, "preload.js"), // Script de preload para IPC
     },
   });
 
@@ -81,6 +82,48 @@ app.whenReady().then(() => {
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+});
+
+// ============================================================
+// 🚪 MANEJO DE CIERRE DE APLICACIÓN CON RECORDATORIO DE TURNO
+// ============================================================
+
+// Interceptar el evento de cierre para preguntar sobre el turno
+app.on("before-quit", async (event) => {
+  if (!mainWindow) return;
+  
+  // Verificar si hay turnos abiertos antes de cerrar
+  try {
+    // Enviar mensaje al renderer para verificar turnos abiertos
+    const hasOpenShifts = await new Promise((resolve) => {
+      mainWindow.webContents.send("check-open-shifts");
+      
+      // Esperar respuesta del renderer
+      ipcMain.once("open-shifts-response", (event, hasShifts) => {
+        resolve(hasShifts);
+      });
+      
+      // Timeout de seguridad (5 segundos)
+      setTimeout(() => resolve(false), 5000);
+    });
+
+    if (hasOpenShifts) {
+      // Cancelar el cierre y dejar que el renderer maneje el diálogo
+      event.preventDefault();
+      mainWindow.webContents.send("show-shift-reminder-on-close");
+    }
+  } catch (error) {
+    log(`⚠️ Error al verificar turnos abiertos: ${error.message}`);
+    // Si hay error, permitir el cierre normal
+  }
+});
+
+// Manejar decisión del usuario sobre cerrar la aplicación
+ipcMain.on("app-close-decision", (event, shouldClose) => {
+  if (shouldClose) {
+    if (backendProcess) backendProcess.kill();
+    app.quit();
+  }
 });
 
 app.on("window-all-closed", () => {

@@ -410,6 +410,61 @@ export const getActiveShift = async (req, res) => {
 };
 
 // ============================================================
+// 📌 OBTENER TURNOS ABIERTOS (FILTRADOS POR CAJA Y/O SUCURSAL)
+// ============================================================
+export const getAllOpenShifts = async (req, res) => {
+  try {
+    const { cashRegister, branch } = req.query;
+
+    // Construir filtro dinámico
+    const where = {
+      status: "OPEN",
+    };
+
+    // Si se proporciona cashRegister, filtrar por caja
+    if (cashRegister) {
+      where.cashRegister = cashRegister;
+    }
+
+    // Si se proporciona branch, filtrar por sucursal
+    if (branch) {
+      where.branch = branch;
+    }
+
+    const shifts = await prisma.cashRegisterShift.findMany({
+      where,
+      include: {
+        sales: {
+          select: {
+            id: true,
+            total: true,
+            paymentMethod: true,
+            createdAt: true,
+          },
+        },
+        cashMovements: {
+          select: {
+            id: true,
+            type: true,
+            amount: true,
+            reason: true,
+            createdAt: true,
+          },
+        },
+      },
+      orderBy: {
+        startTime: "desc",
+      },
+    });
+
+    res.json(shifts);
+  } catch (error) {
+    console.error("Error al obtener turnos abiertos:", error);
+    res.status(500).json({ error: "Error al obtener turnos abiertos" });
+  }
+};
+
+// ============================================================
 // 📌 OBTENER TURNO POR ID
 // ============================================================
 export const getShiftById = async (req, res) => {

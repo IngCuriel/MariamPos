@@ -3,6 +3,7 @@ import {
   openShift,
   closeShift,
   getActiveShift,
+  getAllOpenShifts,
   getShiftById,
   getShiftsByDateRange,
   getShiftSummary,
@@ -18,6 +19,7 @@ const router = express.Router();
 
 // 🟢 Rutas específicas primero
 router.get("/shifts/active", getActiveShift);
+router.get("/shifts/open", getAllOpenShifts); // Obtener todos los turnos abiertos
 router.get("/shifts", getShiftsByDateRange);
 router.get("/shifts/:id", getShiftById);
 router.get("/shifts/:id/summary", getShiftSummary);

@@ -61,6 +61,29 @@ export const getActiveShift = async (
 };
 
 // ============================================================
+// 📌 OBTENER TURNOS ABIERTOS (FILTRADOS POR CAJA Y/O SUCURSAL)
+// ============================================================
+export const getAllOpenShifts = async (
+  cashRegister?: string,
+  branch?: string
+): Promise<CashRegisterShift[]> => {
+  const params = new URLSearchParams();
+  if (cashRegister) {
+    params.append('cashRegister', cashRegister);
+  }
+  if (branch) {
+    params.append('branch', branch);
+  }
+  
+  const queryString = params.toString();
+  const url = `/cash-register/shifts/open${queryString ? `?${queryString}` : ''}`;
+  
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.get<CashRegisterShift[]>(url);
+  return data;
+};
+
+// ============================================================
 // 📌 OBTENER TURNO POR ID
 // ============================================================
 export const getShiftById = async (

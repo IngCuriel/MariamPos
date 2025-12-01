@@ -104,7 +104,7 @@ const CategoriesPage: React.FC<CategoriesPageProps> = ({
 
           {/* Estadísticas */}
           <div className="categories-stats">
-            <p>Mostrando {filteredCategories.length} de {categories.length} categorías</p>
+            <p>Mostrando {filteredCategories.length} de {categories.length} categoría{categories.length !== 1 ? 's' : ''}</p>
           </div>
 
           {/* Lista de categorías */}
