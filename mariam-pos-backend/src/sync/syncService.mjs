@@ -1,10 +1,8 @@
-import { PrismaClient } from '@prisma/client'
+import prisma from '../utils/prisma.js'
 import axios from 'axios'
 import dotenv from 'dotenv'
 
 dotenv.config()
-
-const prisma = new PrismaClient()
 const REMOTE_API_URL = process.env.REMOTE_API_URL
 // Intervalo de sincronización: 10 minutos (600000 ms)
 const SYNC_INTERVAL = (process.env.SYNC_INTERVAL_MINUTES || 10) * 60 * 1000
@@ -252,15 +250,16 @@ export async function stopSyncLoop() {
 
 /**
  * Limpieza al cerrar la aplicación
+ * Nota: La desconexión de Prisma se maneja en utils/prisma.js
  */
 process.on('SIGINT', async () => {
   await stopSyncLoop()
-  await prisma.$disconnect()
+  // Prisma se desconecta automáticamente en utils/prisma.js
   process.exit(0)
 })
 
 process.on('SIGTERM', async () => {
   await stopSyncLoop()
-  await prisma.$disconnect()
+  // Prisma se desconecta automáticamente en utils/prisma.js
   process.exit(0)
 })

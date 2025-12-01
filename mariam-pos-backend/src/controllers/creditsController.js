@@ -1,6 +1,4 @@
-import pkg from "@prisma/client";
-const { PrismaClient } = pkg;
-const prisma = new PrismaClient();
+import prisma from "../utils/prisma.js";
 
 // Obtener créditos pendientes de un cliente
 export const getClientCredits = async (req, res) => {

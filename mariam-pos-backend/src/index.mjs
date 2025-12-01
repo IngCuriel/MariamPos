@@ -2,12 +2,10 @@
 import express from "express";
 import { startSyncLoop } from './sync/syncService.mjs'
 import cors from "cors";
-import pkg from "@prisma/client";
 import path from "path";
 import fs from "fs";
 import os from "os";
-
-const { PrismaClient } = pkg;
+import prisma from "./utils/prisma.js";
 
 // -------------------
 // Configuración de SQLite para Electron
@@ -32,7 +30,6 @@ if (!fs.existsSync(dbPath)) {
 //process.env.DATABASE_URL = `file:${dbPath}`;
 
 console.log('process.env.DATABASE_URL', process.env.DATABASE_URL);
-const prisma = new PrismaClient();
 
 // -------------------
 // Configuración del servidor
@@ -79,13 +76,77 @@ console.log("✅ Ruta /api/copies registrada correctamente");
 console.log("✅ Ruta /api/printers registrada correctamente"); 
 
 // -------------------
+// Middleware de manejo de errores global
+// -------------------
+app.use((err, req, res, next) => {
+  console.error('❌ Error no manejado en Express:', err);
+  res.status(500).json({ 
+    error: 'Error interno del servidor',
+    message: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
+
+// Middleware para manejar rutas no encontradas
+app.use((req, res) => {
+  res.status(404).json({ error: 'Ruta no encontrada' });
+});
+
+// -------------------
+// Manejo de errores no capturados
+// -------------------
+process.on('uncaughtException', (error) => {
+  console.error('💥 Uncaught Exception:', error);
+  // No cerrar el proceso, solo loguear
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('⚠️ Unhandled Rejection:', reason);
+  // No cerrar el proceso, solo loguear
+});
+
+// -------------------
+// Manejo de señales de terminación
+// -------------------
+const gracefulShutdown = async (signal) => {
+  console.log(`\n🛑 Señal ${signal} recibida. Cerrando servidor...`);
+  
+  try {
+    // Cerrar Prisma
+    await prisma.$disconnect();
+    console.log('✅ Prisma desconectado');
+    
+    // Cerrar servidor
+    if (server) {
+      server.close(() => {
+        console.log('✅ Servidor HTTP cerrado');
+        process.exit(0);
+      });
+    } else {
+      process.exit(0);
+    }
+  } catch (error) {
+    console.error('❌ Error durante el cierre:', error);
+    process.exit(1);
+  }
+};
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
+// -------------------
 // Iniciar servidor
 // -------------------
 const PORT = 3001; // puerto fijo
 // Escuchar en todas las interfaces de red (0.0.0.0) para permitir conexiones desde otros dispositivos
 const HOST = process.env.HOST || "0.0.0.0";
-app.listen(PORT, HOST, () => {
+
+const server = app.listen(PORT, HOST, () => {
   console.log(`🖥️  Servidor corriendo en http://${HOST === "0.0.0.0" ? "localhost" : HOST}:${PORT}`);
   console.log(`🌐 Accesible desde la red local en: http://[IP-DE-ESTA-MAQUINA]:${PORT}`);
   startSyncLoop();//   🔁 activa sincronización automática
 });
+
+// Configurar timeout del servidor
+server.timeout = 30000; // 30 segundos
+server.keepAliveTimeout = 65000; // 65 segundos
+server.headersTimeout = 66000; // 66 segundos

@@ -1,6 +1,4 @@
-import pkg from "@prisma/client";
-const { PrismaClient } = pkg;
-const prisma = new PrismaClient();
+import prisma from "../utils/prisma.js";
 
 export const getCategories = async (req, res) => {
   const categories = await prisma.category.findMany({ orderBy: { createdAt: "desc" } });

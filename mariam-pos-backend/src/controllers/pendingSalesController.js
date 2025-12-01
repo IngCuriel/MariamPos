@@ -1,6 +1,4 @@
-import pkg from "@prisma/client";
-const { PrismaClient } = pkg;
-const prisma = new PrismaClient();
+import prisma from "../utils/prisma.js";
 
 // Generar código único para venta pendiente
 const generatePendingSaleCode = () => {
