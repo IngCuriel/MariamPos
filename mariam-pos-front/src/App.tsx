@@ -15,6 +15,7 @@ import ShiftHistoryPage from './pages/sales/ShiftHistoryPage';
 import CashMovementsHistoryPage from './pages/cashMovements/CashMovementsHistoryPage';
 import CopiesPage from './pages/copies/CopiesPage';
 import ContainersPage from './pages/containers/ContainersPage';
+import NewKitPage from './pages/product/NewKitPage';
 import './styles/index.css';
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
     goToCashMovementsHistory,
     goToCopies,
     goToContainers,
+    goToKit,
   } = useNavigation();
   
   const { categories, addCategory, updateCategory, deleteCategory } = useCategories();
@@ -49,7 +51,7 @@ function App() {
         return (
           <ProductsPage 
             onBack={goToPOS} 
-            onNewProduct={goToCatalog}
+            onCreateKit={goToKit}
             onViewCatalog={goToCatalog}
             onCategories={goToCategories}
           />
@@ -90,6 +92,8 @@ function App() {
         return <CopiesPage onBack={goToPOS} />;
       case 'containers':
         return <ContainersPage onBack={goToPOS} />;
+      case 'kit':
+        return <NewKitPage onBack={goToProducts} />;
       default:
         return <HomePage onPOSClick={goToPOS} />;
     }

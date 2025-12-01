@@ -5,14 +5,14 @@ import '../styles/pages/products/productsPage.css';
 
 interface ProductsPageProps {
   onBack: () => void;
-  onNewProduct: () => void;
+  onCreateKit: () => void;
   onViewCatalog: () => void;
   onCategories: () => void;
 }
 
 const ProductsPage: React.FC<ProductsPageProps> = ({
   onBack,
-  onNewProduct,
+  onCreateKit,
   onViewCatalog,
   onCategories,
 }) => {
@@ -60,17 +60,17 @@ const ProductsPage: React.FC<ProductsPageProps> = ({
               <Card
                 variant="feature"
                 className="products-module-card success"
-                onClick={onNewProduct}
+                onClick={onCreateKit}
                 hoverable
               >
-                <div className="products-module-icon">➕</div>
-                <h3 className="products-module-title">Nuevo Producto</h3>
+                <div className="products-module-icon">📦</div>
+                <h3 className="products-module-title">Crear Kit</h3>
                 <p className="products-module-description">
-                  Agregar un nuevo producto al inventario
+                  Crear combos y kits de productos
                 </p>
                 <div className="products-module-features">
-                  <span className="feature-badge">Crear</span>
-                  <span className="feature-badge">Configurar</span>
+                  <span className="feature-badge">Combo</span>
+                  <span className="feature-badge">Kit</span>
                 </div>
               </Card>
             </div>

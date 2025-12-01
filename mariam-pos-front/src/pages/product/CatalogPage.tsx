@@ -17,6 +17,7 @@ import { getCategories } from "../../api/categories";
 import "../../styles/pages/products/products.css";
 import "../../styles/pages/products/catalog.css";
 import NewEditProductModal from "./NewEditProductModal";
+import EditKitModal from "./EditKitModal";
 
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
@@ -28,10 +29,12 @@ interface CatalogPageProps {
 const CatalogPage: React.FC<CatalogPageProps> = ({ onBack }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [productsEdit, setProductsEdit] = useState<Product | null>(null);
+  const [kitEdit, setKitEdit] = useState<Product | null>(null); // 🆕 Para kits
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showEditKitModal, setShowEditKitModal] = useState(false); // 🆕 Modal de edición de kit
   const inputRef = useRef<HTMLInputElement>(null); // 👈 referencia al input
 
   const [loading, setLoading] = useState(false);
@@ -151,8 +154,14 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack }) => {
   };
 
   const onEdit = (product: Product) => {
-    setProductsEdit(product);
-    setShowAddForm(true);
+    // 🆕 Detectar si es kit o producto normal
+    if (product.isKit) {
+      setKitEdit(product);
+      setShowEditKitModal(true);
+    } else {
+      setProductsEdit(product);
+      setShowAddForm(true);
+    }
   };
 
   const handleSave = async (product: Omit<Product, "createdAt">) => {
@@ -202,6 +211,40 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack }) => {
     }
   };
 
+  const handleSaveKit = async (kit: Omit<Product, "createdAt">) => {
+    try {
+      const data = await updateProduct(kit);
+      
+      // Actualizar la lista de productos
+      setProducts((prevProducts) =>
+        prevProducts.map((p) =>
+          p.id === kit.id ? { ...p, ...kit } : p
+        )
+      );
+
+      await Swal.fire({
+        icon: "success",
+        title: "Kit actualizado",
+        text: "El kit se ha actualizado correctamente",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+
+      handleCloseKitModal();
+      return data;
+    } catch (err: any) {
+      Swal.fire({
+        icon: "error",
+        title: err?.response?.data?.error || 'Ocurrió un error, intenta más tarde',
+        text: ``,
+        timer: 3000,
+        showConfirmButton: false,
+      });
+      console.error(err.response?.data?.error || err);
+      throw err;
+    }
+  };
+
   const handleAddNew = () => {
     setProductsEdit(null);
     setShowAddForm(true);
@@ -209,6 +252,13 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack }) => {
 
   const handleCloseForm = () => {
     setShowAddForm(false);
+    setProductsEdit(null);
+    inputRef.current?.focus();
+  };
+
+  const handleCloseKitModal = () => {
+    setShowEditKitModal(false);
+    setKitEdit(null);
     inputRef.current?.focus();
   };
   
@@ -405,6 +455,16 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack }) => {
                       {product.icon && (
                         <div className="catalog-product-icon">{product.icon}</div>
                       )}
+                      {product.isKit && (
+                        <span className="catalog-category-badge" style={{ 
+                          backgroundColor: '#059669', 
+                          color: 'white',
+                          fontWeight: '700',
+                          fontSize: '0.85rem'
+                        }}>
+                          🏷️ Kit
+                        </span>
+                      )}
                       {product.category && (
                         <span className="catalog-category-badge">
                           {product.category.name}
@@ -415,11 +475,21 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack }) => {
                     <div className="catalog-product-body">
                       <h3 className="catalog-product-name" title={product.name}>
                         {product.name}
+                        {product.isKit && (
+                          <span style={{ 
+                            marginLeft: '0.5rem', 
+                            fontSize: '0.85rem', 
+                            color: '#059669',
+                            fontWeight: '600'
+                          }}>
+                            (Kit)
+                          </span>
+                        )}
                       </h3>
                       
                       <div className="catalog-product-code">
                         <span className="code-label">Código:</span>
-                        <span className="code-value">{product.code}</span>
+                        <span className="code-value">{product.code || "Sin código"}</span>
                       </div>
 
                       {product.description && (
@@ -434,6 +504,13 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack }) => {
                         <span className="price-label">Precio</span>
                         <span className="price-value">${product.price.toFixed(2)}</span>
                       </div>
+                      {product.isKit && product.kitItems && product.kitItems.length > 0 && (
+                        <div className="cost-info" style={{ marginTop: '0.5rem' }}>
+                          <span className="cost-label" style={{ fontSize: '0.85rem' }}>
+                            Contiene {product.kitItems.length} producto{product.kitItems.length !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      )}
                       {product.cost && product.cost > 0 && (
                         <div className="cost-info">
                           <span className="cost-label">Costo:</span>
@@ -469,13 +546,21 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack }) => {
             )}
           </div>
         </div>
-        {/* Modal para agregar/editar categorías */}
+        {/* Modal para agregar/editar productos */}
         <NewEditProductModal
           isOpen={showAddForm}
           onClose={handleCloseForm}
           onSave={handleSave}
           product={productsEdit}
           title={"Producto"}
+        />
+        
+        {/* Modal para editar kits */}
+        <EditKitModal
+          isOpen={showEditKitModal}
+          onClose={handleCloseKitModal}
+          onSave={handleSaveKit}
+          kit={kitEdit}
         />
       </div>
     </div>

@@ -1,6 +1,6 @@
 // Tipos principales de la aplicación
 
-export type ViewType = 'main' | 'help' | 'pos' | 'products' | 'catalog' | 'categories' | 'sales' |'client' | 'report' | 'inventory' | 'users' | 'shift-history' | 'cash-movements-history' | 'copies' | 'containers';
+export type ViewType = 'main' | 'help' | 'pos' | 'products' | 'catalog' | 'categories' | 'sales' |'client' | 'report' | 'inventory' | 'users' | 'shift-history' | 'cash-movements-history' | 'copies' | 'containers' | 'kit';
 
 // Representa una presentación de un producto (ej: 1 pieza, 1 cono, 1 six)
 export interface ProductPresentation {
@@ -11,9 +11,21 @@ export interface ProductPresentation {
   isDefault?: boolean; // Indica si es la presentación por defecto (1 pieza)
 }
 
+// 🆕 NUEVO: Item de un kit
+export interface KitItem {
+  id?: number;
+  kitId?: number;
+  productId: number;
+  product?: Product;
+  presentationId?: number;
+  presentation?: ProductPresentation;
+  quantity: number;
+  displayOrder?: number;
+}
+
 export interface Product {
   id: number;
-  code: string;
+  code: string | null; // Opcional para permitir códigos generados automáticamente
   name: string;
   status: number;
   saleType: string;
@@ -25,7 +37,9 @@ export interface Product {
   category?: Category;
   presentations?: ProductPresentation[]; // Presentaciones opcionales para compatibilidad
   trackInventory?: boolean; // Si el producto maneja inventario
-  inventory?: Inventory; 
+  inventory?: Inventory;
+  isKit?: boolean; // 🆕 NUEVO: Si es un kit/combo
+  kitItems?: KitItem[]; // 🆕 NUEVO: Items del kit (solo si isKit = true)
 }
 
 export interface Category {

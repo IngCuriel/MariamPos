@@ -23,6 +23,7 @@ export const useNavigation = () => {
   const goToCashMovementsHistory = () => setCurrentView('cash-movements-history');
   const goToCopies = () => setCurrentView('copies');
   const goToContainers = () => setCurrentView('containers');
+  const goToKit = () => setCurrentView('kit');
 
   return {
     currentView,
@@ -42,5 +43,6 @@ export const useNavigation = () => {
     goToCashMovementsHistory,
     goToCopies,
     goToContainers,
+    goToKit,
   };
 };

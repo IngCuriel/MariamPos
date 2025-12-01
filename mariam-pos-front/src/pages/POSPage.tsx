@@ -74,17 +74,6 @@ const POSPage: React.FC<POSPageProps> = ({
                 <h3 className="pos-module-title">Productos</h3>
                 <p className="pos-module-description">Catálogo y gestión de productos</p>
               </Card>
-              
-              <Card
-                variant="feature"
-                className="pos-module-card success"
-                onClick={onInventoryClick}
-                hoverable
-              >
-                <div className="pos-module-icon">📦</div>
-                <h3 className="pos-module-title">Inventario</h3>
-                <p className="pos-module-description">Control de stock y existencias</p>
-              </Card>
 
               {onContainersClick && (
                 <Card
@@ -120,6 +109,17 @@ const POSPage: React.FC<POSPageProps> = ({
                 <div className="pos-module-icon">👥</div>
                 <h3 className="pos-module-title">Clientes</h3>
                 <p className="pos-module-description">Catálogo y gestión de clientes</p>
+              </Card>
+              
+              <Card
+                variant="feature"
+                className="pos-module-card success"
+                onClick={onInventoryClick}
+                hoverable
+              >
+                <div className="pos-module-icon">📦</div>
+                <h3 className="pos-module-title">Inventario</h3>
+                <p className="pos-module-description">Control de stock y existencias</p>
               </Card>
               
               {onUsersClick && (

@@ -13,7 +13,7 @@ datasource db {
 
 model Product {
   id          Int          @id @default(autoincrement())
-  code        String       @unique
+  code        String?      @unique // Opcional para permitir códigos generados automáticamente
   name        String
   status      Int?
   saleType    String?
@@ -29,6 +29,9 @@ model Product {
   inventory      Inventory?            // ← 1:1
   movements      InventoryMovement[]
 
+  // 🆕 NUEVO: Identificador de Kit/Combo
+  isKit        Boolean   @default(false) // Si es true, es un kit/combo
+
   categoryId  String
   category    Category     @relation(fields: [categoryId], references: [id])
 
@@ -40,10 +43,17 @@ model Product {
 
   saleDetails SaleDetail[]
   pendingSaleDetails PendingSaleDetail[]
+  
+  // 🆕 NUEVO: Relación con items del kit (cuando este Product ES un kit)
+  kitItems     KitItem[] @relation("Kit")
+  
+  // 🆕 NUEVO: Relación con kits (cuando este Product está DENTRO de un kit)
+  kitsAsItem   KitItem[] @relation("KitProduct")
 
   @@index([code])
   @@index([name])
   @@index([description])
+  @@index([isKit]) // Índice para filtrar kits rápidamente
 }
 
 model ProductPresentation {
@@ -58,6 +68,9 @@ model ProductPresentation {
 
   // Relación con envases
   containers Container[]
+  
+  // 🆕 NUEVO: Relación con items de kit (cuando esta presentación está en un kit)
+  kitItems   KitItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -566,4 +579,40 @@ model ClientContainerDeposit {
 enum ContainerDepositStatus {
   PENDING   // Pendiente de devolución
   RETURNED // Devuelto
+}
+
+// ============================================================
+// 📦 MÓDULO DE KITS/COMBOS
+// ============================================================
+
+// ------------------------------------------------------------
+// Items que componen un Kit/Combo
+// ------------------------------------------------------------
+model KitItem {
+  id          Int       @id @default(autoincrement())
+  
+  // Relación con el kit (Product con isKit = true)
+  kitId       Int
+  kit         Product   @relation("Kit", fields: [kitId], references: [id], onDelete: Cascade)
+  
+  // Relación con producto que forma parte del kit
+  productId   Int
+  product     Product   @relation("KitProduct", fields: [productId], references: [id])
+  
+  // Relación con presentación (opcional)
+  presentationId  Int?
+  presentation    ProductPresentation? @relation(fields: [presentationId], references: [id])
+  
+  // Cantidad de este producto en el kit
+  quantity    Float     @default(1)
+  
+  // Orden de visualización
+  displayOrder Int      @default(0)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([kitId])
+  @@index([productId])
+  @@unique([kitId, productId, presentationId]) // Evitar duplicados
 }

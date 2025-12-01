@@ -8,7 +8,19 @@ export const getProducts = async (req, res) => {
     include: {
               category: true, // 👈 esto hace que Prisma traiga toda la info de la categoría
               presentations: true,
-              inventory: true
+              inventory: true,
+              kitItems: { // 🆕 Incluir items del kit si es un kit
+                include: {
+                  product: {
+                    include: {
+                      category: true,
+                      presentations: true
+                    }
+                  },
+                  presentation: true
+                },
+                orderBy: { displayOrder: 'asc' }
+              }
              },
     take: 50, 
     });
@@ -28,28 +40,64 @@ export const createProduct = async (req, res) => {
       icon,
       categoryId,
       trackInventory,
-      presentations = []   // 👈 nuevas presentaciones opcionales
+      presentations = [],   // 👈 nuevas presentaciones opcionales
+      isKit = false,        // 🆕 NUEVO: Si es un kit
+      kitItems = []         // 🆕 NUEVO: Items del kit
     } = req.body;
 
     if (!name) return res.status(400).json({ error: "El nombre es obligatorio" });
 
-    // Validar código de barras repetido
-    if (code) {
-      const existingCode = await prisma.product.findUnique({ where: { code } });
+    // 🆕 Validaciones para kits
+    if (isKit) {
+      // Los kits no pueden tener inventario
+      if (trackInventory) {
+        return res.status(400).json({ error: "Los kits no pueden tener control de inventario" });
+      }
+      // Los kits no pueden tener presentaciones
+      if (presentations.length > 0) {
+        return res.status(400).json({ error: "Los kits no pueden tener presentaciones" });
+      }
+      // Los kits deben tener al menos 2 productos
+      if (!kitItems || kitItems.length < 2) {
+        return res.status(400).json({ error: "Un kit debe contener al menos 2 productos" });
+      }
+    }
+
+    // Validar código de barras repetido (solo si se proporciona)
+    if (code && code.trim() !== "") {
+      const existingCode = await prisma.product.findUnique({ where: { code: code.trim() } });
       if (existingCode)
         return res.status(400).json({
           error: `El código de barras ya está asignado al producto "${existingCode.name}".`
         });
     }
+    
+    // Generar código automático si no se proporciona (para kits principalmente)
+    let finalCode = code && code.trim() !== "" ? code.trim() : null;
+    if (!finalCode && isKit) {
+      finalCode = `KIT-${Date.now()}`;
+    }
 
-    // Crear producto + presentaciones en una transacción
+    // Crear producto + presentaciones/kitItems en una transacción
     const newProduct = await prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
-        data: { code, name, price, status, saleType, cost, description, icon, categoryId, trackInventory}
+        data: { 
+          code: finalCode, 
+          name, 
+          price, 
+          status, 
+          saleType, 
+          cost, 
+          description, 
+          icon, 
+          categoryId, 
+          trackInventory: isKit ? false : trackInventory, // Forzar false si es kit
+          isKit // 🆕 NUEVO: Marcar como kit
+        }
       });
 
-      // Si trae presentaciones, crearlas
-      if (presentations.length > 0) {
+      // Si trae presentaciones (solo si NO es kit), crearlas
+      if (!isKit && presentations.length > 0) {
         for (const p of presentations) {
           await tx.productPresentation.create({
             data: {
@@ -63,13 +111,44 @@ export const createProduct = async (req, res) => {
         }
       }
 
+      // 🆕 NUEVO: Si es kit, crear los items del kit
+      if (isKit && kitItems.length > 0) {
+        for (let i = 0; i < kitItems.length; i++) {
+          const item = kitItems[i];
+          await tx.kitItem.create({
+            data: {
+              kitId: product.id,
+              productId: item.productId,
+              presentationId: item.presentationId || null,
+              quantity: item.quantity || 1,
+              displayOrder: i
+            }
+          });
+        }
+      }
+
       return product;
     });
 
-    // Devolver con presentaciones incluidas
+    // Devolver con presentaciones/kitItems incluidas
     const result = await prisma.product.findUnique({
       where: { id: newProduct.id },
-      include: { presentations: true, category: true }
+      include: { 
+        presentations: true, 
+        category: true,
+        kitItems: isKit ? {
+          include: {
+            product: {
+              include: {
+                category: true,
+                presentations: true
+              }
+            },
+            presentation: true
+          },
+          orderBy: { displayOrder: 'asc' }
+        } : false
+      }
     });
 
     res.status(201).json(result);
@@ -95,7 +174,9 @@ export const updateProduct = async (req, res) => {
       categoryId,
       trackInventory,
       inventory, 
-      presentations = []   // 👈 nuevas presentaciones
+      presentations = [],   // 👈 nuevas presentaciones
+      isKit,
+      kitItems = []         // 🆕 items del kit
     } = req.body;
 
     if (!id) return res.status(400).json({ error: "El ID del producto es obligatorio" });
@@ -104,7 +185,10 @@ export const updateProduct = async (req, res) => {
 
     const existingProduct = await prisma.product.findUnique({
       where: { id: productId },
-      include: { presentations: true }
+      include: { 
+        presentations: true,
+        kitItems: true  // 🆕 Incluir items del kit
+      }
     });
 
     if (!existingProduct)
@@ -125,7 +209,19 @@ export const updateProduct = async (req, res) => {
       // 1️⃣ Actualizar datos del producto
       await tx.product.update({
         where: { id: productId },
-        data: { code, name, price, status, saleType, cost, description, icon, categoryId, trackInventory}
+        data: { 
+          code, 
+          name, 
+          price, 
+          status, 
+          saleType, 
+          cost, 
+          description, 
+          icon, 
+          categoryId, 
+          trackInventory,
+          isKit: isKit !== undefined ? isKit : existingProduct.isKit  // 🆕 Actualizar isKit si viene en el request
+        }
       });
 
       // 2️⃣ Manejo de presentaciones
@@ -183,9 +279,40 @@ export const updateProduct = async (req, res) => {
         }
       }
 
+      // 🆕 3️⃣ Manejo de kitItems (si es un kit)
+      if (isKit || existingProduct.isKit) {
+        // Eliminar todos los kitItems existentes
+        await tx.kitItem.deleteMany({
+          where: { kitId: productId }
+        });
+
+        // Crear los nuevos kitItems
+        if (kitItems && kitItems.length > 0) {
+          await tx.kitItem.createMany({
+            data: kitItems.map((item) => ({
+              kitId: productId,
+              productId: item.productId,
+              presentationId: item.presentationId || null,
+              quantity: item.quantity || 1,
+              displayOrder: item.displayOrder || 0,
+            }))
+          });
+        }
+      }
+
       return tx.product.findUnique({
         where: { id: productId },
-        include: { presentations: true, category: true, inventory: true}
+        include: { 
+          presentations: true, 
+          category: true, 
+          inventory: true,
+          kitItems: {  // 🆕 Incluir kitItems en la respuesta
+            include: {
+              product: true,
+              presentation: true
+            }
+          }
+        }
       });
     });
 
@@ -232,7 +359,19 @@ export const filterProducts = async (req, res) => {
     include: {
       category: true, 
       presentations: true,
-      inventory: true
+      inventory: true,
+      kitItems: {
+        include: {
+          product: {
+            include: {
+              category: true,
+              presentations: true
+            }
+          },
+          presentation: true
+        },
+        orderBy: { displayOrder: 'asc' }
+      }
     },
     take: 25, 
     orderBy: { name: 'asc' },
