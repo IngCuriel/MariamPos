@@ -378,25 +378,13 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack }) => {
                       id="category"
                       value={selectedCategory}
                       onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="category-select"
+                      className="category-select-touch"
                     >
                       <option value="">Todas las categorías</option>
-                      {Object.entries(
-                        categories.reduce((groups:any, cat) => {
-                          const [main, sub] = cat.name.split('/');
-                          const key = main.trim();
-                          if (!groups[key]) groups[key] = [];
-                          groups[key].push({ id: cat.id, sub: sub?.trim() || main.trim() });
-                          return groups;
-                        }, {})
-                      ).map(([groupName, items]) => (
-                        <optgroup key={groupName} label={groupName}>
-                          {(items as any[]).map((item:any) => (
-                            <option key={item.id} value={item.id}>
-                              {item.sub}
-                            </option>
-                          ))}
-                        </optgroup>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
                       ))}
                     </select>
               </div>
