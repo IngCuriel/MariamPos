@@ -589,7 +589,8 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
 
   const fetchProducts = async () => {
     try {
-      const data = await getProductsFilters(search);
+      // Pasar forSales=true para excluir productos inactivos en ventas
+      const data = await getProductsFilters(search, true);
       if(data.length === 1) {
         const getProduct = data[0];
         if (getProduct.code === search) {

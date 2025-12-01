@@ -346,16 +346,33 @@ export const deleteProduct = async (req, res) => {
 };
 
 export const filterProducts = async (req, res) => {
-  const { search = '' } = req.query;
+  const { search = '', forSales = 'false' } = req.query;
+  
+  // Construir condiciones de búsqueda
+  const whereConditions = {
+    OR: [
+      { name: { contains: search,  } },
+      { description: { contains: search,  } },
+      { code: { contains: search, } },
+    ],
+  };
+  
+  // Si es para ventas, excluir productos inactivos (status = 0)
+  // status puede ser null, 0 (inactivo) o 1 (activo)
+  if (forSales === 'true') {
+    whereConditions.AND = [
+      {
+        OR: [
+          { status: { not: 0 } },  // status != 0
+          { status: null },         // status es null (se considera activo)
+        ]
+      }
+    ];
+  }
+  
   // ⚡ Búsqueda flexible
   const products = await prisma.product.findMany({
-    where: {
-      OR: [
-        { name: { contains: search,  } },
-        { description: { contains: search,  } },
-        { code: { contains: search, } },
-      ],
-    },
+    where: whereConditions,
     include: {
       category: true, 
       presentations: true,
@@ -382,13 +399,43 @@ export const filterProducts = async (req, res) => {
 
 export const getProductsByCategoryId = async (req, res) => {
   const { categoryId } = req.params;
+  const { forSales = 'false' } = req.query;
+  
+  // Construir condiciones de búsqueda
+  const whereConditions = { categoryId: categoryId };
+  
+  // Si es para ventas, excluir productos inactivos (status = 0)
+  // status puede ser null, 0 (inactivo) o 1 (activo)
+  if (forSales === 'true') {
+    whereConditions.AND = [
+      {
+        OR: [
+          { status: { not: 0 } },  // status != 0
+          { status: null },         // status es null (se considera activo)
+        ]
+      }
+    ];
+  }
+  
   // ⚡ Búsqueda flexible
   const products = await prisma.product.findMany({
-    where: { categoryId:categoryId },
+    where: whereConditions,
     include: {
       category: true,
       presentations: true,
-      inventory: true
+      inventory: true,
+      kitItems: {
+        include: {
+          product: {
+            include: {
+              category: true,
+              presentations: true
+            }
+          },
+          presentation: true
+        },
+        orderBy: { displayOrder: 'asc' }
+      }
     },
     take: 50, 
     orderBy: { name: 'asc' },

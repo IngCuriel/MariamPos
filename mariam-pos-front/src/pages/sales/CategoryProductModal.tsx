@@ -47,7 +47,8 @@ const CategoryProductModal: React.FC<CategoryProductModalProps> = ({
       setLoading(true);
       setError(null);
       setSelectedCategory(category);
-      const data = await getProductsByCategoryId(category.id);
+      // Pasar forSales=true para excluir productos inactivos en ventas
+      const data = await getProductsByCategoryId(category.id, true);
       setProducts(data);
       setViewMode("products");
     } catch (err) {

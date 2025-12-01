@@ -8,15 +8,17 @@ export const getProducts = async (): Promise<Product[]> => {
   return data;
 };
 
-export const getProductsFilters = async (search:string): Promise<Product[]> => {
+export const getProductsFilters = async (search:string, forSales: boolean = false): Promise<Product[]> => {
   const clientAxios = await getAxiosClient();
-  const { data } = await clientAxios.get<Product[]>(`/products/filters?search=${search}`);
+  const forSalesParam = forSales ? '&forSales=true' : '';
+  const { data } = await clientAxios.get<Product[]>(`/products/filters?search=${search}${forSalesParam}`);
   return data;
 };
 
-export const getProductsByCategoryId = async (categoryId:string): Promise<Product[]> => {
+export const getProductsByCategoryId = async (categoryId:string, forSales: boolean = false): Promise<Product[]> => {
   const clientAxios = await getAxiosClient();
-  const { data } = await clientAxios.get<Product[]>(`/products/category/${categoryId}`);
+  const forSalesParam = forSales ? '?forSales=true' : '';
+  const { data } = await clientAxios.get<Product[]>(`/products/category/${categoryId}${forSalesParam}`);
   return data;
 };
 
