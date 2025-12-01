@@ -514,15 +514,15 @@ model Container {
   // Notas adicionales
   notes       String?
   
-  // Estado
-  isActive    Boolean   @default(true)
+  // Estado (similar a Product: null o != 0 = activo, 0 = inactivo)
+  status      Int?
   
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   
   @@index([productId])
   @@index([presentationId])
-  @@index([isActive])
+  @@index([status])
 }
 
 // ============================================================
@@ -615,4 +615,23 @@ model KitItem {
   @@index([kitId])
   @@index([productId])
   @@unique([kitId, productId, presentationId]) // Evitar duplicados
+}
+
+// ============================================================
+// 🖨️ MÓDULO DE IMPRESORAS
+// ============================================================
+
+// ------------------------------------------------------------
+// Impresoras registradas
+// ------------------------------------------------------------
+model Printer {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique // Nombre de la impresora (ej: "EPSON L3110")
+  isDefault   Boolean  @default(false) // Si es la impresora predeterminada
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([isDefault])
+  @@index([name])
 }

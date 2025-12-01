@@ -56,6 +56,7 @@ import syncRouter from "./routes/sync.js";
 import healthRouter from "./routes/health.js";
 import pendingSalesRouter from "./routes/pendingSales.js";
 import copiesRouter from "./routes/copies.js";
+import printersRouter from "./routes/printers.js";
 
 // Health check (sin /api para facilitar detección)
 app.use("/health", healthRouter);
@@ -73,7 +74,9 @@ app.use("/api/client-container-deposits", clientContainerDepositsRouter);
 app.use("/api/sync", syncRouter);
 app.use("/api/pending-sales", pendingSalesRouter);
 app.use("/api/copies", copiesRouter);
-console.log("✅ Ruta /api/copies registrada correctamente"); 
+app.use("/api/printers", printersRouter);
+console.log("✅ Ruta /api/copies registrada correctamente");
+console.log("✅ Ruta /api/printers registrada correctamente"); 
 
 // -------------------
 // Iniciar servidor

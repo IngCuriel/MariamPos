@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import { printCopies, photocopy, scanDocument, createPdfFromImages, combineImages } from '../../api/copies';
+import { getPrinters, createPrinter, updatePrinter, deletePrinter, setDefaultPrinter, getDefaultPrinter, type Printer } from '../../api/printers';
 import Swal from 'sweetalert2';
 import { PDFDocument } from 'pdf-lib';
 import '../../styles/pages/copies/copiesPage.css';
@@ -10,14 +11,7 @@ interface CopiesPageProps {
   onBack: () => void;
 }
 
-interface Printer {
-  id: string;
-  name: string;
-  isDefault: boolean;
-}
-
-const STORAGE_KEY_PRINTERS = 'mariam_pos_printers';
-const STORAGE_KEY_DEFAULT_PRINTER = 'mariam_pos_default_printer';
+// Interface Printer ahora viene de la API
 
 const CopiesPage: React.FC<CopiesPageProps> = ({ onBack }) => {
   const [copies, setCopies] = useState<number>(1);
@@ -61,45 +55,30 @@ const CopiesPage: React.FC<CopiesPageProps> = ({ onBack }) => {
   }, [mode]);
 
 
-  const loadPrinters = () => {
+  const loadPrinters = async () => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY_PRINTERS);
-      if (saved) {
-        const parsed = JSON.parse(saved) as Printer[];
-        setPrinters(parsed);
-      }
+      const data = await getPrinters();
+      setPrinters(data);
     } catch (error) {
       console.error('Error al cargar impresoras:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudieron cargar las impresoras',
+        timer: 2000,
+        showConfirmButton: false,
+      });
     }
   };
 
-  const loadDefaultPrinter = () => {
+  const loadDefaultPrinter = async () => {
     try {
-      const defaultName = localStorage.getItem(STORAGE_KEY_DEFAULT_PRINTER);
-      if (defaultName) {
-        setPrinterName(defaultName);
+      const defaultPrinter = await getDefaultPrinter();
+      if (defaultPrinter) {
+        setPrinterName(defaultPrinter.name);
       }
     } catch (error) {
       console.error('Error al cargar impresora predeterminada:', error);
-    }
-  };
-
-
-  const savePrinters = (printerList: Printer[]) => {
-    try {
-      localStorage.setItem(STORAGE_KEY_PRINTERS, JSON.stringify(printerList));
-      setPrinters(printerList);
-    } catch (error) {
-      console.error('Error al guardar impresoras:', error);
-    }
-  };
-
-  const saveDefaultPrinter = (name: string) => {
-    try {
-      localStorage.setItem(STORAGE_KEY_DEFAULT_PRINTER, name);
-      setPrinterName(name);
-    } catch (error) {
-      console.error('Error al guardar impresora predeterminada:', error);
     }
   };
 
@@ -312,7 +291,20 @@ const CopiesPage: React.FC<CopiesPageProps> = ({ onBack }) => {
 
   const handlePhotocopy = async () => {
     // Usar la impresora por defecto automáticamente
-    const defaultPrinter = printerName.trim() || localStorage.getItem(STORAGE_KEY_DEFAULT_PRINTER) || '';
+    let defaultPrinter = printerName.trim();
+    
+    // Si no hay impresora seleccionada, intentar obtener la predeterminada de la BD
+    if (!defaultPrinter) {
+      try {
+        const defaultPrinterFromDB = await getDefaultPrinter();
+        if (defaultPrinterFromDB) {
+          defaultPrinter = defaultPrinterFromDB.name;
+          setPrinterName(defaultPrinterFromDB.name);
+        }
+      } catch (error) {
+        console.error('Error al obtener impresora predeterminada:', error);
+      }
+    }
     
     if (!defaultPrinter) {
       Swal.fire({
@@ -465,7 +457,20 @@ const CopiesPage: React.FC<CopiesPageProps> = ({ onBack }) => {
 
   const handlePrint = async (file?: File) => {
     // Usar la impresora por defecto automáticamente
-    const defaultPrinter = printerName.trim() || localStorage.getItem(STORAGE_KEY_DEFAULT_PRINTER) || '';
+    let defaultPrinter = printerName.trim();
+    
+    // Si no hay impresora seleccionada, intentar obtener la predeterminada de la BD
+    if (!defaultPrinter) {
+      try {
+        const defaultPrinterFromDB = await getDefaultPrinter();
+        if (defaultPrinterFromDB) {
+          defaultPrinter = defaultPrinterFromDB.name;
+          setPrinterName(defaultPrinterFromDB.name);
+        }
+      } catch (error) {
+        console.error('Error al obtener impresora predeterminada:', error);
+      }
+    }
     
     if (!defaultPrinter) {
       Swal.fire({
@@ -544,7 +549,7 @@ const CopiesPage: React.FC<CopiesPageProps> = ({ onBack }) => {
   };
 
 
-  const handleAddPrinter = () => {
+  const handleAddPrinter = async () => {
     if (!newPrinterName.trim()) {
       Swal.fire({
         icon: 'warning',
@@ -554,27 +559,35 @@ const CopiesPage: React.FC<CopiesPageProps> = ({ onBack }) => {
       return;
     }
 
-    const newPrinter: Printer = {
-      id: `printer-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      name: newPrinterName.trim(),
-      isDefault: printers.length === 0, // Primera impresora es predeterminada
-    };
+    try {
+      const isDefault = printers.length === 0; // Primera impresora es predeterminada
+      const newPrinter = await createPrinter({
+        name: newPrinterName.trim(),
+        isDefault,
+      });
 
-    const updated = [...printers, newPrinter];
-    savePrinters(updated);
+      await loadPrinters(); // Recargar lista de impresoras
+      
+      if (newPrinter.isDefault) {
+        setPrinterName(newPrinter.name);
+      }
 
-    if (newPrinter.isDefault) {
-      saveDefaultPrinter(newPrinter.name);
+      setNewPrinterName('');
+      Swal.fire({
+        icon: 'success',
+        title: 'Impresora agregada',
+        text: `La impresora "${newPrinter.name}" ha sido agregada`,
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    } catch (error: any) {
+      console.error('Error al agregar impresora:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.error || 'No se pudo agregar la impresora',
+      });
     }
-
-    setNewPrinterName('');
-    Swal.fire({
-      icon: 'success',
-      title: 'Impresora agregada',
-      text: `La impresora "${newPrinter.name}" ha sido agregada`,
-      timer: 2000,
-      showConfirmButton: false,
-    });
   };
 
   const handleEditPrinter = (printer: Printer) => {
@@ -582,32 +595,39 @@ const CopiesPage: React.FC<CopiesPageProps> = ({ onBack }) => {
     setNewPrinterName(printer.name);
   };
 
-  const handleUpdatePrinter = () => {
+  const handleUpdatePrinter = async () => {
     if (!editingPrinter || !newPrinterName.trim()) {
       return;
     }
 
-    const updated = printers.map(p =>
-      p.id === editingPrinter.id
-        ? { ...p, name: newPrinterName.trim() }
-        : p
-    );
+    try {
+      await updatePrinter(editingPrinter.id, {
+        name: newPrinterName.trim(),
+      });
 
-    savePrinters(updated);
+      await loadPrinters(); // Recargar lista de impresoras
 
-    // Si era la predeterminada, actualizar también
-    if (editingPrinter.isDefault) {
-      saveDefaultPrinter(newPrinterName.trim());
+      // Si era la predeterminada, actualizar también
+      if (editingPrinter.isDefault) {
+        setPrinterName(newPrinterName.trim());
+      }
+
+      setEditingPrinter(null);
+      setNewPrinterName('');
+      Swal.fire({
+        icon: 'success',
+        title: 'Impresora actualizada',
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    } catch (error: any) {
+      console.error('Error al actualizar impresora:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.error || 'No se pudo actualizar la impresora',
+      });
     }
-
-    setEditingPrinter(null);
-    setNewPrinterName('');
-    Swal.fire({
-      icon: 'success',
-      title: 'Impresora actualizada',
-      timer: 2000,
-      showConfirmButton: false,
-    });
   };
 
   const handleDeletePrinter = (printer: Printer) => {
@@ -618,48 +638,59 @@ const CopiesPage: React.FC<CopiesPageProps> = ({ onBack }) => {
       showCancelButton: true,
       confirmButtonText: 'Sí, eliminar',
       cancelButtonText: 'Cancelar',
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
-        const updated = printers.filter(p => p.id !== printer.id);
+        try {
+          await deletePrinter(printer.id);
+          
+          // Si era la predeterminada, limpiar
+          if (printer.isDefault) {
+            setPrinterName('');
+          }
 
-        // Si era la predeterminada, limpiar
-        if (printer.isDefault) {
-          localStorage.removeItem(STORAGE_KEY_DEFAULT_PRINTER);
-          setPrinterName('');
+          await loadPrinters(); // Recargar lista de impresoras
+          
+          // Cargar la nueva impresora predeterminada si existe
+          await loadDefaultPrinter();
+
+          Swal.fire({
+            icon: 'success',
+            title: 'Impresora eliminada',
+            timer: 2000,
+            showConfirmButton: false,
+          });
+        } catch (error: any) {
+          console.error('Error al eliminar impresora:', error);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error.response?.data?.error || 'No se pudo eliminar la impresora',
+          });
         }
-
-        // Si hay impresoras, hacer la primera predeterminada
-        if (updated.length > 0 && printer.isDefault) {
-          updated[0].isDefault = true;
-          saveDefaultPrinter(updated[0].name);
-        }
-
-        savePrinters(updated);
-        Swal.fire({
-          icon: 'success',
-          title: 'Impresora eliminada',
-          timer: 2000,
-          showConfirmButton: false,
-        });
       }
     });
   };
 
-  const handleSetDefault = (printer: Printer) => {
-    const updated = printers.map(p => ({
-      ...p,
-      isDefault: p.id === printer.id,
-    }));
-
-    savePrinters(updated);
-    saveDefaultPrinter(printer.name);
-    Swal.fire({
-      icon: 'success',
-      title: 'Impresora predeterminada',
-      text: `"${printer.name}" es ahora la impresora predeterminada`,
-      timer: 2000,
-      showConfirmButton: false,
-    });
+  const handleSetDefault = async (printer: Printer) => {
+    try {
+      await setDefaultPrinter(printer.id);
+      await loadPrinters(); // Recargar lista de impresoras
+      setPrinterName(printer.name);
+      Swal.fire({
+        icon: 'success',
+        title: 'Impresora predeterminada',
+        text: `"${printer.name}" es ahora la impresora predeterminada`,
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    } catch (error: any) {
+      console.error('Error al establecer impresora predeterminada:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.error || 'No se pudo establecer la impresora predeterminada',
+      });
+    }
   };
 
   const handleSelectPrinter = (printer: Printer) => {
@@ -963,7 +994,7 @@ const CopiesPage: React.FC<CopiesPageProps> = ({ onBack }) => {
                       onClick={() => handlePrint()}
                       variant="primary"
                       className="copies-action-button"
-                      disabled={isPrinting || !fileInputRef.current?.files?.[0] || (!printerName.trim() && !localStorage.getItem(STORAGE_KEY_DEFAULT_PRINTER))}
+                      disabled={isPrinting || !fileInputRef.current?.files?.[0] || !printerName.trim()}
                     >
                       {isPrinting ? (
                         <>
@@ -981,7 +1012,7 @@ const CopiesPage: React.FC<CopiesPageProps> = ({ onBack }) => {
                       onClick={handlePhotocopy}
                       variant="primary"
                       className="copies-action-button"
-                      disabled={isPhotocopying || (!printerName.trim() && !localStorage.getItem(STORAGE_KEY_DEFAULT_PRINTER))}
+                      disabled={isPhotocopying || !printerName.trim()}
                     >
                       {isPhotocopying ? (
                         <>

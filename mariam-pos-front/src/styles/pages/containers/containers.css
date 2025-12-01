@@ -244,6 +244,18 @@
   font-size: 0.75rem;
 }
 
+.badge.status-active {
+  background: #d1fae5;
+  color: #065f46;
+  font-weight: 500;
+}
+
+.badge.status-inactive {
+  background: #fee2e2;
+  color: #991b1b;
+  font-weight: 500;
+}
+
 .container-notes {
   margin-top: 0.75rem;
   padding-top: 0.75rem;
@@ -404,6 +416,14 @@
 .form-textarea {
   resize: vertical;
   min-height: 80px;
+}
+
+.form-hint {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-style: italic;
 }
 
 .form-actions {

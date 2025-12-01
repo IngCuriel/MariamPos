@@ -33,7 +33,7 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
     productId: undefined,
     presentationId: undefined,
     notes: "",
-    isActive: true,
+    status: null, // null = activo por defecto
   });
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -46,7 +46,7 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
     try {
       setLoading(true);
       const [containersData, productsData] = await Promise.all([
-        getContainers({ isActive: true }),
+        getContainers(), // Cargar todos los envases (activos e inactivos) para el catálogo
         getProductsForSelector(),
       ]);
       setContainers(containersData);
@@ -66,6 +66,8 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
   const handleOpenModal = (container?: Container) => {
     if (container) {
       setEditingContainer(container);
+      // Convertir status a número o null (null o != 0 = activo, 0 = inactivo)
+      const containerStatus = container.status !== undefined ? container.status : (container.isActive ? null : 0);
       setFormData({
         name: container.name,
         quantity: 1, // Siempre será 1
@@ -73,7 +75,7 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
         productId: container.productId || undefined,
         presentationId: container.presentationId || undefined,
         notes: container.notes || "",
-        isActive: container.isActive,
+        status: containerStatus,
       });
       if (container.productId) {
         const product = products.find((p) => p.id === container.productId);
@@ -88,7 +90,7 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
         productId: undefined,
         presentationId: undefined,
         notes: "",
-        isActive: true,
+        status: null, // null = activo por defecto
       });
       setSelectedProduct(null);
     }
@@ -281,6 +283,12 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
                       ${container.importAmount.toFixed(2)}
                     </span>
                   </div>
+                  <div className="info-row">
+                    <span className="info-label">Estado:</span>
+                    <span className={`info-value badge ${(container.status === null || container.status !== 0) ? 'status-active' : 'status-inactive'}`}>
+                      {(container.status === null || container.status !== 0) ? '✅ Activo' : '❌ Inactivo'}
+                    </span>
+                  </div>
                   {container.product && (
                     <div className="info-row">
                       <span className="info-label">Producto:</span>
@@ -405,6 +413,28 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
                   </select>
                 </div>
               )}
+
+              <div className="form-group">
+                <label htmlFor="status">Estado *</label>
+                <select
+                  id="status"
+                  value={formData.status === null ? "" : formData.status}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      status: e.target.value === "" ? null : parseInt(e.target.value),
+                    })
+                  }
+                  className="form-select"
+                  required
+                >
+                  <option value="">Activo</option>
+                  <option value="0">Inactivo</option>
+                </select>
+                <small className="form-hint">
+                  Los envases inactivos no se validarán en las ventas
+                </small>
+              </div>
 
               <div className="form-group">
                 <label htmlFor="notes">Notas</label>

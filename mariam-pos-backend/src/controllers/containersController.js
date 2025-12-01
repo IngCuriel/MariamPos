@@ -7,12 +7,28 @@ const prisma = new PrismaClient();
 // ============================================================
 export const getContainers = async (req, res) => {
   try {
-    const { isActive, productId, presentationId } = req.query;
+    const { isActive, productId, presentationId, forSales } = req.query;
 
     const where = {};
-    if (isActive !== undefined) {
-      where.isActive = isActive === "true";
+    
+    // Si es para ventas, filtrar solo envases activos (status != 0 o null)
+    if (forSales === "true") {
+      where.OR = [
+        { status: { not: 0 } },  // status != 0
+        { status: null },         // status es null (se considera activo)
+      ];
+    } else if (isActive !== undefined) {
+      // Mantener compatibilidad con el parámetro isActive (para el catálogo)
+      if (isActive === "true") {
+        where.OR = [
+          { status: { not: 0 } },
+          { status: null },
+        ];
+      } else {
+        where.status = 0; // Solo inactivos
+      }
     }
+    
     if (productId) {
       where.productId = parseInt(productId);
     }
@@ -76,7 +92,7 @@ export const getContainerById = async (req, res) => {
 // ============================================================
 export const createContainer = async (req, res) => {
   try {
-    const { name, quantity, importAmount, productId, presentationId, notes, isActive } = req.body;
+    const { name, quantity, importAmount, productId, presentationId, notes, status, isActive } = req.body;
 
     if (!name || !quantity || !importAmount) {
       return res.status(400).json({ error: "Nombre, cantidad e importe son requeridos" });
@@ -113,6 +129,15 @@ export const createContainer = async (req, res) => {
       }
     }
 
+    // Determinar el status: priorizar status, luego isActive (para compatibilidad), default null (activo)
+    let finalStatus = null; // Default activo
+    if (status !== undefined) {
+      finalStatus = status === null ? null : parseInt(status);
+    } else if (isActive !== undefined) {
+      // Compatibilidad con isActive
+      finalStatus = isActive ? null : 0;
+    }
+
     const container = await prisma.container.create({
       data: {
         name,
@@ -121,7 +146,7 @@ export const createContainer = async (req, res) => {
         productId: productId ? parseInt(productId) : null,
         presentationId: presentationId ? parseInt(presentationId) : null,
         notes,
-        isActive: isActive !== undefined ? isActive : true,
+        status: finalStatus,
       },
       include: {
         product: {
@@ -146,7 +171,7 @@ export const createContainer = async (req, res) => {
 export const updateContainer = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, quantity, importAmount, productId, presentationId, notes, isActive } = req.body;
+    const { name, quantity, importAmount, productId, presentationId, notes, status, isActive } = req.body;
 
     // Validar que si se proporciona presentationId, también debe tener productId
     if (presentationId && !productId) {
@@ -175,7 +200,14 @@ export const updateContainer = async (req, res) => {
     if (productId !== undefined) updateData.productId = productId ? parseInt(productId) : null;
     if (presentationId !== undefined) updateData.presentationId = presentationId ? parseInt(presentationId) : null;
     if (notes !== undefined) updateData.notes = notes;
-    if (isActive !== undefined) updateData.isActive = isActive;
+    
+    // Manejar status: priorizar status, luego isActive (para compatibilidad)
+    if (status !== undefined) {
+      updateData.status = status === null ? null : parseInt(status);
+    } else if (isActive !== undefined) {
+      // Compatibilidad con isActive
+      updateData.status = isActive ? null : 0;
+    }
 
     const container = await prisma.container.update({
       where: { id: parseInt(id) },

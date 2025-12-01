@@ -218,7 +218,8 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
   // Función para verificar envases en el carrito
   const checkContainersInCart = async (): Promise<Container[]> => {
     try {
-      const allContainers = await getContainers({ isActive: true });
+      // Usar forSales=true para obtener solo envases activos (status != 0 o null)
+      const allContainers = await getContainers({ forSales: true });
       const containersInCart: Container[] = [];
 
       for (const item of cart) {

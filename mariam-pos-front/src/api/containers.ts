@@ -11,7 +11,8 @@ export interface Container {
   presentationId?: number;
   presentation?: ProductPresentation;
   notes?: string;
-  isActive: boolean;
+  status?: number | null; // null o != 0 = activo, 0 = inactivo
+  isActive?: boolean; // Deprecated: mantener para compatibilidad
   createdAt: Date;
   updatedAt: Date;
 }
@@ -23,7 +24,8 @@ export interface CreateContainerInput {
   productId?: number;
   presentationId?: number;
   notes?: string;
-  isActive?: boolean;
+  status?: number | null; // null o != 0 = activo, 0 = inactivo
+  isActive?: boolean; // Deprecated: mantener para compatibilidad
 }
 
 export interface UpdateContainerInput extends Partial<CreateContainerInput> {}
@@ -32,6 +34,7 @@ export const getContainers = async (params?: {
   isActive?: boolean;
   productId?: number;
   presentationId?: number;
+  forSales?: boolean; // Nuevo parámetro para filtrar solo activos en ventas
 }): Promise<Container[]> => {
   const query = new URLSearchParams();
   if (params) {
