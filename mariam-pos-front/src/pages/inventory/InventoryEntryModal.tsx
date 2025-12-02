@@ -53,6 +53,9 @@ const InventoryEntryModal: React.FC<InventoryEntryModalProps> = ({
 
     setLoading(true);
     try {
+      const branch = localStorage.getItem('sucursal') || undefined;
+      const cashRegister = localStorage.getItem('caja') || undefined;
+      
       await createInventoryMovement({
         productId: inventory.productId,
         type: "ENTRADA",
@@ -60,6 +63,8 @@ const InventoryEntryModal: React.FC<InventoryEntryModalProps> = ({
         reason,
         reference: reference.trim() || undefined,
         notes: notes.trim() || undefined,
+        branch,
+        cashRegister,
       });
 
       Swal.fire({

@@ -60,11 +60,16 @@ const InventoryAdjustModal: React.FC<InventoryAdjustModalProps> = ({
 
     setLoading(true);
     try {
+      const branch = localStorage.getItem('sucursal') || undefined;
+      const cashRegister = localStorage.getItem('caja') || undefined;
+      
       await updateStock({
         productId: inventory.productId,
         newStock,
         reason,
         notes: notes.trim() || undefined,
+        branch,
+        cashRegister,
       });
 
       const difference = newStock - inventory.currentStock;

@@ -2,12 +2,14 @@ import React, { useState, useEffect, useRef } from "react";
 import Header from "../../components/Header";
 import Card from "../../components/Card";
 import Button from "../../components/Button";
-import type { Inventory } from "../../types";
+import type { Inventory, Category } from "../../types";
 import { getInventory } from "../../api/inventory";
 import { getProductsFilters } from "../../api/products";
+import { getCategories } from "../../api/categories";
 import "../../styles/pages/inventory/inventory.css";
 import InventoryEntryModal from "./InventoryEntryModal";
 import InventoryAdjustModal from "./InventoryAdjustModal";
+import KardexPage from "./KardexPage";
 import Swal from "sweetalert2";
 
 interface InventoryPageProps {
@@ -16,37 +18,58 @@ interface InventoryPageProps {
 
 const InventoryPage: React.FC<InventoryPageProps> = ({ onBack }) => {
   const [inventory, setInventory] = useState<Inventory[]>([]);
-  const [filteredInventory, setFilteredInventory] = useState<Inventory[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [categories, setCategories] = useState<Category[]>([]);
   const [selectedInventory, setSelectedInventory] = useState<Inventory | null>(null);
   const [showEntryModal, setShowEntryModal] = useState(false);
   const [showAdjustModal, setShowAdjustModal] = useState(false);
+  const [showKardex, setShowKardex] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
+    fetchCategories();
     fetchInventory();
-  }, []);
+  }, [currentPage, itemsPerPage, selectedCategory, showLowStockOnly]);
 
   useEffect(() => {
     if (searchTerm.length > 2) {
       const handler = setTimeout(() => {
-        filterInventory();
-      }, 300);
+        setCurrentPage(1); // Resetear a primera página al buscar
+        fetchInventory();
+      }, 500);
       return () => clearTimeout(handler);
     } else if (searchTerm.length === 0) {
-      filterInventory();
+      setCurrentPage(1);
+      fetchInventory();
     }
-  }, [searchTerm, inventory, showLowStockOnly]);
+  }, [searchTerm]);
 
   const fetchInventory = async () => {
     setLoading(true);
     try {
-      const data = await getInventory();
-      setInventory(data);
-      setFilteredInventory(data);
+      const search = searchTerm.length > 2 ? searchTerm : undefined;
+      const response = await getInventory(
+        currentPage,
+        itemsPerPage,
+        search,
+        selectedCategory || undefined,
+        showLowStockOnly
+      );
+      
+      setInventory(response.data);
+      setTotalItems(response.pagination.total);
+      setTotalPages(response.pagination.totalPages);
     } catch (error) {
       console.error("Error fetching inventory:", error);
       Swal.fire({
@@ -59,31 +82,13 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onBack }) => {
     }
   };
 
-  const filterInventory = async () => {
-    let filtered = [...inventory];
-
-    // Filtrar por búsqueda
-    if (searchTerm.length > 2) {
-      try {
-        const products = await getProductsFilters(searchTerm);
-        const productIds = new Set(products.map((p) => p.id));
-        filtered = filtered.filter((inv) => productIds.has(inv.productId));
-      } catch (error) {
-        console.error("Error filtering:", error);
-      }
+  const fetchCategories = async () => {
+    try {
+      const data = await getCategories();
+      setCategories(data);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
     }
-
-    // Filtrar solo productos con inventario bajo
-    if (showLowStockOnly) {
-      filtered = filtered.filter(
-        (inv) => inv.trackInventory && inv.currentStock <= inv.minStock
-      );
-    }
-
-    // Filtrar solo productos que rastrean inventario
-    filtered = filtered.filter((inv) => inv.trackInventory);
-
-    setFilteredInventory(filtered);
   };
 
   const handleEntry = (inventory: Inventory) => {
@@ -116,12 +121,28 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onBack }) => {
     return { class: "stock-ok", label: "Disponible" };
   };
 
+  // Si se muestra el Kardex, renderizar ese componente
+  if (showKardex) {
+    return <KardexPage onBack={() => setShowKardex(false)} />;
+  }
+
   return (
     <div className="inventory-page">
       <Header title="📦 Inventario" onBack={onBack} backText="← Volver" />
       
       <div className="inventory-container">
         <Card className="inventory-card">
+          {/* Botón para acceder al Kardex */}
+          <div className="inventory-actions-header">
+            <Button
+              variant="primary"
+              onClick={() => setShowKardex(true)}
+              style={{ marginBottom: "1rem" }}
+            >
+              📋 Ver Kardex de Inventario
+            </Button>
+          </div>
+
           {/* Barra de búsqueda y filtros */}
           <div className="inventory-filters">
             <div className="search-section">
@@ -135,6 +156,20 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onBack }) => {
               />
             </div>
             <div className="filter-section">
+              <select
+                className="filter-select"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+              >
+                <option value="">Todas las categorías</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="filter-section">
               <label className="filter-checkbox">
                 <input
                   type="checkbox"
@@ -146,14 +181,41 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onBack }) => {
             </div>
           </div>
 
+          {/* Información de paginación */}
+          {!loading && inventory.length > 0 && (
+            <div className="inventory-pagination-info">
+              <span>
+                Mostrando {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalItems)} de {totalItems.toLocaleString('es-MX')} productos
+                {totalItems > 1000 && (
+                  <span className="performance-note">
+                    {" "}⚡ Sistema optimizado para grandes volúmenes
+                  </span>
+                )}
+              </span>
+              <select
+                className="items-per-page-select"
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+              >
+                <option value={25}>25 por página</option>
+                <option value={50}>50 por página</option>
+                <option value={100}>100 por página</option>
+                <option value={200}>200 por página</option>
+              </select>
+            </div>
+          )}
+
           {/* Tabla de inventario */}
           <div className="inventory-table-container">
             {loading ? (
               <div className="loading">Cargando inventario...</div>
-            ) : filteredInventory.length === 0 ? (
+            ) : inventory.length === 0 ? (
               <div className="no-results">
-                {searchTerm.length > 0
-                  ? "No se encontraron productos"
+                {searchTerm.length > 0 || selectedCategory || showLowStockOnly
+                  ? "No se encontraron productos con los filtros aplicados"
                   : "No hay productos con inventario activo"}
               </div>
             ) : (
@@ -169,7 +231,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onBack }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredInventory.map((inv) => {
+                  {inventory.map((inv) => {
                     const status = getStockStatus(inv);
                     return (
                       <tr key={inv.id} className={status.class}>
@@ -212,31 +274,72 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onBack }) => {
             )}
           </div>
 
+          {/* Controles de paginación */}
+          {!loading && totalPages > 1 && (
+            <div className="inventory-pagination">
+              <Button
+                variant="secondary"
+                size="small"
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+              >
+                ⏮️ Primera
+              </Button>
+              <Button
+                variant="secondary"
+                size="small"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+              >
+                ◀️ Anterior
+              </Button>
+              <span className="pagination-info">
+                Página {currentPage} de {totalPages}
+              </span>
+              <Button
+                variant="secondary"
+                size="small"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Siguiente ▶️
+              </Button>
+              <Button
+                variant="secondary"
+                size="small"
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+              >
+                Última ⏭️
+              </Button>
+            </div>
+          )}
+
           {/* Resumen */}
-          {filteredInventory.length > 0 && (
+          {inventory.length > 0 && (
             <div className="inventory-summary">
               <div className="summary-item">
                 <span className="summary-label">Total productos:</span>
-                <span className="summary-value">{filteredInventory.length}</span>
+                <span className="summary-value">{totalItems.toLocaleString('es-MX')}</span>
               </div>
               <div className="summary-item">
-                <span className="summary-label">Stock bajo:</span>
-                <span className="summary-value stock-low">
-                  {
-                    filteredInventory.filter(
-                      (inv) => inv.trackInventory && inv.currentStock <= inv.minStock
-                    ).length
-                  }
+                <span className="summary-label">En esta página:</span>
+                <span className="summary-value">{inventory.length}</span>
+              </div>
+              <div className="summary-item">
+                <span className="summary-label">Total unidades (página):</span>
+                <span className="summary-value">
+                  {inventory.reduce((sum, inv) => sum + (inv.currentStock || 0), 0).toLocaleString('es-MX')}
                 </span>
               </div>
-              <div className="summary-item">
-                <span className="summary-label">Sin stock:</span>
-                <span className="summary-value stock-out">
-                  {
-                    filteredInventory.filter(
-                      (inv) => inv.trackInventory && inv.currentStock <= 0
-                    ).length
-                  }
+              <div className="summary-item summary-item-total">
+                <span className="summary-label">Valor total (página):</span>
+                <span className="summary-value summary-total-value">
+                  ${inventory.reduce((sum, inv) => {
+                    const cost = inv.product?.cost || 0;
+                    const stock = inv.currentStock || 0;
+                    return sum + (cost * stock);
+                  }, 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
             </div>

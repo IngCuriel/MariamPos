@@ -1,0 +1,382 @@
+/* ============================================================
+   📋 ESTILOS DEL MÓDULO DE KARDEX DE INVENTARIO
+   ============================================================ */
+
+.kardex-page {
+  width: 100%;
+  min-height: 100vh;
+  padding: 20px;
+  background: var(--background-light, #f5f5f5);
+}
+
+.kardex-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.kardex-card {
+  padding: 20px;
+}
+
+/* ============================================================
+   🔍 FILTROS Y BÚSQUEDA
+   ============================================================ */
+
+.kardex-filters {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.filter-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 200px;
+  flex: 1;
+}
+
+.filter-group label {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.filter-input,
+.filter-select {
+  padding: 10px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+
+.filter-input:focus,
+.filter-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.search-wrapper {
+  position: relative;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.product-search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 2px solid #d1d5db;
+  border-radius: 8px;
+  margin-top: 4px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.product-search-item {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.product-search-item:hover {
+  background-color: #f9fafb;
+}
+
+.product-search-item:last-child {
+  border-bottom: none;
+}
+
+.product-code {
+  font-weight: 600;
+  color: #6b7280;
+  font-size: 0.85rem;
+  min-width: 80px;
+}
+
+.product-name {
+  color: #1f2937;
+  font-size: 0.95rem;
+}
+
+/* ============================================================
+   📈 RESUMEN
+   ============================================================ */
+
+.kardex-summary {
+  display: flex;
+  gap: 32px;
+  margin-top: 24px;
+  padding: 20px;
+  background: #f9fafb;
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summary-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.summary-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+/* ============================================================
+   📊 TABLA DE KARDEX
+   ============================================================ */
+
+.kardex-table-container {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.kardex-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.kardex-table thead {
+  background: #f9fafb;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.kardex-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kardex-table td {
+  padding: 16px;
+  border-bottom: 1px solid #e5e7eb;
+  color: #1f2937;
+}
+
+.kardex-table tbody tr {
+  transition: background-color 0.2s;
+}
+
+.kardex-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.movement-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.movement-entrada {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.movement-salida {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.movement-ajuste {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.movement-transferencia {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.kardex-table tbody tr.movement-entrada {
+  border-left: 4px solid #10b981;
+}
+
+.kardex-table tbody tr.movement-salida {
+  border-left: 4px solid #ef4444;
+}
+
+.kardex-table tbody tr.movement-ajuste {
+  border-left: 4px solid #f59e0b;
+}
+
+.kardex-table tbody tr.movement-transferencia {
+  border-left: 4px solid #3b82f6;
+}
+
+.quantity-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.stock-after-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+  background: #eff6ff;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  display: inline-block;
+  min-width: 50px;
+  text-align: center;
+}
+
+/* ============================================================
+   ⚠️ ESTADOS
+   ============================================================ */
+
+.loading,
+.no-results {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6b7280;
+  font-size: 1.1rem;
+}
+
+.no-product-selected {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #6b7280;
+}
+
+.no-product-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.no-product-selected h3 {
+  font-size: 1.5rem;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.no-product-selected p {
+  font-size: 1rem;
+  color: #6b7280;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.selected-product-display {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.selected-product-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.selected-product-code {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.selected-product-name {
+  font-size: 1rem;
+  color: #1f2937;
+  font-weight: 700;
+}
+
+/* ============================================================
+   📱 RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .kardex-page {
+    padding: 20px;
+  }
+
+  .filter-row {
+    flex-direction: column;
+  }
+
+  .filter-group {
+    width: 100%;
+  }
+
+  .kardex-summary {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .kardex-table {
+    font-size: 0.875rem;
+  }
+
+  .kardex-table th,
+  .kardex-table td {
+    padding: 8px;
+  }
+
+  .kardex-table th:nth-child(7),
+  .kardex-table td:nth-child(7),
+  .kardex-table th:nth-child(8),
+  .kardex-table td:nth-child(8),
+  .kardex-table th:nth-child(9),
+  .kardex-table td:nth-child(9) {
+    display: none;
+  }
+}
+

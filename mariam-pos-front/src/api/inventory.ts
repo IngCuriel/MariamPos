@@ -7,10 +7,36 @@ import type {
   Product,
 } from "../types/index";
 
-// Obtener inventario de todos los productos
-export const getInventory = async (): Promise<Inventory[]> => {
+// Interfaz para respuesta paginada
+export interface PaginatedInventoryResponse {
+  data: Inventory[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+// Obtener inventario de todos los productos (con paginación y filtros)
+export const getInventory = async (
+  page: number = 1,
+  limit: number = 50,
+  search?: string,
+  categoryId?: string,
+  lowStockOnly?: boolean
+): Promise<PaginatedInventoryResponse> => {
   const clientAxios = await getAxiosClient();
-  const { data } = await clientAxios.get<Inventory[]>("/inventory");
+  const params = new URLSearchParams();
+  params.append("page", page.toString());
+  params.append("limit", limit.toString());
+  if (search) params.append("search", search);
+  if (categoryId) params.append("categoryId", categoryId);
+  if (lowStockOnly) params.append("lowStockOnly", "true");
+  
+  const { data } = await clientAxios.get<PaginatedInventoryResponse>(
+    `/inventory?${params.toString()}`
+  );
   return data;
 };
 

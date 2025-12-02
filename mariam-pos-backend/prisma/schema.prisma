@@ -207,6 +207,7 @@ model InventoryMovement {
   notes      String?
 
   branch     String? // Sucursal
+  cashRegister String? // Caja
 
   createdBy  String?
   createdAt  DateTime @default(now())

@@ -18,6 +18,14 @@
   padding: 20px;
 }
 
+.inventory-actions-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
 /* ============================================================
    🔍 FILTROS Y BÚSQUEDA
    ============================================================ */
@@ -52,6 +60,23 @@
 .filter-section {
   display: flex;
   align-items: center;
+}
+
+.filter-select {
+  padding: 10px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+  font-family: inherit;
+  background: white;
+  cursor: pointer;
+  min-width: 200px;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #3b82f6;
 }
 
 .filter-checkbox {
@@ -223,6 +248,21 @@
 
 .summary-value.stock-out {
   color: #dc2626;
+}
+
+.summary-item-total {
+  flex: 1;
+  min-width: 200px;
+  padding: 16px;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-radius: 8px;
+  border: 2px solid #3b82f6;
+}
+
+.summary-total-value {
+  font-size: 2rem !important;
+  color: #1e40af !important;
+  font-weight: 800 !important;
 }
 
 /* ============================================================
@@ -397,6 +437,69 @@
   gap: 12px;
   justify-content: flex-end;
   margin-top: 8px;
+}
+
+/* ============================================================
+   📄 PAGINACIÓN
+   ============================================================ */
+
+.inventory-pagination-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f9fafb;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+  color: #6b7280;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.performance-note {
+  color: #059669;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.items-per-page-select {
+  padding: 6px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.items-per-page-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.inventory-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+  padding: 16px;
+  flex-wrap: wrap;
+}
+
+.pagination-info {
+  padding: 8px 16px;
+  background: #f9fafb;
+  border-radius: 6px;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+.inventory-pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* ============================================================

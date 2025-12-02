@@ -123,6 +123,7 @@ export interface InventoryMovement {
   createdAt: Date;
   createdBy?: string; // Usuario que realizó el movimiento
   branch?: string; // Sucursal
+  cashRegister?: string; // Caja
 }
 
 // Representa el inventario actual de un producto
@@ -147,6 +148,7 @@ export interface CreateInventoryMovementInput {
   reference?: string;
   notes?: string;
   branch?: string;
+  cashRegister?: string;
 }
 
 // DTO para actualizar stock directamente
@@ -155,6 +157,8 @@ export interface UpdateStockInput {
   newStock: number;
   reason?: string;
   notes?: string;
+  branch?: string;
+  cashRegister?: string;
 }
 
 // ============================================================

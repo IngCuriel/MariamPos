@@ -44,7 +44,7 @@ function App() {
   const { categories, addCategory, updateCategory, deleteCategory, loadCategories } = useCategories();
   
   // Inicializar recordatorio de turnos (verifica turnos abiertos al iniciar y maneja el cierre)
-  useShiftReminder();
+  useShiftReminder({ onGoToSales: goToSales });
 
   // Cargar categorías solo cuando se abre el módulo de categorías
   React.useEffect(() => {
