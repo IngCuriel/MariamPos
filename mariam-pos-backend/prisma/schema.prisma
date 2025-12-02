@@ -12,43 +12,44 @@ datasource db {
 }
 
 model Product {
-  id          Int          @id @default(autoincrement())
-  code        String?      @unique // Opcional para permitir códigos generados automáticamente
+  id          Int      @id @default(autoincrement())
+  code        String?  @unique // Opcional para permitir códigos generados automáticamente
   name        String
   status      Int?
   saleType    String?
-  price       Float        // PRECIO BASE (precio por pieza) → para compatibilidad
+  price       Float // PRECIO BASE (precio por pieza) → para compatibilidad
   cost        Float?
   description String?
   icon        String?
-  createdAt   DateTime     @default(now())
+  createdAt   DateTime @default(now())
 
   // Nuevas propiedades para inventario
   trackInventory Boolean? @default(false) // si el producto usa inventario 
-  
-  inventory      Inventory?            // ← 1:1
-  movements      InventoryMovement[]
+
+  inventory Inventory? // ← 1:1
+  movements InventoryMovement[]
 
   // 🆕 NUEVO: Identificador de Kit/Combo
-  isKit        Boolean   @default(false) // Si es true, es un kit/combo
+  isKit Boolean @default(false) // Si es true, es un kit/combo
 
-  categoryId  String
-  category    Category     @relation(fields: [categoryId], references: [id])
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
 
   // 🔥 Nueva relación (un producto puede tener varias presentaciones)
   presentations ProductPresentation[]
 
   // Relación con envases
-  containers   Container[]
+  containers Container[]
 
-  saleDetails SaleDetail[]
+  saleDetails        SaleDetail[]
   pendingSaleDetails PendingSaleDetail[]
-  
+
   // 🆕 NUEVO: Relación con items del kit (cuando este Product ES un kit)
-  kitItems     KitItem[] @relation("Kit")
-  
+  kitItems KitItem[] @relation("Kit")
+
   // 🆕 NUEVO: Relación con kits (cuando este Product está DENTRO de un kit)
-  kitsAsItem   KitItem[] @relation("KitProduct")
+  kitsAsItem     KitItem[]        @relation("KitProduct")
+  PurchaseDetail PurchaseDetail[]
 
   @@index([code])
   @@index([name])
@@ -57,83 +58,82 @@ model Product {
 }
 
 model ProductPresentation {
-  id        Int      @id @default(autoincrement())
-  name      String   // Ej: "Pieza", "Cono", "Six"
-  quantity  Int      // Ej: 1, 30, 6 → unidades reales
-  unitPrice Float    // Precio por unidad en esta presentación
-  isDefault Boolean  @default(false)
+  id        Int     @id @default(autoincrement())
+  name      String // Ej: "Pieza", "Cono", "Six"
+  quantity  Int // Ej: 1, 30, 6 → unidades reales
+  unitPrice Float // Precio por unidad en esta presentación
+  isDefault Boolean @default(false)
 
-  product   Product  @relation(fields: [productId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
   productId Int
 
   // Relación con envases
   containers Container[]
-  
+
   // 🆕 NUEVO: Relación con items de kit (cuando esta presentación está en un kit)
-  kitItems   KitItem[]
+  kitItems KitItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-
 model Category {
   id          String   @id @default(uuid())
   name        String
-  description String? 
+  description String?
   createdAt   DateTime @default(now())
-  
-  showInPOS     Boolean   @default(false)
 
-  Product   Product[]
+  showInPOS Boolean @default(false)
+
+  Product Product[]
 }
 
 model Client {
-   id          String   @id @default(uuid())
-   name        String 
-   alias       String?  // Alias o apodo para identificar mejor al cliente
-   phone       String?  // Número de celular/teléfono
-   
-   // Campos de crédito
-   allowCredit Boolean  @default(false) // Si el cliente puede comprar a crédito
-   creditLimit Float    @default(0)      // Límite de crédito permitido
-   
-   // Relaciones
-   credits     ClientCredit[] // Créditos pendientes del cliente
-   containerDeposits ClientContainerDeposit[] // Depósitos de envases pendientes
-   
-   @@index([name])
-   @@index([alias])
-   @@index([phone])
+  id    String  @id @default(uuid())
+  name  String
+  alias String? // Alias o apodo para identificar mejor al cliente
+  phone String? // Número de celular/teléfono
+
+  // Campos de crédito
+  allowCredit Boolean @default(false) // Si el cliente puede comprar a crédito
+  creditLimit Float   @default(0) // Límite de crédito permitido
+
+  // Relaciones
+  credits           ClientCredit[] // Créditos pendientes del cliente
+  containerDeposits ClientContainerDeposit[] // Depósitos de envases pendientes
+
+  @@index([name])
+  @@index([alias])
+  @@index([phone])
 }
 
 model Sale {
-  id            Int           @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
   folio         String?
   total         Float
-  status        String?        //Pendiente, Pagado
-  paymentMethod String?       // Efectivo, Tarjeta, etc.
-  createdAt     DateTime      @default(now())
+  status        String? //Pendiente, Pagado
+  paymentMethod String? // Efectivo, Tarjeta, etc.
+  createdAt     DateTime @default(now())
   clientName    String?
-  
+
   //Sucursal
-  branch        String?  @default("Sucursal Defult") 
- 
+  branch String? @default("Sucursal Defult")
+
   //Caja de cobro
-  cashRegister  String?   @default("Caja 1") 
+  cashRegister String? @default("Caja 1")
 
   // Nuevo campo de sincronización
-  syncStatus    String        @default("pendiente") // pendiente, enviado
+  syncStatus String @default("pendiente") // pendiente, enviado
 
   // Relación con turno de caja
-  shiftId       Int?
-  shift         CashRegisterShift? @relation(fields: [shiftId], references: [id])
+  shiftId Int?
+  shift   CashRegisterShift? @relation(fields: [shiftId], references: [id])
 
   // Relación con los detalles
-  details       SaleDetail[]
-  
+  details SaleDetail[]
+
   // Relación con créditos (si la venta generó un crédito)
-  credit        ClientCredit?
+  credit ClientCredit?
 
   @@index([folio])
   @@index([syncStatus])
@@ -141,25 +141,25 @@ model Sale {
 }
 
 model SaleDetail {
-  id          Int       @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   quantity    Float
   price       Float
   subTotal    Float
   productName String?
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime @default(now())
 
   // Relación con Sale
-  saleId      Int
-  sale        Sale      @relation(fields: [saleId], references: [id])
+  saleId Int
+  sale   Sale @relation(fields: [saleId], references: [id])
 
   // Relación con Product
-  productId   Int
-  product     Product   @relation(fields: [productId], references: [id])
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
 
   @@index([saleId])
   @@index([productId])
 }
- 
+
 // ============================================================
 // 🏭 MÓDULO DE INVENTARIO
 // ============================================================
@@ -168,10 +168,10 @@ model SaleDetail {
 // Tabla principal de inventario por producto y sucursal
 // ------------------------------------------------------------
 model Inventory {
-  id               Int       @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  productId        Int       @unique        // ← IMPORTANTE
-  product          Product   @relation(fields: [productId], references: [id])
+  productId Int     @unique // ← IMPORTANTE
+  product   Product @relation(fields: [productId], references: [id])
 
   currentStock     Int       @default(0)
   minStock         Int       @default(0)
@@ -180,37 +180,36 @@ model Inventory {
   trackInventory   Boolean   @default(false)
   branch           String?
 
-  movements        InventoryMovement[]
+  movements InventoryMovement[]
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
-
 
 // ------------------------------------------------------------
 // Movimientos de inventario
 // ------------------------------------------------------------
 model InventoryMovement {
-  id         Int       @id @default(autoincrement())
-  
-  productId  Int
-  product    Product   @relation(fields: [productId], references: [id])
+  id Int @id @default(autoincrement())
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
 
   inventoryId Int?
   inventory   Inventory? @relation(fields: [inventoryId], references: [id])
 
-  type       InventoryMovementType
-  quantity   Int
+  type     InventoryMovementType
+  quantity Int
 
-  reason     String?
-  reference  String?
-  notes      String?
+  reason    String?
+  reference String?
+  notes     String?
 
-  branch     String? // Sucursal
+  branch       String? // Sucursal
   cashRegister String? // Caja
 
-  createdBy  String?
-  createdAt  DateTime @default(now())
+  createdBy String?
+  createdAt DateTime @default(now())
 }
 
 // ------------------------------------------------------------
@@ -231,46 +230,46 @@ enum InventoryMovementType {
 // Turnos/Cortes de Caja
 // ------------------------------------------------------------
 model CashRegisterShift {
-  id              Int       @id @default(autoincrement())
-  shiftNumber     String    @unique // Folio único del turno
-  branch          String    // Sucursal
-  cashRegister    String    // Caja (ej: "Caja 1")
-  cashierName     String?   // Nombre del cajero (por ahora string, luego puede ser FK a User)
-  
+  id           Int     @id @default(autoincrement())
+  shiftNumber  String  @unique // Folio único del turno
+  branch       String // Sucursal
+  cashRegister String // Caja (ej: "Caja 1")
+  cashierName  String? // Nombre del cajero (por ahora string, luego puede ser FK a User)
+
   // Fechas del turno
-  startTime       DateTime  @default(now())
-  endTime         DateTime?
-  
+  startTime DateTime  @default(now())
+  endTime   DateTime?
+
   // Fondos
-  initialCash     Float     @default(0) // Fondo inicial
-  finalCash       Float?    // Efectivo contado al cerrar
-  expectedCash    Float?    // Efectivo esperado (calculado)
-  difference      Float?    // Diferencia (finalCash - expectedCash)
-  
+  initialCash  Float  @default(0) // Fondo inicial
+  finalCash    Float? // Efectivo contado al cerrar
+  expectedCash Float? // Efectivo esperado (calculado)
+  difference   Float? // Diferencia (finalCash - expectedCash)
+
   // Totales por método de pago (calculados automáticamente)
-  totalCash       Float     @default(0) // Total en efectivo
-  totalCard       Float     @default(0) // Total en tarjeta
-  totalTransfer   Float     @default(0) // Total en transferencia
-  totalOther      Float     @default(0) // Otros métodos
-  
+  totalCash     Float @default(0) // Total en efectivo
+  totalCard     Float @default(0) // Total en tarjeta
+  totalTransfer Float @default(0) // Total en transferencia
+  totalOther    Float @default(0) // Otros métodos
+
   // Estado
-  status          ShiftStatus @default(OPEN) // OPEN, CLOSED, CANCELLED
-  
+  status ShiftStatus @default(OPEN) // OPEN, CLOSED, CANCELLED
+
   // Observaciones
-  notes           String?
-  
+  notes String?
+
   // Relación con ventas
-  sales           Sale[]
-  
+  sales Sale[]
+
   // Relación con movimientos de efectivo
-  cashMovements   CashMovement[]
-  
+  cashMovements CashMovement[]
+
   // Relación con depósitos de envases de clientes
   clientContainerDeposits ClientContainerDeposit[]
-  
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([branch, cashRegister])
   @@index([status])
   @@index([startTime])
@@ -280,8 +279,8 @@ model CashRegisterShift {
 // Enum para estados de turno
 // ------------------------------------------------------------
 enum ShiftStatus {
-  OPEN      // Turno abierto
-  CLOSED    // Turno cerrado
+  OPEN // Turno abierto
+  CLOSED // Turno cerrado
   CANCELLED // Turno cancelado
 }
 
@@ -289,18 +288,18 @@ enum ShiftStatus {
 // Movimientos de Efectivo (Entradas y Salidas)
 // ------------------------------------------------------------
 model CashMovement {
-  id              Int       @id @default(autoincrement())
-  shiftId         Int       // Relación con el turno
-  shift           CashRegisterShift @relation(fields: [shiftId], references: [id])
-  
-  type            CashMovementType // ENTRADA o SALIDA
-  amount          Float     // Monto del movimiento
-  reason          String?   // Razón del movimiento (ej: "Pago a proveedor", "Cobro recibido")
-  notes           String?   // Notas adicionales
-  
-  createdBy       String?   // Usuario que creó el movimiento
-  createdAt       DateTime  @default(now())
-  
+  id      Int               @id @default(autoincrement())
+  shiftId Int // Relación con el turno
+  shift   CashRegisterShift @relation(fields: [shiftId], references: [id])
+
+  type   CashMovementType // ENTRADA o SALIDA
+  amount Float // Monto del movimiento
+  reason String? // Razón del movimiento (ej: "Pago a proveedor", "Cobro recibido")
+  notes  String? // Notas adicionales
+
+  createdBy String? // Usuario que creó el movimiento
+  createdAt DateTime @default(now())
+
   @@index([shiftId])
   @@index([type])
   @@index([createdAt])
@@ -310,8 +309,8 @@ model CashMovement {
 // Enum para tipos de movimiento de efectivo
 // ------------------------------------------------------------
 enum CashMovementType {
-  ENTRADA  // Entrada de efectivo a la caja
-  SALIDA   // Salida de efectivo de la caja
+  ENTRADA // Entrada de efectivo a la caja
+  SALIDA // Salida de efectivo de la caja
 }
 
 // ============================================================
@@ -319,34 +318,34 @@ enum CashMovementType {
 // ============================================================
 
 model User {
-  id          String   @id @default(uuid())
-  name        String   // Nombre completo del cajero
-  email       String?  @unique // Email (opcional, para futuras autenticaciones)
-  phone       String?  // Teléfono
-  username    String?  @unique // Nombre de usuario (opcional)
-  role        UserRole @default(CASHIER) // Rol del usuario
-  status      UserStatus @default(ACTIVE) // Estado: activo o inactivo
-  branch      String?  // Sucursal asignada
-  notes       String?  // Notas adicionales
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  id       String     @id @default(uuid())
+  name     String // Nombre completo del cajero
+  email    String?    @unique // Email (opcional, para futuras autenticaciones)
+  phone    String? // Teléfono
+  username String?    @unique // Nombre de usuario (opcional)
+  role     UserRole   @default(CASHIER) // Rol del usuario
+  status   UserStatus @default(ACTIVE) // Estado: activo o inactivo
+  branch   String? // Sucursal asignada
+  notes    String? // Notas adicionales
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([status])
   @@index([role])
   @@index([email])
 }
 
 enum UserRole {
-  ADMIN      // Administrador
-  MANAGER    // Gerente
-  CASHIER    // Cajero
+  ADMIN // Administrador
+  MANAGER // Gerente
+  CASHIER // Cajero
   SUPERVISOR // Supervisor
 }
 
 enum UserStatus {
-  ACTIVE    // Usuario activo
-  INACTIVE  // Usuario inactivo
+  ACTIVE // Usuario activo
+  INACTIVE // Usuario inactivo
 }
 
 // ============================================================
@@ -357,35 +356,35 @@ enum UserStatus {
 // Créditos Pendientes de Clientes
 // ------------------------------------------------------------
 model ClientCredit {
-  id              Int       @id @default(autoincrement())
-  
+  id Int @id @default(autoincrement())
+
   // Relación con cliente
-  clientId        String
-  client          Client    @relation(fields: [clientId], references: [id])
-  
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
+
   // Relación con venta que generó el crédito
-  saleId          Int       @unique
-  sale            Sale      @relation(fields: [saleId], references: [id])
-  
+  saleId Int  @unique
+  sale   Sale @relation(fields: [saleId], references: [id])
+
   // Montos
-  originalAmount  Float     // Monto original del crédito
-  remainingAmount Float     // Monto pendiente por pagar
-  paidAmount      Float     @default(0) // Monto total pagado hasta ahora
-  
+  originalAmount  Float // Monto original del crédito
+  remainingAmount Float // Monto pendiente por pagar
+  paidAmount      Float @default(0) // Monto total pagado hasta ahora
+
   // Estado
-  status          CreditStatus @default(PENDING) // PENDING, PARTIALLY_PAID, PAID
-  
+  status CreditStatus @default(PENDING) // PENDING, PARTIALLY_PAID, PAID
+
   // Fechas
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  paidAt          DateTime? // Fecha en que se pagó completamente
-  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  paidAt    DateTime? // Fecha en que se pagó completamente
+
   // Notas
-  notes           String?
-  
+  notes String?
+
   // Relación con pagos/abonos
-  payments        CreditPayment[]
-  
+  payments CreditPayment[]
+
   @@index([clientId])
   @@index([saleId])
   @@index([status])
@@ -396,27 +395,27 @@ model ClientCredit {
 // Abonos/Pagos a Créditos
 // ------------------------------------------------------------
 model CreditPayment {
-  id              Int       @id @default(autoincrement())
-  
+  id Int @id @default(autoincrement())
+
   // Relación con crédito
-  creditId        Int
-  credit          ClientCredit @relation(fields: [creditId], references: [id])
-  
+  creditId Int
+  credit   ClientCredit @relation(fields: [creditId], references: [id])
+
   // Monto del abono
-  amount          Float
-  
+  amount Float
+
   // Método de pago
-  paymentMethod   String?   // Efectivo, Tarjeta, etc.
-  
+  paymentMethod String? // Efectivo, Tarjeta, etc.
+
   // Notas
-  notes           String?
-  
+  notes String?
+
   // Usuario que registró el pago
-  createdBy       String?
-  
+  createdBy String?
+
   // Fecha
-  createdAt       DateTime  @default(now())
-  
+  createdAt DateTime @default(now())
+
   @@index([creditId])
   @@index([createdAt])
 }
@@ -425,9 +424,9 @@ model CreditPayment {
 // Enum para estados de crédito
 // ------------------------------------------------------------
 enum CreditStatus {
-  PENDING         // Pendiente de pago
-  PARTIALLY_PAID  // Parcialmente pagado
-  PAID            // Completamente pagado
+  PENDING // Pendiente de pago
+  PARTIALLY_PAID // Parcialmente pagado
+  PAID // Completamente pagado
 }
 
 // ============================================================
@@ -438,20 +437,20 @@ enum CreditStatus {
 // Ventas Pendientes (Carritos guardados para cobrar después)
 // ------------------------------------------------------------
 model PendingSale {
-  id              Int       @id @default(autoincrement())
-  code            String    @unique // Código único generado automáticamente
-  clientName      String?   // Nombre del cliente para recordar
-  total           Float     // Total de la venta pendiente
-  branch          String?   @default("Sucursal Default")
-  cashRegister    String?   @default("Caja 1")
-  
+  id           Int     @id @default(autoincrement())
+  code         String  @unique // Código único generado automáticamente
+  clientName   String? // Nombre del cliente para recordar
+  total        Float // Total de la venta pendiente
+  branch       String? @default("Sucursal Default")
+  cashRegister String? @default("Caja 1")
+
   // Relación con los detalles del carrito
-  details         PendingSaleDetail[]
-  
+  details PendingSaleDetail[]
+
   // Fechas
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([code])
   @@index([clientName])
   @@index([createdAt])
@@ -461,32 +460,32 @@ model PendingSale {
 // Detalles de Venta Pendiente
 // ------------------------------------------------------------
 model PendingSaleDetail {
-  id              Int       @id @default(autoincrement())
-  
+  id Int @id @default(autoincrement())
+
   // Relación con PendingSale
-  pendingSaleId   Int
-  pendingSale     PendingSale @relation(fields: [pendingSaleId], references: [id], onDelete: Cascade)
-  
+  pendingSaleId Int
+  pendingSale   PendingSale @relation(fields: [pendingSaleId], references: [id], onDelete: Cascade)
+
   // Información del producto
-  productId       Int
-  product         Product   @relation(fields: [productId], references: [id])
-  
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+
   // Datos de la venta
-  quantity        Float     // Cantidad
-  price           Float     // Precio unitario
-  subTotal        Float     // Subtotal (quantity * price)
-  productName     String?   // Nombre del producto al momento de guardar
-  
+  quantity    Float // Cantidad
+  price       Float // Precio unitario
+  subTotal    Float // Subtotal (quantity * price)
+  productName String? // Nombre del producto al momento de guardar
+
   // Información de presentación (si aplica)
-  presentationId  Int?      // ID de la presentación si se usó
-  presentationName String?  // Nombre de la presentación
-  
+  presentationId   Int? // ID de la presentación si se usó
+  presentationName String? // Nombre de la presentación
+
   // Información de granel (si aplica)
-  saleType        String?   // "Pieza" o "Granel"
-  basePrice       Float?    // Precio base para granel
-  
-  createdAt       DateTime  @default(now())
-  
+  saleType  String? // "Pieza" o "Granel"
+  basePrice Float? // Precio base para granel
+
+  createdAt DateTime @default(now())
+
   @@index([pendingSaleId])
   @@index([productId])
 }
@@ -499,28 +498,28 @@ model PendingSaleDetail {
 // Envases Retornables
 // ------------------------------------------------------------
 model Container {
-  id          Int       @id @default(autoincrement())
-  name        String    // Nombre del envase (ej: "Coca Vidrio", "Rega Cerveza")
-  quantity    Int       // Cantidad de envases
-  importAmount Float    // Importe del depósito por envase
-  
+  id           Int    @id @default(autoincrement())
+  name         String // Nombre del envase (ej: "Coca Vidrio", "Rega Cerveza")
+  quantity     Int // Cantidad de envases
+  importAmount Float // Importe del depósito por envase
+
   // Relación con producto (opcional - si no tiene presentación)
-  productId   Int?
-  product     Product?  @relation(fields: [productId], references: [id])
-  
+  productId Int?
+  product   Product? @relation(fields: [productId], references: [id])
+
   // Relación con presentación (opcional - si el producto tiene presentación)
   presentationId Int?
   presentation   ProductPresentation? @relation(fields: [presentationId], references: [id])
-  
+
   // Notas adicionales
-  notes       String?
-  
+  notes String?
+
   // Estado (similar a Product: null o != 0 = activo, 0 = inactivo)
-  status      Int?
-  
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
+  status Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([productId])
   @@index([presentationId])
   @@index([status])
@@ -534,39 +533,39 @@ model Container {
 // Depósitos de Envases de Clientes
 // ------------------------------------------------------------
 model ClientContainerDeposit {
-  id              Int       @id @default(autoincrement())
-  
+  id Int @id @default(autoincrement())
+
   // Relación con cliente
-  clientId        String
-  client          Client    @relation(fields: [clientId], references: [id])
-  
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
+
   // Relación con venta que generó el depósito
-  saleId          Int?      // Opcional, puede ser null si se crea manualmente
-  
+  saleId Int? // Opcional, puede ser null si se crea manualmente
+
   // Información del depósito
-  containerName   String    // Nombre del envase (ej: "Coca Vidrio")
-  quantity        Int       // Cantidad de envases
-  importAmount    Float     // Importe total del depósito (quantity * unitPrice)
-  unitPrice       Float     // Precio unitario del envase
-  
+  containerName String // Nombre del envase (ej: "Coca Vidrio")
+  quantity      Int // Cantidad de envases
+  importAmount  Float // Importe total del depósito (quantity * unitPrice)
+  unitPrice     Float // Precio unitario del envase
+
   // Estado
-  status          ContainerDepositStatus @default(PENDING) // PENDING, RETURNED
-  
+  status ContainerDepositStatus @default(PENDING) // PENDING, RETURNED
+
   // Relación con turno de caja
-  shiftId         Int?
-  shift           CashRegisterShift? @relation(fields: [shiftId], references: [id])
-  
+  shiftId Int?
+  shift   CashRegisterShift? @relation(fields: [shiftId], references: [id])
+
   // Relación con movimiento de efectivo
-  cashMovementId  Int?      // ID del movimiento de efectivo generado
-  
+  cashMovementId Int? // ID del movimiento de efectivo generado
+
   // Notas
-  notes           String?
-  
+  notes String?
+
   // Fechas
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  returnedAt      DateTime? // Fecha en que se devolvieron los envases
-  
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  returnedAt DateTime? // Fecha en que se devolvieron los envases
+
   @@index([clientId])
   @@index([saleId])
   @@index([status])
@@ -578,7 +577,7 @@ model ClientContainerDeposit {
 // Enum para estados de depósito de envases
 // ------------------------------------------------------------
 enum ContainerDepositStatus {
-  PENDING   // Pendiente de devolución
+  PENDING // Pendiente de devolución
   RETURNED // Devuelto
 }
 
@@ -590,32 +589,32 @@ enum ContainerDepositStatus {
 // Items que componen un Kit/Combo
 // ------------------------------------------------------------
 model KitItem {
-  id          Int       @id @default(autoincrement())
-  
+  id Int @id @default(autoincrement())
+
   // Relación con el kit (Product con isKit = true)
-  kitId       Int
-  kit         Product   @relation("Kit", fields: [kitId], references: [id], onDelete: Cascade)
-  
+  kitId Int
+  kit   Product @relation("Kit", fields: [kitId], references: [id], onDelete: Cascade)
+
   // Relación con producto que forma parte del kit
-  productId   Int
-  product     Product   @relation("KitProduct", fields: [productId], references: [id])
-  
+  productId Int
+  product   Product @relation("KitProduct", fields: [productId], references: [id])
+
   // Relación con presentación (opcional)
-  presentationId  Int?
-  presentation    ProductPresentation? @relation(fields: [presentationId], references: [id])
-  
+  presentationId Int?
+  presentation   ProductPresentation? @relation(fields: [presentationId], references: [id])
+
   // Cantidad de este producto en el kit
-  quantity    Float     @default(1)
-  
+  quantity Float @default(1)
+
   // Orden de visualización
-  displayOrder Int      @default(0)
-  
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
+  displayOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([kitId, productId, presentationId]) // Evitar duplicados
   @@index([kitId])
   @@index([productId])
-  @@unique([kitId, productId, presentationId]) // Evitar duplicados
 }
 
 // ============================================================
@@ -626,13 +625,149 @@ model KitItem {
 // Impresoras registradas
 // ------------------------------------------------------------
 model Printer {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique // Nombre de la impresora (ej: "EPSON L3110")
-  isDefault   Boolean  @default(false) // Si es la impresora predeterminada
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  id        Int     @id @default(autoincrement())
+  name      String  @unique // Nombre de la impresora (ej: "EPSON L3110")
+  isDefault Boolean @default(false) // Si es la impresora predeterminada
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([isDefault])
   @@index([name])
+}
+
+// ============================================================
+// 🏢 MÓDULO DE PROVEEDORES Y COMPRAS
+// ============================================================
+
+// ------------------------------------------------------------
+// Proveedores
+// ------------------------------------------------------------
+model Supplier {
+  id          Int     @id @default(autoincrement())
+  name        String // Nombre del proveedor
+  code        String? @unique // Código único del proveedor
+  contactName String? // Nombre de contacto
+  phone       String? // Teléfono
+  email       String? // Email
+  address     String? // Dirección
+  rfc         String? // RFC (México)
+  taxId       String? // ID fiscal (para otros países)
+  notes       String? // Notas adicionales
+  status      Int     @default(1) // 1 = activo, 0 = inactivo
+
+  // Relaciones
+  purchases       Purchase[]
+  accountsPayable AccountPayable[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([code])
+  @@index([status])
+}
+
+// ------------------------------------------------------------
+// Compras
+// ------------------------------------------------------------
+model Purchase {
+  id         Int      @id @default(autoincrement())
+  folio      String   @unique // Folio único de la compra
+  supplierId Int // Proveedor
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+
+  // Información de la compra
+  purchaseDate DateTime  @default(now()) // Fecha de compra
+  dueDate      DateTime? // Fecha de vencimiento (si es a crédito)
+  total        Float // Total de la compra
+  subtotal     Float // Subtotal (sin impuestos)
+  tax          Float     @default(0) // Impuestos
+  discount     Float     @default(0) // Descuento
+
+  // Estado de pago
+  paymentStatus String  @default("PENDING") // PENDING, PARTIAL, PAID
+  paymentMethod String? // CASH, TRANSFER, CHECK, CREDIT
+  
+  // Información de pago
+  paidAmount      Float @default(0) // Monto pagado
+  balance         Float @default(0) // Saldo pendiente (total - paidAmount)
+  paidPercentage  Float @default(0) // Porcentaje pagado
+  pendingPercentage Float @default(0) // Porcentaje pendiente
+
+  // Información adicional
+  invoiceNumber String? // Número de factura
+  notes         String? // Notas
+  branch        String? @default("Sucursal Default") // Sucursal
+  cashRegister  String? @default("Caja 1") // Caja
+
+  // Relaciones
+  details  PurchaseDetail[]
+  payments AccountPayable[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([supplierId])
+  @@index([purchaseDate])
+  @@index([paymentStatus])
+  @@index([folio])
+}
+
+// ------------------------------------------------------------
+// Detalles de Compra
+// ------------------------------------------------------------
+model PurchaseDetail {
+  id         Int      @id @default(autoincrement())
+  purchaseId Int // Compra
+  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  productId Int // Producto
+  product   Product @relation(fields: [productId], references: [id])
+
+  quantity Float // Cantidad comprada
+  unitCost Float // Costo unitario
+  subtotal Float // Subtotal (quantity * unitCost)
+  discount Float @default(0) // Descuento aplicado
+
+  createdAt DateTime @default(now())
+
+  @@index([purchaseId])
+  @@index([productId])
+}
+
+// ------------------------------------------------------------
+// Cuentas por Pagar
+// ------------------------------------------------------------
+model AccountPayable {
+  id         Int       @id @default(autoincrement())
+  purchaseId Int? // Compra relacionada (opcional, puede ser pago directo)
+  purchase   Purchase? @relation(fields: [purchaseId], references: [id])
+
+  supplierId Int // Proveedor
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+
+  // Información del pago
+  amount     Float // Monto a pagar
+  paidAmount Float @default(0) // Monto pagado
+  balance    Float // Saldo pendiente (amount - paidAmount)
+
+  dueDate     DateTime // Fecha de vencimiento
+  paymentDate DateTime? // Fecha de pago (si ya se pagó)
+
+  // Estado
+  status        String  @default("PENDING") // PENDING, PARTIAL, PAID, OVERDUE
+  paymentMethod String? // Método de pago usado
+
+  // Información adicional
+  notes     String? // Notas
+  reference String? // Referencia de pago (número de cheque, transferencia, etc.)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([supplierId])
+  @@index([purchaseId])
+  @@index([status])
+  @@index([dueDate])
 }

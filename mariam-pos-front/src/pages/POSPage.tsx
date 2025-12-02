@@ -16,6 +16,9 @@ interface POSPageProps {
   onCopiesClick?:() => void;
   onContainersClick?:() => void;
   onHelpClick?:() => void;
+  onSuppliersClick?:() => void;
+  onPurchasesClick?:() => void;
+  onAccountPayablesClick?:() => void;
 }
 
 const POSPage: React.FC<POSPageProps> = ({ 
@@ -30,7 +33,10 @@ const POSPage: React.FC<POSPageProps> = ({
   onCashMovementsHistoryClick,
   onCopiesClick,
   onContainersClick,
-  onHelpClick
+  onHelpClick,
+  onSuppliersClick,
+  onPurchasesClick,
+  onAccountPayablesClick
 }) => {
   return (
     <div className="pos-page">
@@ -132,6 +138,57 @@ const POSPage: React.FC<POSPageProps> = ({
                   <div className="pos-module-icon">👤</div>
                   <h3 className="pos-module-title">Cajeros</h3>
                   <p className="pos-module-description">Gestionar usuarios y cajeros</p>
+                </Card>
+              )}
+            </div>
+          </div>
+
+          {/* Sección: Compras y Proveedores */}
+          <div className="pos-section">
+            <div className="pos-section-header">
+              <h2 className="pos-section-title">
+                <span className="section-icon">🛒</span>
+                Compras y Proveedores
+              </h2>
+              <p className="pos-section-description">Compras, proveedores y cuentas por pagar</p>
+            </div>
+            <div className="pos-modules-grid">
+              {onSuppliersClick && (
+                <Card 
+                  variant="feature" 
+                  className="pos-module-card suppliers"
+                  onClick={onSuppliersClick}
+                  hoverable
+                >
+                  <div className="pos-module-icon">👥</div>
+                  <h3 className="pos-module-title">Proveedores</h3>
+                  <p className="pos-module-description">Catálogo y gestión de proveedores</p>
+                </Card>
+              )}
+
+              {onPurchasesClick && (
+                <Card 
+                  variant="feature" 
+                  className="pos-module-card purchases"
+                  onClick={onPurchasesClick}
+                  hoverable
+                >
+                  <div className="pos-module-icon">🛒</div>
+                  <h3 className="pos-module-title">Compras</h3>
+                  <p className="pos-module-description">Registrar y gestionar compras</p>
+                </Card>
+              )}
+
+              {onAccountPayablesClick && (
+                <Card 
+                  variant="feature" 
+                  className="pos-module-card account-payables"
+                  onClick={onAccountPayablesClick}
+                  hoverable
+                >
+                  <div className="pos-module-icon">💳</div>
+                  <h3 className="pos-module-title">Cuentas por Pagar</h3>
+                  <p className="pos-module-description">Gestionar pagos a proveedores</p>
                 </Card>
               )}
             </div>

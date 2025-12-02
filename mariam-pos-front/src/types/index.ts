@@ -1,6 +1,6 @@
 // Tipos principales de la aplicación
 
-export type ViewType = 'main' | 'help' | 'pos' | 'products' | 'catalog' | 'categories' | 'sales' |'client' | 'report' | 'inventory' | 'users' | 'shift-history' | 'cash-movements-history' | 'copies' | 'containers' | 'kit';
+export type ViewType = 'main' | 'help' | 'pos' | 'products' | 'catalog' | 'categories' | 'sales' |'client' | 'report' | 'inventory' | 'users' | 'shift-history' | 'cash-movements-history' | 'copies' | 'containers' | 'kit' | 'suppliers' | 'purchases' | 'account-payables';
 
 // Representa una presentación de un producto (ej: 1 pieza, 1 cono, 1 six)
 export interface ProductPresentation {
@@ -371,6 +371,171 @@ export interface CreateCreditPaymentInput {
   paymentMethod?: string;
   notes?: string;
   createdBy?: string;
+}
+
+// ============================================================
+// 🛒 MÓDULO DE COMPRAS Y PROVEEDORES
+// ============================================================
+
+export interface Supplier {
+  id: number;
+  name: string;
+  code?: string | null;
+  contactName?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  rfc?: string | null;
+  taxId?: string | null;
+  notes?: string | null;
+  status: number; // 1 = activo, 0 = inactivo
+  createdAt: Date;
+  updatedAt: Date;
+  _count?: {
+    purchases?: number;
+    accountsPayable?: number;
+  };
+}
+
+export interface PurchaseDetail {
+  id: number;
+  purchaseId: number;
+  productId: number;
+  product?: Product;
+  quantity: number;
+  unitCost: number;
+  subtotal: number;
+  discount: number;
+  createdAt: Date;
+}
+
+export interface Purchase {
+  id: number;
+  folio: string;
+  supplierId: number;
+  supplier?: Supplier;
+  purchaseDate: Date;
+  dueDate?: Date | null;
+  total: number;
+  subtotal: number;
+  tax: number;
+  discount: number;
+  paymentStatus: string; // PENDING, PARTIAL, PAID
+  paymentMethod?: string | null;
+  paidAmount?: number;
+  balance?: number;
+  paidPercentage?: number;
+  pendingPercentage?: number;
+  invoiceNumber?: string | null;
+  notes?: string | null;
+  branch?: string | null;
+  cashRegister?: string | null;
+  details: PurchaseDetail[];
+  createdAt: Date;
+  updatedAt: Date;
+  _count?: {
+    payments?: number;
+  };
+}
+
+export interface AccountPayable {
+  id: number;
+  purchaseId?: number | null;
+  purchase?: Purchase | null;
+  supplierId: number;
+  supplier?: Supplier;
+  amount: number;
+  paidAmount: number;
+  balance: number;
+  dueDate: Date;
+  paymentDate?: Date | null;
+  status: string; // PENDING, PARTIAL, PAID, OVERDUE
+  paymentMethod?: string | null;
+  notes?: string | null;
+  reference?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreatePurchaseInput {
+  supplierId: number;
+  purchaseDate?: string;
+  dueDate?: string;
+  subtotal: number;
+  tax?: number;
+  discount?: number;
+  total: number;
+  paymentMethod?: string;
+  paymentStatus?: string;
+  paidAmount?: number;
+  balance?: number;
+  paidPercentage?: number;
+  pendingPercentage?: number;
+  invoiceNumber?: string;
+  notes?: string;
+  branch?: string;
+  cashRegister?: string;
+  details: Array<{
+    productId: number;
+    quantity: number;
+    unitCost: number;
+    subtotal: number;
+    discount?: number;
+  }>;
+  updateInventory?: boolean;
+}
+
+export interface CreateAccountPayableInput {
+  purchaseId?: number;
+  supplierId: number;
+  amount: number;
+  dueDate: string;
+  paymentMethod?: string;
+  notes?: string;
+  reference?: string;
+}
+
+export interface RegisterPaymentInput {
+  paymentAmount: number;
+  paymentMethod?: string;
+  paymentDate?: string;
+  notes?: string;
+  reference?: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface AccountPayablesSummary {
+  total: {
+    amount: number;
+    paidAmount: number;
+    balance: number;
+    count: number;
+  };
+  pending: {
+    balance: number;
+    count: number;
+  };
+  partial: {
+    balance: number;
+    count: number;
+  };
+  paid: {
+    amount: number;
+    count: number;
+  };
+  overdue: {
+    balance: number;
+    count: number;
+  };
 }
 
 // ============================================================

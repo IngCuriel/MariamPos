@@ -54,6 +54,9 @@ import healthRouter from "./routes/health.js";
 import pendingSalesRouter from "./routes/pendingSales.js";
 import copiesRouter from "./routes/copies.js";
 import printersRouter from "./routes/printers.js";
+import suppliersRouter from "./routes/suppliers.js";
+import purchasesRouter from "./routes/purchases.js";
+import accountPayablesRouter from "./routes/accountPayables.js";
 
 // Health check (sin /api para facilitar detección)
 app.use("/health", healthRouter);
@@ -72,8 +75,14 @@ app.use("/api/sync", syncRouter);
 app.use("/api/pending-sales", pendingSalesRouter);
 app.use("/api/copies", copiesRouter);
 app.use("/api/printers", printersRouter);
+app.use("/api/suppliers", suppliersRouter);
+app.use("/api/purchases", purchasesRouter);
+app.use("/api/account-payables", accountPayablesRouter);
 console.log("✅ Ruta /api/copies registrada correctamente");
-console.log("✅ Ruta /api/printers registrada correctamente"); 
+console.log("✅ Ruta /api/printers registrada correctamente");
+console.log("✅ Ruta /api/suppliers registrada correctamente");
+console.log("✅ Ruta /api/purchases registrada correctamente");
+console.log("✅ Ruta /api/account-payables registrada correctamente"); 
 
 // -------------------
 // Middleware de manejo de errores global

@@ -18,6 +18,9 @@ import CashMovementsHistoryPage from './pages/cashMovements/CashMovementsHistory
 import CopiesPage from './pages/copies/CopiesPage';
 import ContainersPage from './pages/containers/ContainersPage';
 import NewKitPage from './pages/product/NewKitPage';
+import SuppliersPage from './pages/suppliers/SuppliersPage';
+import PurchasesPage from './pages/purchases/PurchasesPage';
+import AccountPayablesPage from './pages/accountPayables/AccountPayablesPage';
 import './styles/index.css';
 
 function App() {
@@ -39,6 +42,9 @@ function App() {
     goToCopies,
     goToContainers,
     goToKit,
+    goToSuppliers,
+    goToPurchases,
+    goToAccountPayables,
   } = useNavigation();
   
   const { categories, addCategory, updateCategory, deleteCategory, loadCategories } = useCategories();
@@ -58,7 +64,7 @@ function App() {
       case 'help':
         return <HelpPage onBack={goToPOS} />;
       case 'pos':
-        return <POSPage onBack={goToMain} onProductsClick={goToProducts} onSalesClick={goToSales} onClientClick={gotoClients} onReportClick={gotoReport} onInventoryClick={goToInventory} onUsersClick={goToUsers} onShiftHistoryClick={goToShiftHistory} onCashMovementsHistoryClick={goToCashMovementsHistory} onCopiesClick={goToCopies} onContainersClick={goToContainers} onHelpClick={goToHelp} />;
+        return <POSPage onBack={goToMain} onProductsClick={goToProducts} onSalesClick={goToSales} onClientClick={gotoClients} onReportClick={gotoReport} onInventoryClick={goToInventory} onUsersClick={goToUsers} onShiftHistoryClick={goToShiftHistory} onCashMovementsHistoryClick={goToCashMovementsHistory} onCopiesClick={goToCopies} onContainersClick={goToContainers} onHelpClick={goToHelp} onSuppliersClick={goToSuppliers} onPurchasesClick={goToPurchases} onAccountPayablesClick={goToAccountPayables} />;
       case 'products':
         return (
           <ProductsPage 
@@ -106,6 +112,12 @@ function App() {
         return <ContainersPage onBack={goToPOS} />;
       case 'kit':
         return <NewKitPage onBack={goToProducts} />;
+      case 'suppliers':
+        return <SuppliersPage onBack={goToPOS} />;
+      case 'purchases':
+        return <PurchasesPage onBack={goToPOS} />;
+      case 'account-payables':
+        return <AccountPayablesPage onBack={goToPOS} />;
       default:
         return <HomePage onPOSClick={goToPOS} />;
     }

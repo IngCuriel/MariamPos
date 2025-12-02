@@ -24,6 +24,9 @@ export const useNavigation = () => {
   const goToCopies = () => setCurrentView('copies');
   const goToContainers = () => setCurrentView('containers');
   const goToKit = () => setCurrentView('kit');
+  const goToSuppliers = () => setCurrentView('suppliers');
+  const goToPurchases = () => setCurrentView('purchases');
+  const goToAccountPayables = () => setCurrentView('account-payables');
 
   return {
     currentView,
@@ -44,5 +47,8 @@ export const useNavigation = () => {
     goToCopies,
     goToContainers,
     goToKit,
+    goToSuppliers,
+    goToPurchases,
+    goToAccountPayables,
   };
 };

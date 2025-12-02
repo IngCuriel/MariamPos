@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "Purchase" ADD COLUMN "paidAmount" REAL NOT NULL DEFAULT 0;
+ALTER TABLE "Purchase" ADD COLUMN "balance" REAL NOT NULL DEFAULT 0;
+ALTER TABLE "Purchase" ADD COLUMN "paidPercentage" REAL NOT NULL DEFAULT 0;
+ALTER TABLE "Purchase" ADD COLUMN "pendingPercentage" REAL NOT NULL DEFAULT 0;
+
