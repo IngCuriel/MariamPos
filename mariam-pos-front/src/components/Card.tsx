@@ -2,10 +2,11 @@ import React from 'react';
 
 interface CardProps {
   children: React.ReactNode;
-  onClick?: () => void;
+  onClick?: (e?: React.MouseEvent<HTMLDivElement>) => void;
   className?: string;
   variant?: 'default' | 'feature' | 'product';
   hoverable?: boolean;
+  style?: React.CSSProperties;
 }
 
 const Card: React.FC<CardProps> = ({
@@ -14,6 +15,7 @@ const Card: React.FC<CardProps> = ({
   className = '',
   variant = 'default',
   hoverable = false,
+  style,
 }) => {
   const baseClasses = 'card';
   const variantClasses = {
@@ -31,7 +33,7 @@ const Card: React.FC<CardProps> = ({
   ].join(' ');
 
   return (
-    <div className={classes} onClick={onClick}>
+    <div className={classes} onClick={onClick} style={style}>
       {children}
     </div>
   );

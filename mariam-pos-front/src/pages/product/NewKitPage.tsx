@@ -158,17 +158,6 @@ const NewKitPage: React.FC<NewKitPageProps> = ({ onBack }) => {
       return;
     }
 
-    // Determinar el precio unitario
-    let unitPrice = product.price;
-    if (selectedPresentationId) {
-      const presentation = product.presentations?.find(
-        (p) => p.id === parseInt(selectedPresentationId)
-      );
-      if (presentation) {
-        unitPrice = presentation.unitPrice;
-      }
-    }
-
     const newItem: KitItem = {
       productId: product.id,
       product: product,
@@ -380,7 +369,7 @@ const NewKitPage: React.FC<NewKitPageProps> = ({ onBack }) => {
                     onChange={handleInputChange}
                     className={errors.name ? "error" : ""}
                     placeholder="Ej: Combo Navideño"
-                    ref={(el) => (inputRefs.current[0] = el)}
+                     ref={(el) => { inputRefs.current[0] = el; }}
                   />
                   {errors.name && <span className="error-message">{errors.name}</span>}
                 </div>

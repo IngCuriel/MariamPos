@@ -523,7 +523,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
                 setPaymentType("tarjeta");
               }
             }}
-            disabled={containersDepositInfo && containersDepositInfo.total > 0}
+            disabled={!!(containersDepositInfo && containersDepositInfo.total > 0)}
             style={{
               opacity: containersDepositInfo && containersDepositInfo.total > 0 ? 0.5 : 1,
               cursor: containersDepositInfo && containersDepositInfo.total > 0 ? "not-allowed" : "pointer",
@@ -569,7 +569,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
                 setPaymentType("regalo");
               }
             }}
-            disabled={containersDepositInfo && containersDepositInfo.total > 0}
+            disabled={!!(containersDepositInfo && containersDepositInfo.total > 0)}
             style={{
               backgroundColor: paymentType === "regalo" ? "#aeae40" : "#f3f4f6",
               borderColor: paymentType === "regalo" ? "#f59e0b" : "#d1d5db",

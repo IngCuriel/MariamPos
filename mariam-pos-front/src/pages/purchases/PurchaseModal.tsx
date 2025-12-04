@@ -263,7 +263,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, onSave }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <Card className="modal-content purchase-modal" onClick={(e) => e.stopPropagation()}>
+      <Card className="modal-content purchase-modal" onClick={(e) => e?.stopPropagation()}>
         <div className="modal-header">
           <h2>Nueva Compra</h2>
           <button className="close-button" onClick={onClose}>

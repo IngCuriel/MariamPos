@@ -3,7 +3,8 @@ import Card from '../../components/Card';
 import Button from '../../components/Button';
 import type { Client } from '../../types';
 import { getClientPendingDeposits, returnAllClientContainerDeposits, type ClientContainerDepositsResponse } from '../../api/clientContainerDeposits';
-import { getActiveShift, createCashMovement, type CreateCashMovementInput } from '../../api/cashRegister';
+import { getActiveShift, createCashMovement } from '../../api/cashRegister';
+import type { CreateCashMovementInput } from '../../types';
 import Swal from 'sweetalert2';
 import '../../styles/pages/client.css';
 

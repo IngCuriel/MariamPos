@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import Button from "../../components/Button";
-import Card from "../../components/Card";
 import type { Product, Category, KitItem } from "../../types/index";
 import { getCategories } from "../../api/categories";
-import { getProductsFilters, getProductsByCategoryId, updateProduct } from "../../api/products";
+import { getProductsFilters, getProductsByCategoryId } from "../../api/products";
 import Swal from "sweetalert2";
 import "../../styles/pages/products/newproductpage.css";
 import "../../styles/pages/products/productModal.css";
@@ -182,17 +181,6 @@ const EditKitModal: React.FC<EditKitModalProps> = ({
         showConfirmButton: false,
       });
       return;
-    }
-
-    // Determinar el precio unitario
-    let unitPrice = product.price;
-    if (selectedPresentationId) {
-      const presentation = product.presentations?.find(
-        (p) => p.id === parseInt(selectedPresentationId)
-      );
-      if (presentation) {
-        unitPrice = presentation.unitPrice;
-      }
     }
 
     const newItem: KitItem = {
@@ -392,7 +380,7 @@ const EditKitModal: React.FC<EditKitModalProps> = ({
                   onChange={handleInputChange}
                   className={errors.name ? "error" : ""}
                   placeholder="Ej: Combo Navideño"
-                  ref={(el) => (inputRefs.current[0] = el)}
+                  ref={(el) => { inputRefs.current[0] = el; }}
                 />
                 {errors.name && <span className="error-message">{errors.name}</span>}
               </div>

@@ -4,7 +4,6 @@ import Card from "../../components/Card";
 import Button from "../../components/Button";
 import type { Inventory, Category } from "../../types";
 import { getInventory } from "../../api/inventory";
-import { getProductsFilters } from "../../api/products";
 import { getCategories } from "../../api/categories";
 import "../../styles/pages/inventory/inventory.css";
 import InventoryEntryModal from "./InventoryEntryModal";

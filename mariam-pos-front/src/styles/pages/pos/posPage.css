@@ -31,10 +31,40 @@
   flex-shrink: 0;
 }
 
+.pos-page-header .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pos-config-button {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  line-height: 1;
+}
+
+.pos-config-button:hover {
+  background: #f0f9ff;
+  border-color: #3b82f6;
+  color: #3b82f6;
+  transform: rotate(90deg);
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2);
+}
+
 .pos-page-content {
   padding: 1.25rem 1.5rem;
   display: flex;
-  /*flex-direction: column;*/
+  flex-direction: column;
   gap: 1.25rem;
   overflow-y: auto;
   flex: 1;
@@ -78,7 +108,7 @@
 /* ===== GRID DE MÓDULOS ===== */
 .pos-modules-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  /* grid-template-columns se define inline desde el componente según section.columns */
   gap: 1rem;
 }
 

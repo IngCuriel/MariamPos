@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import type { Category } from "../types";
 import { toast } from 'react-toastify';
 import { getCategories, createCategory, updateCategory as putCategory, deleteCategory as removeCategory} from "../api/categories";

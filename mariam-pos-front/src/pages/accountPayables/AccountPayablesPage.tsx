@@ -6,7 +6,6 @@ import type { AccountPayable, Supplier } from "../../types";
 import {
   getAccountPayables,
   getAccountPayablesSummary,
-  registerPayment,
   deleteAccountPayable,
 } from "../../api/accountPayables";
 import { getSuppliers } from "../../api/suppliers";

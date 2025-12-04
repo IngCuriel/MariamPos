@@ -34,7 +34,7 @@ import { createPendingSale, type PendingSale } from "../../api/pendingSales";
 import PendingSalesModal from "./PendingSalesModal";
 import { playAddProductSound } from "../../utils/sound";
 import { getContainers, type Container } from "../../api/containers";
-import { createCashMovement, type CreateCashMovementInput } from "../../api/cashRegister";
+import { createCashMovement } from "../../api/cashRegister";
 import { createClientContainerDeposit } from "../../api/clientContainerDeposits";
 
 interface SalesPageProps {

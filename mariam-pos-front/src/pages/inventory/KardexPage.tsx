@@ -3,7 +3,7 @@ import Header from "../../components/Header";
 import Card from "../../components/Card";
 import Button from "../../components/Button";
 import type { InventoryMovement, Product } from "../../types";
-import { getAllMovements, getProductMovements } from "../../api/inventory";
+import { getProductMovements } from "../../api/inventory";
 import { getProductsFilters } from "../../api/products";
 import "../../styles/pages/inventory/kardex.css";
 import Swal from "sweetalert2";
@@ -384,7 +384,7 @@ const KardexPage: React.FC<KardexPageProps> = ({ onBack }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredMovements.map((movement, index) => {
+                  {filteredMovements.map((movement) => {
                     const typeInfo = getMovementTypeLabel(movement.type);
                     const stockAfter = calculateStockAfter(movement, filteredMovements);
                     return (

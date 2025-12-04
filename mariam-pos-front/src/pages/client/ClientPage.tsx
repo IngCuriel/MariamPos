@@ -609,7 +609,7 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
                             <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '700', color: '#1f2937' }}>
                               {clientData.client.name}
                             </h3>
-                            {clientData.client.phone && (
+                            {'phone' in clientData.client && clientData.client.phone && (
                               <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#6b7280' }}>
                                 📱 {clientData.client.phone}
                               </p>
@@ -765,7 +765,7 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
                             <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '700', color: '#1f2937' }}>
                               {clientData.client.name}
                             </h3>
-                            {clientData.client.phone && (
+                            {'phone' in clientData.client && clientData.client.phone && (
                               <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#6b7280' }}>
                                 📱 {clientData.client.phone}
                               </p>

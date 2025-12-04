@@ -83,7 +83,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSave, ac
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <Card className="modal-content payment-modal" onClick={(e) => e.stopPropagation()}>
+      <Card className="modal-content payment-modal" onClick={(e) => e?.stopPropagation()}>
         <div className="modal-header">
           <h2>Registrar Pago</h2>
           <button className="close-button" onClick={onClose}>

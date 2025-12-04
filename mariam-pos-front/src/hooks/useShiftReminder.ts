@@ -3,17 +3,7 @@ import { getAllOpenShifts, closeShift } from '../api/cashRegister';
 import type { CashRegisterShift } from '../types';
 import Swal from 'sweetalert2';
 
-// Declarar tipos para window.electronAPI
-declare global {
-  interface Window {
-    electronAPI?: {
-      onCheckOpenShifts: (callback: () => void) => void;
-      respondOpenShifts: (hasShifts: boolean) => void;
-      onShowShiftReminderOnClose: (callback: () => void) => void;
-      notifyAppClose: (shouldClose: boolean) => void;
-    };
-  }
-}
+// Los tipos de electronAPI están definidos en types/index.ts
 
 interface UseShiftReminderOptions {
   onGoToSales?: () => void;
@@ -40,15 +30,15 @@ export const useShiftReminder = (options?: UseShiftReminderOptions) => {
   useEffect(() => {
     if (typeof window !== 'undefined' && window.electronAPI) {
       // Escuchar cuando Electron quiere verificar turnos abiertos
-      window.electronAPI.onCheckOpenShifts(async () => {
+      window.electronAPI?.onCheckOpenShifts?.(async () => {
         const { cashRegister, branch } = getCashRegisterAndBranch();
         const shifts = await getAllOpenShifts(cashRegister, branch);
         const hasShifts = shifts.length > 0;
-        window.electronAPI?.respondOpenShifts(hasShifts);
+        window.electronAPI?.respondOpenShifts?.(hasShifts);
       });
 
       // Escuchar cuando Electron quiere mostrar recordatorio al cerrar
-      window.electronAPI.onShowShiftReminderOnClose(() => {
+      window.electronAPI?.onShowShiftReminderOnClose?.(() => {
         showCloseReminder();
       });
     }
@@ -254,7 +244,7 @@ export const useShiftReminder = (options?: UseShiftReminderOptions) => {
       
       if (shifts.length === 0) {
         // No hay turnos abiertos, permitir cierre
-        window.electronAPI?.notifyAppClose(true);
+        window.electronAPI?.notifyAppClose?.(true);
         return;
       }
 
@@ -385,7 +375,7 @@ export const useShiftReminder = (options?: UseShiftReminderOptions) => {
       if (result.isConfirmed) {
         // Usuario quiere cerrar los turnos
         await handleCloseAllShifts(shifts);
-        window.electronAPI?.notifyAppClose(true);
+        window.electronAPI?.notifyAppClose?.(true);
       } else {
         // Usuario quiere dejar los turnos abiertos
         Swal.fire({
@@ -425,13 +415,13 @@ export const useShiftReminder = (options?: UseShiftReminderOptions) => {
           timer: 4000,
           width: '550px',
         }).then(() => {
-          window.electronAPI?.notifyAppClose(true);
+          window.electronAPI?.notifyAppClose?.(true);
         });
       }
     } catch (error) {
       console.error('Error al mostrar recordatorio de cierre:', error);
       // En caso de error, permitir el cierre
-      window.electronAPI?.notifyAppClose(true);
+      window.electronAPI?.notifyAppClose?.(true);
     }
   };
 

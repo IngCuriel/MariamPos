@@ -102,7 +102,7 @@ const SupplierModal: React.FC<SupplierModalProps> = ({ isOpen, onClose, onSave, 
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <Card className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <Card className="modal-content" onClick={(e) => e?.stopPropagation()}>
         <div className="modal-header">
           <button className="close-button" onClick={onClose}>
             ✕

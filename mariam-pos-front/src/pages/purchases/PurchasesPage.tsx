@@ -3,7 +3,7 @@ import Header from "../../components/Header";
 import Card from "../../components/Card";
 import Button from "../../components/Button";
 import type { Purchase, Supplier } from "../../types";
-import { getPurchases, createPurchase, deletePurchase } from "../../api/purchases";
+import { getPurchases, deletePurchase } from "../../api/purchases";
 import { getSuppliers } from "../../api/suppliers";
 import PurchaseModal from "./PurchaseModal";
 import Swal from "sweetalert2";

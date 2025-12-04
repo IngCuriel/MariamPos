@@ -82,7 +82,7 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
       if (product) {
         setFormData({
           id: product.id,
-          code: product.code.trim(),
+          code: product.code?.trim() || '',
           name: product.name.trim(),
           status: product.status,
           saleType: product.saleType,
@@ -553,7 +553,7 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
 
         // Agrega el código numérico
         doc.setFontSize(6);
-        doc.text(product.code.toString(), x + labelWidth / 2, y + 1.2, { align: "center" });
+        doc.text(product.code?.toString() || '', x + labelWidth / 2, y + 1.2, { align: "center" });
 
         // Agrega el nombre del producto
         doc.setFontSize(7);

@@ -547,6 +547,10 @@ declare global {
     electronAPI?: {
       openExternal: (url: string) => Promise<{ success: boolean; error?: string }>;
       isElectron: boolean;
+      onCheckOpenShifts?: (callback: () => void) => void;
+      respondOpenShifts?: (hasShifts: boolean) => void;
+      onShowShiftReminderOnClose?: (callback: () => void) => void;
+      notifyAppClose?: (shouldClose: boolean) => void;
     };
   }
 }
