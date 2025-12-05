@@ -15,6 +15,9 @@ import type {
   CloseShiftInput,
   CashMovement,
 } from "../../types/index";
+import { createRoot } from 'react-dom/client';
+import type { Root } from 'react-dom/client';
+import TouchCalculator from '../../components/TouchCalculator';
 import "../../styles/pages/sales/paymentModal.css";
 
 interface ShiftModalProps {
@@ -26,6 +29,38 @@ interface ShiftModalProps {
 }
 
 type ModalMode = "open" | "close";
+
+// Función para mostrar la calculadora touch (reutilizada de GranelModal)
+const showTouchCalculator = (
+  initialValue: string,
+  label: string,
+  onConfirm: (value: string) => void
+): void => {
+  const calculatorContainer = document.createElement('div');
+  calculatorContainer.id = 'touch-calculator-root';
+  document.body.appendChild(calculatorContainer);
+
+  const root: Root = createRoot(calculatorContainer);
+
+  const handleClose = () => {
+    root.unmount();
+    document.body.removeChild(calculatorContainer);
+  };
+
+  const handleConfirm = (value: string) => {
+    onConfirm(value);
+    handleClose();
+  };
+
+  root.render(
+    <TouchCalculator
+      initialValue={initialValue}
+      label={label}
+      onConfirm={handleConfirm}
+      onClose={handleClose}
+    />
+  );
+};
 
 const ShiftModal: React.FC<ShiftModalProps> = ({
   branch,
@@ -90,7 +125,64 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
       setTimeout(() => {
         inputRef.current?.focus();
         inputRef.current?.select();
+        if (inputRef.current?.setSelectionRange) {
+          inputRef.current.setSelectionRange(0, inputRef.current.value.length);
+        }
       }, 100);
+    }
+  }, [mode]);
+
+  // Configurar botón de calculadora touch para fondo inicial
+  useEffect(() => {
+    if (mode === "open") {
+      const btnCambiarFondo = document.getElementById('btn-cambiar-fondo-inicial');
+      if (btnCambiarFondo && inputRef.current) {
+        const handleClick = () => {
+          const currentValue = inputRef.current?.value.replace(/,/g, '') || '0';
+          showTouchCalculator(currentValue, '💰 Fondo Inicial', (newValue) => {
+            if (inputRef.current) {
+              inputRef.current.value = newValue;
+              setInitialCash(newValue);
+              inputRef.current.focus();
+              inputRef.current.select();
+              if (inputRef.current.setSelectionRange) {
+                inputRef.current.setSelectionRange(0, inputRef.current.value.length);
+              }
+            }
+          });
+        };
+        btnCambiarFondo.addEventListener('click', handleClick);
+        return () => {
+          btnCambiarFondo.removeEventListener('click', handleClick);
+        };
+      }
+    }
+  }, [mode]);
+
+  // Configurar botón de calculadora touch para efectivo contado
+  useEffect(() => {
+    if (mode === "close") {
+      const btnCalcularEfectivo = document.getElementById('btn-calcular-efectivo-contado');
+      if (btnCalcularEfectivo && inputRef.current) {
+        const handleClick = () => {
+          const currentValue = inputRef.current?.value.replace(/,/g, '') || '0';
+          showTouchCalculator(currentValue, '💰 Efectivo Contado', (newValue) => {
+            if (inputRef.current) {
+              inputRef.current.value = newValue;
+              setFinalCash(newValue);
+              inputRef.current.focus();
+              inputRef.current.select();
+              if (inputRef.current.setSelectionRange) {
+                inputRef.current.setSelectionRange(0, inputRef.current.value.length);
+              }
+            }
+          });
+        };
+        btnCalcularEfectivo.addEventListener('click', handleClick);
+        return () => {
+          btnCalcularEfectivo.removeEventListener('click', handleClick);
+        };
+      }
     }
   }, [mode]);
 
@@ -448,14 +540,18 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
           </div>
 
           <div className="input-section">
-            <label>Fondo Inicial (Efectivo en Caja):</label>
-            <div className="input-wrapper">
+            <label>
+              <span style={{ marginRight: "0.5rem" }}>💰</span>
+              Fondo Inicial (Efectivo en Caja):
+            </label>
+            <div className="input-wrapper" style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
               <input
                 ref={inputRef}
-                type="number"
+                type="text"
                 step="0.01"
                 min="0"
                 placeholder="0.00"
+                inputmode="decimal"
                 value={initialCash}
                 onChange={(e) => setInitialCash(e.target.value)}
                 onKeyDown={(e) => {
@@ -464,7 +560,32 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
                     handleOpenShift();
                   }
                 }}
+                style={{ flex: 1 }}
               />
+              <button
+                id="btn-cambiar-fondo-inicial"
+                type="button"
+                style={{
+                  background: "#667eea",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "10px 16px",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  fontSize: "0.9rem",
+                  whiteSpace: "nowrap",
+                  transition: "background 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#5568d3";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#667eea";
+                }}
+              >
+                🧮 Calcular
+              </button>
             </div>
           </div>
 
@@ -741,15 +862,17 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
           <div>
             <div className="input-section" style={{ marginBottom: "12px" }}>
               <label style={{ fontSize: "0.95rem", fontWeight: "600", marginBottom: "6px", display: "block" }}>
+                <span style={{ marginRight: "0.5rem" }}>💰</span>
                 Efectivo Contado Físicamente:
               </label>
-              <div className="input-wrapper">
+              <div className="input-wrapper" style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
                 <input
                   ref={inputRef}
-                  type="number"
+                  type="text"
                   step="0.01"
                   min="0"
                   placeholder="0.00"
+                  inputmode="decimal"
                   value={finalCash}
                   onChange={(e) => setFinalCash(e.target.value)}
                   onKeyDown={(e) => {
@@ -761,9 +884,34 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
                   style={{
                     fontSize: "1.2rem",
                     padding: "12px",
-                    fontWeight: "600"
+                    fontWeight: "600",
+                    flex: 1
                   }}
                 />
+                <button
+                  id="btn-calcular-efectivo-contado"
+                  type="button"
+                  style={{
+                    background: "#667eea",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "10px 16px",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                    fontSize: "0.9rem",
+                    whiteSpace: "nowrap",
+                    transition: "background 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#5568d3";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "#667eea";
+                  }}
+                >
+                  🧮 Calcular
+                </button>
               </div>
               {difference !== null && (
                 <div style={{
