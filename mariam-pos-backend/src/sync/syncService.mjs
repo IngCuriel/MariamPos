@@ -250,16 +250,6 @@ export async function stopSyncLoop() {
 
 /**
  * Limpieza al cerrar la aplicación
- * Nota: La desconexión de Prisma se maneja en utils/prisma.js
+ * Nota: Los handlers de SIGINT/SIGTERM se manejan en index.mjs para evitar conflictos
+ * Este módulo solo exporta stopSyncLoop() para ser llamado desde el handler principal
  */
-process.on('SIGINT', async () => {
-  await stopSyncLoop()
-  // Prisma se desconecta automáticamente en utils/prisma.js
-  process.exit(0)
-})
-
-process.on('SIGTERM', async () => {
-  await stopSyncLoop()
-  // Prisma se desconecta automáticamente en utils/prisma.js
-  process.exit(0)
-})

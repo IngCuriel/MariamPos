@@ -2,6 +2,11 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 console.log('========================================');
 console.log('  Generador de Instalador SERVIDOR');
@@ -20,6 +25,38 @@ if (!fs.existsSync(frontendDist)) {
 }
 
 console.log('✅ Frontend compilado encontrado\n');
+
+// Limpiar base de datos antes de generar el instalador
+console.log('🧹 Limpiando base de datos para el instalador...\n');
+try {
+  const cleanScriptPath = path.join(__dirname, 'mariam-pos-backend', 'src', 'utils', 'cleanDatabaseForBuild.mjs');
+  
+  if (!fs.existsSync(cleanScriptPath)) {
+    console.warn('⚠️  Script de limpieza no encontrado, continuando sin limpiar...\n');
+  } else {
+    // Verificar que Prisma Client esté generado
+    const prismaClientPath = path.join(__dirname, 'mariam-pos-backend', 'node_modules', '.prisma', 'client');
+    if (!fs.existsSync(prismaClientPath)) {
+      console.log('📦 Generando Prisma Client...');
+      execSync('npx prisma generate', { 
+        stdio: 'inherit',
+        cwd: path.join(__dirname, 'mariam-pos-backend')
+      });
+    }
+
+    // Ejecutar el script de limpieza
+    const nodePath = process.execPath;
+    execSync(`"${nodePath}" "${cleanScriptPath}"`, { 
+      stdio: 'inherit',
+      cwd: __dirname,
+      env: { ...process.env, NODE_ENV: process.env.NODE_ENV || 'production' }
+    });
+    console.log('');
+  }
+} catch (error) {
+  console.error('❌ Error al limpiar la base de datos:', error.message);
+  console.error('⚠️  Continuando con la generación del instalador...\n');
+}
 
 // Copiar scripts de configuración a dist/ para que estén disponibles después de la instalación
 const configScripts = [

@@ -27,14 +27,11 @@ const gracefulShutdown = async () => {
   }
 };
 
-// Manejar señales de terminación (solo una vez para evitar duplicados)
+// Manejar señales de terminación
+// NOTA: Los handlers de SIGINT/SIGTERM se manejan en index.mjs para evitar conflictos
+// Este módulo solo maneja beforeExit como respaldo
 const setupShutdownHandlers = () => {
-  if (!process.listenerCount('SIGINT')) {
-    process.on('SIGINT', gracefulShutdown);
-  }
-  if (!process.listenerCount('SIGTERM')) {
-    process.on('SIGTERM', gracefulShutdown);
-  }
+  // Solo manejar beforeExit aquí, SIGINT/SIGTERM se manejan en index.mjs
   if (!process.listenerCount('beforeExit')) {
     process.on('beforeExit', gracefulShutdown);
   }

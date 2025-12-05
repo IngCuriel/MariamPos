@@ -1,10 +1,11 @@
 // mariam-pos-backend/src/index.mjs
 import express from "express";
-import { startSyncLoop } from './sync/syncService.mjs'
+import { startSyncLoop, stopSyncLoop } from './sync/syncService.mjs'
 import cors from "cors";
 import path from "path";
 import fs from "fs";
 import os from "os";
+import { createServer } from 'http';
 import prisma from "./utils/prisma.js";
 
 // -------------------
@@ -116,20 +117,46 @@ process.on('unhandledRejection', (reason, promise) => {
 // -------------------
 // Manejo de señales de terminación
 // -------------------
+let isShuttingDown = false;
+
 const gracefulShutdown = async (signal) => {
+  if (isShuttingDown) {
+    console.log('⚠️ Cierre ya en progreso, ignorando señal...');
+    return;
+  }
+  
+  isShuttingDown = true;
   console.log(`\n🛑 Señal ${signal} recibida. Cerrando servidor...`);
   
   try {
-    // Cerrar Prisma
-    await prisma.$disconnect();
-    console.log('✅ Prisma desconectado');
+    // Detener el servicio de sincronización primero
+    try {
+      await stopSyncLoop();
+      console.log('✅ Servicio de sincronización detenido');
+    } catch (error) {
+      console.error('⚠️ Error al detener syncService:', error);
+    }
     
-    // Cerrar servidor
+    // Cerrar Prisma
+    try {
+      await prisma.$disconnect();
+      console.log('✅ Prisma desconectado');
+    } catch (error) {
+      console.error('⚠️ Error al desconectar Prisma:', error);
+    }
+    
+    // Cerrar servidor con timeout
     if (server) {
       server.close(() => {
         console.log('✅ Servidor HTTP cerrado');
         process.exit(0);
       });
+      
+      // Forzar cierre después de 5 segundos si no se cierra normalmente
+      setTimeout(() => {
+        console.error('⚠️ Timeout al cerrar servidor, forzando cierre...');
+        process.exit(1);
+      }, 5000);
     } else {
       process.exit(0);
     }
@@ -139,6 +166,9 @@ const gracefulShutdown = async (signal) => {
   }
 };
 
+// Remover listeners duplicados antes de agregar nuevos
+process.removeAllListeners('SIGINT');
+process.removeAllListeners('SIGTERM');
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
@@ -149,13 +179,44 @@ const PORT = 3001; // puerto fijo
 // Escuchar en todas las interfaces de red (0.0.0.0) para permitir conexiones desde otros dispositivos
 const HOST = process.env.HOST || "0.0.0.0";
 
-const server = app.listen(PORT, HOST, () => {
-  console.log(`🖥️  Servidor corriendo en http://${HOST === "0.0.0.0" ? "localhost" : HOST}:${PORT}`);
-  console.log(`🌐 Accesible desde la red local en: http://[IP-DE-ESTA-MAQUINA]:${PORT}`);
-  startSyncLoop();//   🔁 activa sincronización automática
-});
+// Verificar si el puerto está ocupado antes de iniciar
+const checkPort = () => {
+  return new Promise((resolve, reject) => {
+    const testServer = createServer();
+    testServer.listen(PORT, HOST, () => {
+      testServer.once('close', () => resolve(true));
+      testServer.close();
+    });
+    testServer.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.error(`❌ ERROR: El puerto ${PORT} ya está en uso.`);
+        console.error(`   Por favor, cierra otros procesos que usen el puerto ${PORT} o espera unos segundos.`);
+        reject(new Error(`Puerto ${PORT} ocupado`));
+      } else {
+        reject(err);
+      }
+    });
+  });
+};
 
-// Configurar timeout del servidor
-server.timeout = 30000; // 30 segundos
-server.keepAliveTimeout = 65000; // 65 segundos
-server.headersTimeout = 66000; // 66 segundos
+// Variable para el servidor
+let server = null;
+
+// Iniciar servidor con verificación de puerto
+checkPort()
+  .then(() => {
+    server = app.listen(PORT, HOST, () => {
+      console.log(`🖥️  Servidor corriendo en http://${HOST === "0.0.0.0" ? "localhost" : HOST}:${PORT}`);
+      console.log(`🌐 Accesible desde la red local en: http://[IP-DE-ESTA-MAQUINA]:${PORT}`);
+      startSyncLoop();//   🔁 activa sincronización automática
+    });
+
+    // Configurar timeout del servidor
+    server.timeout = 30000; // 30 segundos
+    server.keepAliveTimeout = 65000; // 65 segundos
+    server.headersTimeout = 66000; // 66 segundos
+  })
+  .catch((error) => {
+    console.error('❌ No se pudo iniciar el servidor:', error.message);
+    process.exit(1);
+  });

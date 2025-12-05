@@ -86,7 +86,15 @@ app.whenReady().then(() => {
 
     backendProcess.stdout.on("data", (data) => log(`📘 BACKEND: ${data}`));
     backendProcess.stderr.on("data", (data) => log(`❌ BACKEND ERROR: ${data}`));
-    backendProcess.on("close", (code) => log(`⚙️ Backend cerrado con código: ${code}`));
+    backendProcess.on("close", (code) => {
+      log(`⚙️ Backend cerrado con código: ${code}`);
+      backendProcess = null;
+    });
+    
+    backendProcess.on("error", (error) => {
+      log(`❌ Error en proceso backend: ${error.message}`);
+      backendProcess = null;
+    });
 
     createWindow();
   } catch (err) {
@@ -132,15 +140,45 @@ app.on("before-quit", async (event) => {
   }
 });
 
+// Función para cerrar el proceso backend de forma segura
+const killBackendProcess = () => {
+  if (backendProcess) {
+    try {
+      log("🛑 Cerrando proceso backend...");
+      // Enviar señal SIGTERM primero (más suave)
+      if (process.platform !== "win32") {
+        backendProcess.kill("SIGTERM");
+      } else {
+        backendProcess.kill();
+      }
+      
+      // Si no se cierra en 3 segundos, forzar con SIGKILL
+      setTimeout(() => {
+        if (backendProcess && !backendProcess.killed) {
+          log("⚠️ Forzando cierre del proceso backend...");
+          backendProcess.kill("SIGKILL");
+        }
+      }, 3000);
+    } catch (error) {
+      log(`❌ Error al cerrar proceso backend: ${error.message}`);
+    }
+  }
+};
+
 // Manejar decisión del usuario sobre cerrar la aplicación
 ipcMain.on("app-close-decision", (event, shouldClose) => {
   if (shouldClose) {
-    if (backendProcess) backendProcess.kill();
+    killBackendProcess();
     app.quit();
   }
 });
 
 app.on("window-all-closed", () => {
-  if (backendProcess) backendProcess.kill();
+  killBackendProcess();
   if (process.platform !== "darwin") app.quit();
+});
+
+// Manejar cierre de la aplicación
+app.on("will-quit", (event) => {
+  killBackendProcess();
 });
