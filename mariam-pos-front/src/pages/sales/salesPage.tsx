@@ -1230,6 +1230,8 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         timer: 4000,
         showConfirmButton: false,
       });
+      setClient("Publico en General");
+      setSelectedClient(null);
     } catch (error) {
       console.error("Error ConfirmPayment", error);
       Swal.fire({
