@@ -12,14 +12,10 @@ registerLocale("es", es);
 
 interface ShiftHistoryPageProps {
   onBack: () => void;
-  branch?: string;
-  cashRegister?: string;
 }
 
 export default function ShiftHistoryPage({
   onBack,
-  branch = "Sucursal Principal",
-  cashRegister = "Caja 1",
 }: ShiftHistoryPageProps) {
   const [selectedShift, setSelectedShift] = useState<CashRegisterShift | null>(null);
   const [shiftSummary, setShiftSummary] = useState<ShiftSummary | null>(null);
@@ -34,6 +30,7 @@ export default function ShiftHistoryPage({
 
   useEffect(() => {
     fetchShifts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startDate, endDate, filterStatus]);
 
   const fetchShifts = async () => {
@@ -42,13 +39,17 @@ export default function ShiftHistoryPage({
       const start = startDate.toLocaleDateString("en-CA");
       const end = endDate.toLocaleDateString("en-CA");
 
+      // Obtener sucursal desde localStorage (siempre el valor más reciente)
+      const branch = localStorage.getItem('sucursal') || undefined;
+
       const params: Record<string, string> = {
         startDate: start,
         endDate: end,
       };
 
+      // Solo filtrar por sucursal (desde localStorage), no por caja para mostrar todas las cajas
       if (branch) params.branch = branch;
-      if (cashRegister) params.cashRegister = cashRegister;
+      // No incluir cashRegister para mostrar todas las cajas
       if (filterStatus) params.status = filterStatus;
 
       const data = await getShiftsByDateRange(params);
@@ -152,8 +153,8 @@ export default function ShiftHistoryPage({
   const calculateRegalo = (shift: CashRegisterShift) => {
     if (!shift.sales || !Array.isArray(shift.sales)) return 0;
     return shift.sales
-      .filter((sale: any) => sale.paymentMethod && sale.paymentMethod.toLowerCase().includes("regalo"))
-      .reduce((sum: number, sale: any) => sum + (sale.total || 0), 0);
+      .filter((sale) => sale.paymentMethod && sale.paymentMethod.toLowerCase().includes("regalo"))
+      .reduce((sum, sale) => sum + (sale.total || 0), 0);
   };
 
   return (
@@ -256,6 +257,7 @@ export default function ShiftHistoryPage({
                     <tr>
                       <th>Folio</th>
                       <th>Fecha Inicio</th>
+                      <th>Caja</th>
                       <th>Cajero</th>
                       <th>Estado</th>
                       <th>Total</th>
@@ -270,6 +272,7 @@ export default function ShiftHistoryPage({
                       >
                         <td className="folio-cell">{shift.shiftNumber}</td>
                         <td className="date-cell">{formatDate(shift.startTime)}</td>
+                        <td className="cash-register-cell">{shift.cashRegister}</td>
                         <td className="cashier-cell">{shift.cashierName || "Anónimo"}</td>
                         <td className="status-cell">{getStatusBadge(shift.status)}</td>
                         <td className="total-cell">
