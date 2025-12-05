@@ -553,7 +553,7 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
         <div className="modal-overlay">
           <div className="modal-container-day-sales">
             <h2 className="modal-title">Resumen de Ventas del Día</h2>
-            <div className="modal-content">
+            <div className="modal-content-day-sales">
               {/* Left column - Summary totals */}
               <div className="summary-column">
                 <div className="summary-totals">

@@ -136,7 +136,7 @@
 }
 
 /* ===== MAIN CONTENT ===== */
-.modal-content {
+.modal-content-day-sales {
   display: grid;
   grid-template-columns: 1fr 2.5fr;
   gap: 1.5rem;

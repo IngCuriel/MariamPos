@@ -1,0 +1,176 @@
+/* ===== GRANEL MODAL STYLES ===== */
+.granel-modal-popup {
+  border-radius: 20px !important;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+}
+
+.granel-modal-html-container {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.granel-modal-container {
+  text-align: left;
+  width: 100%;
+  max-width: 600px;
+  padding: 1.5rem;
+}
+
+.granel-modal-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.granel-modal-subtitle {
+  font-size: 1rem;
+  color: #64748b;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-weight: 500;
+}
+
+.granel-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.granel-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.granel-modal-label {
+  font-weight: 600;
+  color: #475569;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.granel-modal-label-icon {
+  font-size: 1.1rem;
+}
+
+.granel-modal-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.granel-modal-input-wrapper:focus-within {
+  border-color: #667eea;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.granel-modal-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  padding: 0.75rem 1rem;
+  outline: none;
+  text-align: right;
+  min-width: 0;
+}
+
+.granel-modal-input::placeholder {
+  color: #94a3b8;
+}
+
+.granel-modal-change-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  min-height: 48px;
+}
+
+.granel-modal-change-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.granel-modal-change-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+.granel-modal-info {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 2px solid #10b981;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-top: 0.5rem;
+}
+
+.granel-modal-info-text {
+  font-size: 0.875rem;
+  color: #059669;
+  margin: 0;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* ===== TOUCH OPTIMIZATIONS ===== */
+@media (hover: none) and (pointer: coarse) {
+  .granel-modal-change-btn {
+    min-height: 56px;
+    font-size: 1.1rem;
+    padding: 0.875rem 1.5rem;
+  }
+
+  .granel-modal-input {
+    font-size: 1.5rem;
+    padding: 1rem 1.25rem;
+  }
+
+  .granel-modal-input-wrapper {
+    padding: 0.75rem;
+  }
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .granel-modal-container {
+    max-width: 100%;
+  }
+
+  .granel-modal-title {
+    font-size: 1.25rem;
+  }
+
+  .granel-modal-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .granel-modal-form {
+    gap: 1.25rem;
+  }
+}
+
