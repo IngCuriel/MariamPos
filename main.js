@@ -4,6 +4,12 @@ import path from "path";
 import fs from "fs";
 import os from "os";
 import { spawn } from "child_process";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+// Obtener __dirname en ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 let mainWindow;
 let backendProcess;
@@ -35,6 +41,14 @@ if (!fs.existsSync(dbPath)) {
 process.env.DATABASE_URL = `file:${dbPath}`;
 
 function createWindow() {
+  // Obtener la ruta del preload.js (funciona tanto en desarrollo como en producción)
+  // En producción, app.getAppPath() devuelve la ruta de la aplicación empaquetada
+  // En desarrollo, __dirname funciona correctamente
+  const appPath = app.isPackaged ? app.getAppPath() : __dirname;
+  const preloadPath = path.join(appPath, "preload.js");
+  
+  log(`📄 Ruta de preload: ${preloadPath}`);
+  
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -42,7 +56,7 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, "preload.js"), // Script de preload para IPC
+      preload: preloadPath, // Script de preload para IPC
     },
   });
 
