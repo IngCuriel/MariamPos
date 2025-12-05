@@ -551,7 +551,7 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
                 step="0.01"
                 min="0"
                 placeholder="0.00"
-                inputmode="decimal"
+                inputMode="decimal"
                 value={initialCash}
                 onChange={(e) => setInitialCash(e.target.value)}
                 onKeyDown={(e) => {
@@ -872,7 +872,7 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
                   step="0.01"
                   min="0"
                   placeholder="0.00"
-                  inputmode="decimal"
+                  inputMode="decimal"
                   value={finalCash}
                   onChange={(e) => setFinalCash(e.target.value)}
                   onKeyDown={(e) => {
