@@ -33,7 +33,7 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
     productId: undefined,
     presentationId: undefined,
     notes: "",
-    status: null, // null = activo por defecto
+    status: 1, // null = activo por defecto
   });
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -67,7 +67,7 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
     if (container) {
       setEditingContainer(container);
       // Convertir status a número o null (null o != 0 = activo, 0 = inactivo)
-      const containerStatus = container.status !== undefined ? container.status : (container.isActive ? null : 0);
+      const containerStatus = container.status !== undefined ? container.status : (container.isActive ? 1 : 0);
       setFormData({
         name: container.name,
         quantity: 1, // Siempre será 1
@@ -418,7 +418,7 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
                 <label htmlFor="status">Estado *</label>
                 <select
                   id="status"
-                  value={formData.status === null ? "" : formData.status}
+                  value={formData.status === null ? "1" : formData.status}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
@@ -428,7 +428,7 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
                   className="form-select"
                   required
                 >
-                  <option value="">Activo</option>
+                  <option value="1">Activo</option>
                   <option value="0">Inactivo</option>
                 </select>
                 <small className="form-hint">
