@@ -2031,9 +2031,14 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
           <CategoryProductModal
             onClose={() => {
               setShowCategoryModal(false);
-              // Enfocar el input de búsqueda después de cerrar el modal
+              // Solo enfocar el input de búsqueda si no se está abriendo un modal de producto
+              // (como GranelModal, PresentationModal, etc.)
               setTimeout(() => {
-                inputRef.current?.focus();
+                // Verificar que no haya un modal de SweetAlert2 abierto
+                const swalContainer = document.querySelector('.swal2-container');
+                if (!swalContainer) {
+                  inputRef.current?.focus();
+                }
               }, 100);
             }}
             onSelectProduct={handleAdd}

@@ -1,5 +1,40 @@
 import Swal from "sweetalert2";
 import type { Product, ProductPresentation } from '../../types/index';
+import { createRoot } from 'react-dom/client';
+import type { Root } from 'react-dom/client';
+import TouchCalculator from '../../components/TouchCalculator';
+
+// Función para mostrar la calculadora touch (reutilizada de GranelModal)
+const showTouchCalculator = (
+  initialValue: string,
+  label: string,
+  onConfirm: (value: string) => void
+): void => {
+  const calculatorContainer = document.createElement('div');
+  calculatorContainer.id = 'touch-calculator-root';
+  document.body.appendChild(calculatorContainer);
+
+  const root: Root = createRoot(calculatorContainer);
+
+  const handleClose = () => {
+    root.unmount();
+    document.body.removeChild(calculatorContainer);
+  };
+
+  const handleConfirm = (value: string) => {
+    onConfirm(value);
+    handleClose();
+  };
+
+  root.render(
+    <TouchCalculator
+      initialValue={initialValue}
+      label={label}
+      onConfirm={handleConfirm}
+      onClose={handleClose}
+    />
+  );
+};
 
 export const PresentationModal = async (product: Product): Promise<{ presentation: ProductPresentation; quantity: number; granelData?: { cantidad: number; precio: number } } | null> => {
   if (!product.presentations || product.presentations.length === 0) {
@@ -66,44 +101,124 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
         ${presentationsHTML}
       </div>
       <div id="presentation-quantity-field" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
-        <label for="swal-quantity" style="display: block; font-weight: 600; margin-bottom: 0.5rem; text-align: left;">Cantidad de presentaciones:</label>
-        <input 
-          id="swal-quantity" 
-          type="number" 
-          value="1" 
-          min="1" 
-          step="1" 
-          class="swal2-input" 
-          placeholder="Ejemplo: 2"
-          style="width: 70%;"
-        >
+        <label for="swal-quantity" style="display: block; font-weight: 600; margin-bottom: 0.5rem; text-align: left;">
+          <span style="margin-right: 0.5rem;">📦</span>
+          Cantidad de presentaciones:
+        </label>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <input 
+            id="swal-quantity" 
+            type="text" 
+            value="1" 
+            min="1" 
+            step="1" 
+            class="swal2-input" 
+            placeholder="Ejemplo: 2"
+            inputmode="numeric"
+            style="flex: 1;"
+          />
+          <button 
+            id="btn-cambiar-cantidad-presentaciones" 
+            type="button"
+            style="
+              background: #667eea;
+              color: white;
+              border: none;
+              border-radius: 8px;
+              padding: 10px 16px;
+              font-weight: 600;
+              cursor: pointer;
+              font-size: 0.9rem;
+              white-space: nowrap;
+              transition: background 0.2s ease;
+            "
+            onmouseover="this.style.background='#5568d3'"
+            onmouseout="this.style.background='#667eea'"
+          >
+            🧮 Cambiar
+          </button>
+        </div>
       </div>
       ${isGranel ? `
       <div id="granel-fields" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; display: none;">
         <div style="display: flex; flex-direction: column; gap: 12px;">
           <div>
-            <label for="swal-granel-cantidad" style="display: block; font-weight: 600; margin-bottom: 0.5rem; text-align: left;">Cantidad (kg, L, etc.):</label>
-            <input 
-              id="swal-granel-cantidad" 
-              type="number" 
-              value="1" 
-              step="0.01" 
-              min="0.01"
-              class="swal2-input" 
-              placeholder="Ejemplo: 0.5"
-            >
+            <label for="swal-granel-cantidad" style="display: block; font-weight: 600; margin-bottom: 0.5rem; text-align: left;">
+              <span style="margin-right: 0.5rem;">⚖️</span>
+              Cantidad (kg, L, etc.):
+            </label>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <input 
+                id="swal-granel-cantidad" 
+                type="text" 
+                value="1" 
+                step="0.01" 
+                min="0.01"
+                class="swal2-input" 
+                placeholder="Ejemplo: 0.5"
+                inputmode="decimal"
+                style="flex: 1;"
+              />
+              <button 
+                id="btn-cambiar-cantidad-granel" 
+                type="button"
+                style="
+                  background: #667eea;
+                  color: white;
+                  border: none;
+                  border-radius: 8px;
+                  padding: 10px 16px;
+                  font-weight: 600;
+                  cursor: pointer;
+                  font-size: 0.9rem;
+                  white-space: nowrap;
+                  transition: background 0.2s ease;
+                "
+                onmouseover="this.style.background='#5568d3'"
+                onmouseout="this.style.background='#667eea'"
+              >
+                🧮 Cambiar
+              </button>
+            </div>
           </div>
           <div>
-            <label for="swal-granel-precio" style="display: block; font-weight: 600; margin-bottom: 0.5rem; text-align: left;">Precio por unidad o total:</label>
-            <input 
-              id="swal-granel-precio" 
-              type="number" 
-              value="${product.price}" 
-              step="0.01" 
-              min="0"
-              class="swal2-input" 
-              placeholder="Ejemplo: 25.00"
-            >
+            <label for="swal-granel-precio" style="display: block; font-weight: 600; margin-bottom: 0.5rem; text-align: left;">
+              <span style="margin-right: 0.5rem;">💰</span>
+              Precio Total:
+            </label>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <input 
+                id="swal-granel-precio" 
+                type="text" 
+                value="${product.price}" 
+                step="0.01" 
+                min="0"
+                class="swal2-input" 
+                placeholder="Ejemplo: 25.00"
+                inputmode="decimal"
+                style="flex: 1;"
+              />
+              <button 
+                id="btn-cambiar-precio-granel" 
+                type="button"
+                style="
+                  background: #667eea;
+                  color: white;
+                  border: none;
+                  border-radius: 8px;
+                  padding: 10px 16px;
+                  font-weight: 600;
+                  cursor: pointer;
+                  font-size: 0.9rem;
+                  white-space: nowrap;
+                  transition: background 0.2s ease;
+                "
+                onmouseover="this.style.background='#5568d3'"
+                onmouseout="this.style.background='#667eea'"
+              >
+                🧮 Cambiar
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -112,10 +227,10 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
     width: '600px',
     focusConfirm: false,
     showCancelButton: true,
-    confirmButtonText: 'Agregar al carrito (Enter)',
-    cancelButtonText: 'Cancelar (ESC)',
-    confirmButtonColor: '#10b981',
-    cancelButtonColor: '#ef4444',
+    confirmButtonText: '✓ Agregar al carrito',
+    cancelButtonText: '✕ Cancelar',
+    confirmButtonColor: '#667eea',
+    cancelButtonColor: '#64748b',
 
     // importante para recibir teclas en container en fase capture
     keydownListenerCapture: true,
@@ -130,6 +245,9 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
       const granelFields = document.getElementById('granel-fields') as HTMLElement | null;
       const granelCantidadInput = document.getElementById('swal-granel-cantidad') as HTMLInputElement | null;
       const granelPrecioInput = document.getElementById('swal-granel-precio') as HTMLInputElement | null;
+      const btnCambiarCantidadPresentaciones = document.getElementById('btn-cambiar-cantidad-presentaciones');
+      const btnCambiarCantidadGranel = document.getElementById('btn-cambiar-cantidad-granel');
+      const btnCambiarPrecioGranel = document.getElementById('btn-cambiar-precio-granel');
       let selectedCardIndex = 0;
       let isBaseSelected = false;
 
@@ -165,24 +283,44 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
             const precioBase = selectedPres.unitPrice;
             // Si ya había campos granel visibles, mantener la cantidad y recalcular el precio
             // Si no, inicializar con 1
-            const cantidadActual = wasBaseSelected ? (parseFloat(granelCantidadInput.value) || 1) : 1;
+            const cantidadActual = wasBaseSelected ? (parseFloat(granelCantidadInput.value.replace(/,/g, '')) || 1) : 1;
             granelCantidadInput.value = cantidadActual.toString();
-            granelPrecioInput.value = (cantidadActual * precioBase).toFixed(2);
-            // Enfocar el input de cantidad
+            const precioCalculado = cantidadActual * precioBase;
+            granelPrecioInput.value = precioCalculado.toFixed(2);
+            // Enfocar el input de cantidad granel
             setTimeout(() => {
               granelCantidadInput.focus();
               granelCantidadInput.select();
-            }, 50);
+              if (granelCantidadInput.setSelectionRange) {
+                granelCantidadInput.setSelectionRange(0, granelCantidadInput.value.length);
+              }
+            }, 100);
           } else {
             // Ocultar campos granel y mostrar campo de cantidad de presentaciones
             granelFields.style.display = 'none';
             presentationQuantityField.style.display = 'block';
             // Enfocar el input de cantidad de presentaciones
             setTimeout(() => {
-              quantityInput?.focus();
-              quantityInput?.select();
-            }, 50);
+              if (quantityInput) {
+                quantityInput.focus();
+                quantityInput.select();
+                if (quantityInput.setSelectionRange) {
+                  quantityInput.setSelectionRange(0, quantityInput.value.length);
+                }
+              }
+            }, 100);
           }
+        } else {
+          // Si NO es producto granel, siempre enfocar el input de cantidad de presentaciones
+          setTimeout(() => {
+            if (quantityInput) {
+              quantityInput.focus();
+              quantityInput.select();
+              if (quantityInput.setSelectionRange) {
+                quantityInput.setSelectionRange(0, quantityInput.value.length);
+              }
+            }
+          }, 100);
         }
       };
 
@@ -276,6 +414,21 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
         }
       }, 20);
 
+      // Botón Cambiar Cantidad de Presentaciones - Abre calculadora
+      if (btnCambiarCantidadPresentaciones && quantityInput) {
+        btnCambiarCantidadPresentaciones.addEventListener('click', () => {
+          const currentValue = quantityInput.value.replace(/,/g, '') || '1';
+          showTouchCalculator(currentValue, '📦 Cantidad de presentaciones', (newValue) => {
+            const numValue = parseInt(newValue, 10);
+            if (!isNaN(numValue) && numValue > 0) {
+              quantityInput.value = numValue.toString();
+              quantityInput.focus();
+              quantityInput.select();
+            }
+          });
+        });
+      }
+
       // Cálculo automático para campos granel (similar a GranelModal)
       if (isGranel && granelCantidadInput && granelPrecioInput) {
         // Función para obtener el precio unitario de la presentación actual
@@ -284,30 +437,66 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
           return selectedPres ? selectedPres.unitPrice : product.price;
         };
 
-        // Cálculo automático cuando cambia la cantidad
-        granelCantidadInput.addEventListener('input', () => {
-          const cantidad = parseFloat(granelCantidadInput.value);
-          if (!isNaN(cantidad) && cantidad > 0) {
+        // Función para actualizar el precio cuando cambia la cantidad
+        const updatePrecioFromCantidad = () => {
+          const cantidad = parseFloat(granelCantidadInput!.value.replace(/,/g, '')) || 0;
+          if (cantidad > 0) {
             const precioUnitario = getCurrentUnitPrice();
             const nuevoPrecio = cantidad * precioUnitario;
-            granelPrecioInput.value = nuevoPrecio.toFixed(2);
+            granelPrecioInput!.value = nuevoPrecio.toFixed(2);
           }
-        });
+        };
+
+        // Función para actualizar la cantidad cuando cambia el precio
+        const updateCantidadFromPrecio = () => {
+          const precioTotal = parseFloat(granelPrecioInput!.value.replace(/,/g, '')) || 0;
+          if (precioTotal > 0) {
+            const precioUnitario = getCurrentUnitPrice();
+            if (precioUnitario > 0) {
+              const nuevaCantidad = precioTotal / precioUnitario;
+              granelCantidadInput!.value = nuevaCantidad.toFixed(6);
+            }
+          }
+        };
+
+        // Cálculo automático cuando cambia la cantidad
+        granelCantidadInput.addEventListener('input', updatePrecioFromCantidad);
+        granelCantidadInput.addEventListener('blur', updatePrecioFromCantidad);
 
         // Cálculo automático cuando cambia el precio total
-        granelPrecioInput.addEventListener('input', () => {
-          const precioTotal = parseFloat(granelPrecioInput.value);
-          if (!isNaN(precioTotal) && precioTotal > 0) {
-            const precioUnitario = getCurrentUnitPrice();
-            const nuevaCantidad = precioTotal / precioUnitario;
-            granelCantidadInput.value = nuevaCantidad.toFixed(6);
-          }
-        });
+        granelPrecioInput.addEventListener('input', updateCantidadFromPrecio);
+        granelPrecioInput.addEventListener('blur', updateCantidadFromPrecio);
+
+        // Botón Cambiar Cantidad Granel - Abre calculadora
+        if (btnCambiarCantidadGranel) {
+          btnCambiarCantidadGranel.addEventListener('click', () => {
+            const currentValue = granelCantidadInput.value.replace(/,/g, '') || '1';
+            showTouchCalculator(currentValue, '⚖️ Cantidad (kg, L, etc.)', (newValue) => {
+              granelCantidadInput.value = newValue;
+              updatePrecioFromCantidad();
+              granelCantidadInput.focus();
+              granelCantidadInput.select();
+            });
+          });
+        }
+
+        // Botón Cambiar Precio Granel - Abre calculadora
+        if (btnCambiarPrecioGranel) {
+          btnCambiarPrecioGranel.addEventListener('click', () => {
+            const currentValue = granelPrecioInput.value.replace(/,/g, '') || '0';
+            showTouchCalculator(currentValue, '💰 Precio Total', (newValue) => {
+              granelPrecioInput.value = newValue;
+              updateCantidadFromPrecio();
+              granelPrecioInput.focus();
+              granelPrecioInput.select();
+            });
+          });
+        }
 
         // Actualizar precio cuando cambia la presentación seleccionada
         const updateGranelPriceOnSelectionChange = () => {
           if (isBaseSelected && granelCantidadInput && granelPrecioInput) {
-            const cantidad = parseFloat(granelCantidadInput.value) || 1;
+            const cantidad = parseFloat(granelCantidadInput.value.replace(/,/g, '')) || 1;
             const precioUnitario = getCurrentUnitPrice();
             const nuevoPrecio = cantidad * precioUnitario;
             granelPrecioInput.value = nuevoPrecio.toFixed(2);
@@ -395,7 +584,7 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
         return false;
       }
 
-      const quantity = parseInt(quantityInput.value, 10) || 1;
+      const quantity = parseInt(quantityInput.value.replace(/,/g, ''), 10) || 1;
       if (quantity <= 0) {
         Swal.showValidationMessage('La cantidad debe ser mayor a 0');
         quantityInput.focus();

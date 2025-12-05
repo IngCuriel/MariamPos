@@ -110,7 +110,7 @@ export const GranelModal = async (product: Product) => {
     `,
     focusConfirm: false,
     showCancelButton: true,
-    confirmButtonText: '✓ Aceptar',
+    confirmButtonText: '✓ Agregar al carrito',
     cancelButtonText: '✕ Cancelar',
     confirmButtonColor: '#667eea',
     cancelButtonColor: '#64748b',
@@ -119,17 +119,49 @@ export const GranelModal = async (product: Product) => {
       htmlContainer: 'granel-modal-html-container',
     },
     didOpen: () => {
-      const cantidadInput = document.getElementById('swal-cantidad') as HTMLInputElement;
-      const precioInput = document.getElementById('swal-precio') as HTMLInputElement;
-      const btnCambiarCantidad = document.getElementById('btn-cambiar-cantidad');
-      const btnCambiarPrecio = document.getElementById('btn-cambiar-precio');
-      const confirmButton = Swal.getConfirmButton();
-       
-      if (!cantidadInput || !precioInput || !btnCambiarCantidad || !btnCambiarPrecio || !confirmButton) return;
-       
-      // 🔹 Enfocar el campo cantidad y colocar el cursor al final del valor
-      cantidadInput?.focus(); 
-      cantidadInput?.select();
+      // Usar requestAnimationFrame para asegurar que el DOM esté completamente renderizado
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          const cantidadInput = document.getElementById('swal-cantidad') as HTMLInputElement;
+          const precioInput = document.getElementById('swal-precio') as HTMLInputElement;
+          const btnCambiarCantidad = document.getElementById('btn-cambiar-cantidad');
+          const btnCambiarPrecio = document.getElementById('btn-cambiar-precio');
+          const confirmButton = Swal.getConfirmButton();
+           
+          if (!cantidadInput || !precioInput || !btnCambiarCantidad || !btnCambiarPrecio || !confirmButton) return;
+           
+          // 🔹 Función mejorada para enfocar el campo cantidad
+          const focusInput = () => {
+            if (cantidadInput) {
+              // Intentar múltiples métodos para asegurar el focus
+              cantidadInput.focus();
+              cantidadInput.select();
+              
+              // Usar setSelectionRange para asegurar la selección
+              if (cantidadInput.setSelectionRange) {
+                cantidadInput.setSelectionRange(0, cantidadInput.value.length);
+              }
+              
+              // Verificar si el focus fue exitoso
+              if (document.activeElement !== cantidadInput) {
+                // Si no funcionó, intentar de nuevo con un pequeño delay
+                setTimeout(() => {
+                  cantidadInput.focus();
+                  cantidadInput.select();
+                  if (cantidadInput.setSelectionRange) {
+                    cantidadInput.setSelectionRange(0, cantidadInput.value.length);
+                  }
+                }, 50);
+              }
+            }
+          };
+          
+          // Intentar focus inmediatamente
+          focusInput();
+          
+          // También intentar después de delays adicionales para asegurar que funcione
+          setTimeout(focusInput, 100);
+          setTimeout(focusInput, 200);
 
       // Función para actualizar el precio cuando cambia la cantidad
       const updatePrecioFromCantidad = () => {
@@ -198,6 +230,8 @@ export const GranelModal = async (product: Product) => {
           confirmButton.click();
         }
       });
+        }, 0); // Delay inicial de 0ms para ejecutar en el siguiente tick
+      }); // Cierre del requestAnimationFrame
     },
     preConfirm: () => {
       const cantidad = parseFloat(
