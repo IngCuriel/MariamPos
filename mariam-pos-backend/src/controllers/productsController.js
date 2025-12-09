@@ -435,8 +435,7 @@ export const getProductsByCategoryId = async (req, res) => {
         orderBy: { displayOrder: 'asc' }
       }
     },
-    take: 50, 
-    orderBy: { name: 'asc' },
+     orderBy: { name: 'asc' },
   });
 
   res.json(products);
