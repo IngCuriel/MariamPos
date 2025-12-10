@@ -729,7 +729,8 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                             return basePresentation ? basePresentation.unitPrice : formData.price;
                           })()}
                           onChange={(e) => {
-                            const newPrice = Number(e.target.value);
+                            const value = e.target.value === "" ? 0 : Number(e.target.value);
+                            const newPrice = isNaN(value) ? 0 : value;
                             setFormData(prev => ({ ...prev, price: newPrice }));
                             // Actualizar la presentación base
                             setPresentations(prev => prev.map(p => 
@@ -738,9 +739,10 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                                 : p
                             ));
                           }}
+                          onFocus={(e) => e.target.select()}
                           onKeyDown={handleEnterFocusNext(3)}
                           className={errors.price ? "error" : ""}
-                          placeholder="0.00"
+                          placeholder="0"
                           step="0.01"
                           min="0"
                         />
@@ -758,11 +760,25 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                           id="cost"
                           name="cost"
                           value={formData.cost}
-                          onChange={handleInputChange}
+                          onChange={(e) => {
+                            const value = e.target.value === "" ? 0 : Number(e.target.value);
+                            setFormData(prev => ({ 
+                              ...prev, 
+                              cost: isNaN(value) ? 0 : value 
+                            }));
+                            if (errors.cost) {
+                              setErrors((prev) => ({
+                                ...prev,
+                                cost: "",
+                              }));
+                            }
+                          }}
+                          onFocus={(e) => e.target.select()}
                           onKeyDown={handleEnterFocusNext(4)}
                           className={errors.cost ? "error" : ""}
                           placeholder="0"
                           min="0"
+                          step="0.01"
                         />
                         {errors.cost && (
                           <span className="product-modal-error-message">{errors.cost}</span>
@@ -852,9 +868,14 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                               type="number"
                               id="presentationQuantity"
                               value={newPresentation.quantity}
-                              onChange={(e) => setNewPresentation(prev => ({ ...prev, quantity: Number(e.target.value) }))}
+                              onChange={(e) => {
+                                const value = e.target.value === "" ? 1 : Number(e.target.value);
+                                setNewPresentation(prev => ({ ...prev, quantity: isNaN(value) ? 1 : value }));
+                              }}
+                              onFocus={(e) => e.target.select()}
                               min="1"
                               step="1"
+                              placeholder="1"
                               className={presentationErrors[-1]?.quantity ? "error" : ""}
                             />
                             {presentationErrors[-1]?.quantity && (
@@ -867,10 +888,14 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                               type="number"
                               id="presentationUnitPrice"
                               value={newPresentation.unitPrice}
-                              onChange={(e) => setNewPresentation(prev => ({ ...prev, unitPrice: Number(e.target.value) }))}
+                              onChange={(e) => {
+                                const value = e.target.value === "" ? 0 : Number(e.target.value);
+                                setNewPresentation(prev => ({ ...prev, unitPrice: isNaN(value) ? 0 : value }));
+                              }}
+                              onFocus={(e) => e.target.select()}
                               min="0"
                               step="0.01"
-                              placeholder="0.00"
+                              placeholder="0"
                               className={presentationErrors[-1]?.unitPrice ? "error" : ""}
                             />
                             {presentationErrors[-1]?.unitPrice && (
@@ -920,9 +945,14 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                               type="number"
                               id="editPresentationQuantity"
                               value={newPresentation.quantity}
-                              onChange={(e) => setNewPresentation(prev => ({ ...prev, quantity: Number(e.target.value) }))}
+                              onChange={(e) => {
+                                const value = e.target.value === "" ? 1 : Number(e.target.value);
+                                setNewPresentation(prev => ({ ...prev, quantity: isNaN(value) ? 1 : value }));
+                              }}
+                              onFocus={(e) => e.target.select()}
                               min="1"
                               step="1"
+                              placeholder="1"
                               className={presentationErrors[editingPresentationIndex]?.quantity ? "error" : ""}
                             />
                             {presentationErrors[editingPresentationIndex]?.quantity && (
@@ -935,9 +965,14 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                               type="number"
                               id="editPresentationUnitPrice"
                               value={newPresentation.unitPrice}
-                              onChange={(e) => setNewPresentation(prev => ({ ...prev, unitPrice: Number(e.target.value) }))}
+                              onChange={(e) => {
+                                const value = e.target.value === "" ? 0 : Number(e.target.value);
+                                setNewPresentation(prev => ({ ...prev, unitPrice: isNaN(value) ? 0 : value }));
+                              }}
+                              onFocus={(e) => e.target.select()}
                               min="0"
                               step="0.01"
+                              placeholder="0"
                               className={presentationErrors[editingPresentationIndex]?.unitPrice ? "error" : ""}
                             />
                             {presentationErrors[editingPresentationIndex]?.unitPrice && (
