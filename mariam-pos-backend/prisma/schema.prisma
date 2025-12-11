@@ -26,6 +26,10 @@ model Product {
   // Nuevas propiedades para inventario
   trackInventory Boolean? @default(false) // si el producto usa inventario 
 
+  // 🔄 Campos de sincronización
+  syncStatus String @default("pendiente") // pendiente, enviado
+  branch     String? @default("Sucursal Default") // Sucursal del producto
+
   inventory Inventory? // ← 1:1
   movements InventoryMovement[]
 
@@ -55,6 +59,8 @@ model Product {
   @@index([name])
   @@index([description])
   @@index([isKit]) // Índice para filtrar kits rápidamente
+  @@index([syncStatus])
+  @@index([branch])
 }
 
 model ProductPresentation {
@@ -67,6 +73,10 @@ model ProductPresentation {
   product   Product @relation(fields: [productId], references: [id])
   productId Int
 
+  // 🔄 Campos de sincronización
+  syncStatus String @default("pendiente") // pendiente, enviado
+  branch     String? // Sucursal (heredada del producto)
+
   // Relación con envases
   containers Container[]
 
@@ -75,6 +85,9 @@ model ProductPresentation {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([syncStatus])
+  @@index([branch])
 }
 
 model Category {
@@ -85,7 +98,14 @@ model Category {
 
   showInPOS Boolean @default(false)
 
+  // 🔄 Campos de sincronización
+  syncStatus String @default("pendiente") // pendiente, enviado
+  branch     String? @default("Sucursal Default") // Sucursal de la categoría
+
   Product Product[]
+
+  @@index([syncStatus])
+  @@index([branch])
 }
 
 model Client {
@@ -180,10 +200,15 @@ model Inventory {
   trackInventory   Boolean   @default(false)
   branch           String?
 
+  // 🔄 Campo de sincronización
+  syncStatus String @default("pendiente") // pendiente, enviado
+
   movements InventoryMovement[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([syncStatus])
 }
 
 // ------------------------------------------------------------

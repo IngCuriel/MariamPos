@@ -24,13 +24,19 @@ export const getProductsByCategoryId = async (categoryId:string, forSales: boole
 
 export const createProduct = async (product: Omit<Product, "id">): Promise<Product> => {
   const clientAxios = await getAxiosClient();
-  const { data } = await clientAxios.post<Product>("/products", product);
+  // Obtener branch del localStorage (igual que en las ventas)
+  const branch = localStorage.getItem('sucursal') || 'Sucursal Default';
+  const productWithBranch = { ...product, branch };
+  const { data } = await clientAxios.post<Product>("/products", productWithBranch);
   return data;
 };
  
 export const updateProduct = async (product: Product): Promise<Product> => {
   const clientAxios = await getAxiosClient();
-  const { data } = await clientAxios.put<Product>(`/products/${product.id}`, product);
+  // Obtener branch del localStorage (igual que en las ventas)
+  const branch = localStorage.getItem('sucursal') || 'Sucursal Default';
+  const productWithBranch = { ...product, branch };
+  const { data } = await clientAxios.put<Product>(`/products/${product.id}`, productWithBranch);
   return data;
 };
  

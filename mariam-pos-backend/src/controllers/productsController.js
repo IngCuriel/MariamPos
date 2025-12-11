@@ -38,9 +38,11 @@ export const createProduct = async (req, res) => {
       icon,
       categoryId,
       trackInventory,
+      inventory,            // 🔄 Datos de inventario si trackInventory es true
       presentations = [],   // 👈 nuevas presentaciones opcionales
       isKit = false,        // 🆕 NUEVO: Si es un kit
-      kitItems = []         // 🆕 NUEVO: Items del kit
+      kitItems = [],        // 🆕 NUEVO: Items del kit
+      branch                // 🔄 Sucursal del producto
     } = req.body;
 
     if (!name) return res.status(400).json({ error: "El nombre es obligatorio" });
@@ -90,7 +92,9 @@ export const createProduct = async (req, res) => {
           icon, 
           categoryId, 
           trackInventory: isKit ? false : trackInventory, // Forzar false si es kit
-          isKit // 🆕 NUEVO: Marcar como kit
+          isKit, // 🆕 NUEVO: Marcar como kit
+          branch: branch || "Sucursal Default", // 🔄 Sucursal
+          syncStatus: "pendiente" // 🔄 Marcar como pendiente de sincronización
         }
       });
 
@@ -104,6 +108,8 @@ export const createProduct = async (req, res) => {
               unitPrice: p.unitPrice,
               isDefault: p.isDefault ?? false,
               productId: product.id,
+              branch: branch || "Sucursal Default", // 🔄 Sucursal heredada del producto
+              syncStatus: "pendiente" // 🔄 Marcar como pendiente
             }
           });
         }
@@ -125,15 +131,31 @@ export const createProduct = async (req, res) => {
         }
       }
 
+      // 🔄 Crear inventario si trackInventory es true
+      if (trackInventory && inventory) {
+        const productBranch = branch || "Sucursal Default";
+        await tx.inventory.create({
+          data: {
+            productId: product.id,
+            currentStock: inventory.currentStock || 0,
+            minStock: inventory.minStock || 0,
+            trackInventory: true,
+            branch: productBranch, // 🔄 Sucursal
+            syncStatus: "pendiente" // 🔄 Marcar como pendiente
+          }
+        });
+      }
+
       return product;
     });
 
-    // Devolver con presentaciones/kitItems incluidas
+    // Devolver con presentaciones/kitItems/inventario incluidas
     const result = await prisma.product.findUnique({
       where: { id: newProduct.id },
       include: { 
         presentations: true, 
         category: true,
+        inventory: true, // 🔄 Incluir inventario si existe
         kitItems: isKit ? {
           include: {
             product: {
@@ -174,7 +196,8 @@ export const updateProduct = async (req, res) => {
       inventory, 
       presentations = [],   // 👈 nuevas presentaciones
       isKit,
-      kitItems = []         // 🆕 items del kit
+      kitItems = [],        // 🆕 items del kit
+      branch                // 🔄 Sucursal del producto
     } = req.body;
 
     if (!id) return res.status(400).json({ error: "El ID del producto es obligatorio" });
@@ -218,7 +241,9 @@ export const updateProduct = async (req, res) => {
           icon, 
           categoryId, 
           trackInventory,
-          isKit: isKit !== undefined ? isKit : existingProduct.isKit  // 🆕 Actualizar isKit si viene en el request
+          isKit: isKit !== undefined ? isKit : existingProduct.isKit,  // 🆕 Actualizar isKit si viene en el request
+          branch: branch || existingProduct.branch || "Sucursal Default", // 🔄 Actualizar sucursal
+          syncStatus: "pendiente" // 🔄 Marcar como pendiente de sincronización
         }
       });
 
@@ -236,6 +261,7 @@ export const updateProduct = async (req, res) => {
       }
 
       // 👉 Actualizar y crear presentaciones
+      const productBranch = branch || existingProduct.branch || "Sucursal Default";
       for (const p of presentations) {
         if (p.id) {
           // actualizar
@@ -245,7 +271,9 @@ export const updateProduct = async (req, res) => {
               name: p.name,
               quantity: p.quantity,
               unitPrice: p.unitPrice,
-              isDefault: p.isDefault ?? false
+              isDefault: p.isDefault ?? false,
+              branch: productBranch, // 🔄 Actualizar sucursal
+              syncStatus: "pendiente" // 🔄 Marcar como pendiente
             }
           });
         } else {
@@ -256,23 +284,42 @@ export const updateProduct = async (req, res) => {
               quantity: p.quantity,
               unitPrice: p.unitPrice,
               isDefault: p.isDefault ?? false,
-              productId
+              productId,
+              branch: productBranch, // 🔄 Sucursal heredada del producto
+              syncStatus: "pendiente" // 🔄 Marcar como pendiente
             }
           });
         }
       }
         // Actualizar inventario
       if (inventory) {
+        const productBranch = branch || existingProduct.branch || "Sucursal Default";
         await tx.inventory.upsert({
           where: { productId: productId },
-          create: { productId: productId, currentStock: inventory.currentStock, minStock: inventory.minStock, trackInventory: trackInventory},
-          update: { currentStock: inventory?.currentStock, minStock: inventory.minStock, trackInventory: trackInventory},
+          create: { 
+            productId: productId, 
+            currentStock: inventory.currentStock, 
+            minStock: inventory.minStock, 
+            trackInventory: trackInventory,
+            branch: productBranch, // 🔄 Sucursal
+            syncStatus: "pendiente" // 🔄 Marcar como pendiente
+          },
+          update: { 
+            currentStock: inventory?.currentStock, 
+            minStock: inventory.minStock, 
+            trackInventory: trackInventory,
+            branch: productBranch, // 🔄 Actualizar sucursal
+            syncStatus: "pendiente" // 🔄 Marcar como pendiente
+          },
         });
       } else {
         if (existingProduct.inventory) {
           await tx.inventory.update({
             where: { productId: productId },
-            data: { trackInventory: false },
+            data: { 
+              trackInventory: false,
+              syncStatus: "pendiente" // 🔄 Marcar como pendiente si se desactiva inventario
+            },
           });
         }
       }

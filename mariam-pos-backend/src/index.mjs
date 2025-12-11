@@ -1,6 +1,7 @@
 // mariam-pos-backend/src/index.mjs
 import express from "express";
 import { startSyncLoop, stopSyncLoop } from './sync/syncService.mjs'
+import { startProductSyncLoop, stopProductSyncLoop } from './sync/productSyncService.mjs'
 import cors from "cors";
 import path from "path";
 import fs from "fs";
@@ -78,12 +79,7 @@ app.use("/api/copies", copiesRouter);
 app.use("/api/printers", printersRouter);
 app.use("/api/suppliers", suppliersRouter);
 app.use("/api/purchases", purchasesRouter);
-app.use("/api/account-payables", accountPayablesRouter);
-console.log("✅ Ruta /api/copies registrada correctamente");
-console.log("✅ Ruta /api/printers registrada correctamente");
-console.log("✅ Ruta /api/suppliers registrada correctamente");
-console.log("✅ Ruta /api/purchases registrada correctamente");
-console.log("✅ Ruta /api/account-payables registrada correctamente"); 
+app.use("/api/account-payables", accountPayablesRouter); 
 
 // -------------------
 // Middleware de manejo de errores global
@@ -129,12 +125,19 @@ const gracefulShutdown = async (signal) => {
   console.log(`\n🛑 Señal ${signal} recibida. Cerrando servidor...`);
   
   try {
-    // Detener el servicio de sincronización primero
+    // Detener los servicios de sincronización primero
     try {
       await stopSyncLoop();
-      console.log('✅ Servicio de sincronización detenido');
+      console.log('✅ Servicio de sincronización de ventas detenido');
     } catch (error) {
       console.error('⚠️ Error al detener syncService:', error);
+    }
+    
+    try {
+      await stopProductSyncLoop();
+      console.log('✅ Servicio de sincronización de productos detenido');
+    } catch (error) {
+      console.error('⚠️ Error al detener productSyncService:', error);
     }
     
     // Cerrar Prisma
@@ -208,7 +211,8 @@ checkPort()
     server = app.listen(PORT, HOST, () => {
       console.log(`🖥️  Servidor corriendo en http://${HOST === "0.0.0.0" ? "localhost" : HOST}:${PORT}`);
       console.log(`🌐 Accesible desde la red local en: http://[IP-DE-ESTA-MAQUINA]:${PORT}`);
-      startSyncLoop();//   🔁 activa sincronización automática
+      startSyncLoop();//   🔁 activa sincronización automática de ventas
+      // startProductSyncLoop();//   🔁 sincronización automática de productos DESACTIVADA - ahora es manual desde la UI
     });
 
     // Configurar timeout del servidor

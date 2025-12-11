@@ -46,7 +46,7 @@ export interface Category {
   id: string;
   name: string;
   description?: string;
-  showInPOS?: boolean;
+  showInPOS?: boolean; 
   createdAt: Date;
 }
 
