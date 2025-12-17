@@ -1592,43 +1592,164 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
           className=""
         />
         
-        {/* Indicador de Turno de Caja */}
-        <div className="shift-indicator">
-          <div className="shift-info">
-            <span className="shift-status-icon">
-              {activeShift ? "🟢" : "🔴"}
-            </span>
-            <span className="shift-status-text">
-              {activeShift 
-                ? `Turno Activo: ${activeShift.shiftNumber}`
-                : "No hay turno activo"
-              }
-            </span>
-            {activeShift && (
-              <div className="shift-details">
-                <span>Fondo: ${activeShift.initialCash.toFixed(2)}</span>
-                <span>Efectivo: ${activeShift.totalCash.toFixed(2)}</span>
-                <span>Tarjeta: ${activeShift.totalCard.toFixed(2)}</span>
+        {/* Indicador de Turno de Caja y Cliente */}
+        <div className="shift-client-container">
+          {/* Columna de Turno (2/3) */}
+          <div className="shift-indicator shift-column">
+            <div className="shift-info">
+              <span className="shift-status-icon">
+                {activeShift ? "🟢" : "🔴"}
+              </span>
+              <span className="shift-status-text">
+                {activeShift 
+                  ? `Turno Activo`
+                  : "No hay turno activo"
+                }
+              </span>
+              {activeShift && (
+                <div className="shift-details">
+                  <span>Fondo de Caja: ${activeShift.initialCash.toFixed(2)}</span>
+                 { /*<span>Efectivo: ${activeShift.totalCash.toFixed(2)}</span>
+                  <span>Tarjeta: ${activeShift.totalCard.toFixed(2)}</span>*/}
+                </div>
+              )}
+            </div>
+            <div className="shift-actions">
+              {activeShift && (
+                <button
+                  className="btn-movements"
+                  onClick={() => setShowCashMovementModal(true)}
+                  title="Movimientos de Efectivo"
+                >
+                  💰 Movimientos
+                </button>
+              )}
+              <button
+                className={`btn-shift ${activeShift ? "close" : "open"}`}
+                onClick={() => setShowShiftModal(true)}
+                title={activeShift ? "Cerrar Turno (F4)" : "Abrir Turno (F4)"}
+              >
+                {activeShift ? "🔴 Cerrar Turno" : "🟢 Abrir Turno"}
+              </button>
+            </div>
+          </div>
+
+          {/* Columna de Cliente (1/3) */}
+          <div className="client-column">
+            <button
+              className="btn-client"
+              onClick={() => setShowClientModal(true)}
+              title="Click para cambiar cliente"
+            >
+              👤 Cliente: {client}
+            </button>
+            {selectedClient && clientPendingCredit > 0 && (
+              <div className="client-credit-info">
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
+                  <span>⚠️</span>
+                  <span>
+                    <strong>Crédito pendiente:</strong>{" "}
+                    {clientPendingCredit.toLocaleString("es-MX", {
+                      style: "currency",
+                      currency: "MXN",
+                    })}
+                  </span>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (clientPendingCredits.length === 0) {
+                      // Recargar créditos
+                      try {
+                        const pending = await getClientCredits(selectedClient.id, "PENDING");
+                        const partiallyPaid = await getClientCredits(selectedClient.id, "PARTIALLY_PAID");
+                        const allPending = [...pending, ...partiallyPaid];
+                        
+                        if (allPending.length === 0) {
+                          Swal.fire({
+                            icon: "info",
+                            title: "Sin créditos pendientes",
+                            text: "Este cliente no tiene créditos pendientes",
+                            confirmButtonText: "Entendido",
+                          });
+                          return;
+                        }
+                        
+                        if (allPending.length === 1) {
+                          setSelectedCredit(allPending[0]);
+                          setShowCreditPaymentModal(true);
+                        } else {
+                          const { value: selectedCreditId } = await Swal.fire({
+                            title: "Seleccionar Crédito",
+                            html: `
+                              <p>Este cliente tiene ${allPending.length} crédito(s) pendiente(s).</p>
+                              <select id="credit-select" class="swal2-select" style="width: 100%; margin-top: 10px;">
+                                ${allPending.map(credit => `
+                                  <option value="${credit.id}">
+                                    Venta #${credit.saleId} - Saldo: $${credit.remainingAmount.toFixed(2)}
+                                  </option>
+                                `).join('')}
+                              </select>
+                            `,
+                            showCancelButton: true,
+                            confirmButtonText: "Continuar",
+                            cancelButtonText: "Cancelar",
+                            preConfirm: () => {
+                              const select = document.getElementById("credit-select") as HTMLSelectElement;
+                              return parseInt(select.value);
+                            },
+                          });
+
+                          if (selectedCreditId) {
+                            const credit = allPending.find(c => c.id === selectedCreditId);
+                            if (credit) {
+                              setSelectedCredit(credit);
+                              setShowCreditPaymentModal(true);
+                            }
+                          }
+                        }
+                      } catch (error) {
+                        console.error("Error al cargar créditos:", error);
+                      }
+                    } else if (clientPendingCredits.length === 1) {
+                      setSelectedCredit(clientPendingCredits[0]);
+                      setShowCreditPaymentModal(true);
+                    } else {
+                      const { value: selectedCreditId } = await Swal.fire({
+                        title: "Seleccionar Crédito",
+                        html: `
+                          <p>Este cliente tiene ${clientPendingCredits.length} crédito(s) pendiente(s).</p>
+                          <select id="credit-select" class="swal2-select" style="width: 100%; margin-top: 10px;">
+                            ${clientPendingCredits.map(credit => `
+                              <option value="${credit.id}">
+                                Venta #${credit.saleId} - Saldo: $${credit.remainingAmount.toFixed(2)}
+                              </option>
+                            `).join('')}
+                          </select>
+                        `,
+                        showCancelButton: true,
+                        confirmButtonText: "Continuar",
+                        cancelButtonText: "Cancelar",
+                        preConfirm: () => {
+                          const select = document.getElementById("credit-select") as HTMLSelectElement;
+                          return parseInt(select.value);
+                        },
+                      });
+
+                      if (selectedCreditId) {
+                        const credit = clientPendingCredits.find(c => c.id === selectedCreditId);
+                        if (credit) {
+                          setSelectedCredit(credit);
+                          setShowCreditPaymentModal(true);
+                        }
+                      }
+                    }
+                  }}
+                  className="btn-credit-payment"
+                >
+                  💳 Abonar Crédito
+                </button>
               </div>
             )}
-          </div>
-          <div className="shift-actions">
-            {activeShift && (
-              <button
-                className="btn-movements"
-                onClick={() => setShowCashMovementModal(true)}
-                title="Movimientos de Efectivo"
-              >
-                💰 Movimientos
-              </button>
-            )}
-            <button
-              className={`btn-shift ${activeShift ? "close" : "open"}`}
-              onClick={() => setShowShiftModal(true)}
-              title={activeShift ? "Cerrar Turno (F4)" : "Abrir Turno (F4)"}
-            >
-              {activeShift ? "🔴 Cerrar Turno" : "🟢 Abrir Turno"}
-            </button>
           </div>
         </div>
 
@@ -1683,7 +1804,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                     title="Agregar producto no registrado (F3)"
                   >
                     <span className="btn-icon">➕</span>
-                    <span className="btn-text">Producto Común</span>
+                    <span className="btn-text">P C</span>
                   </button>
                   <button
                     className="btn-categories"
@@ -1741,142 +1862,6 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
 
           {/* 🔹 Lado derecho: cart */}
           <div className="venta-right">
-            <div style={{ marginBottom: "8px" }}>
-              <button
-                className="btn-client"
-                onClick={() => setShowClientModal(true)}
-                title="Click para cambiar cliente"
-              >
-                👤 Cliente: {client}
-              </button>
-              {selectedClient && clientPendingCredit > 0 && (
-                <div
-                  style={{
-                    marginTop: "8px",
-                    padding: "12px",
-                    backgroundColor: "#fef3c7",
-                    border: "1px solid #f59e0b",
-                    borderRadius: "6px",
-                    fontSize: "0.85rem",
-                    color: "#92400e",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
-                    <span>⚠️</span>
-                    <span>
-                      <strong>Crédito pendiente:</strong>{" "}
-                      {clientPendingCredit.toLocaleString("es-MX", {
-                        style: "currency",
-                        currency: "MXN",
-                      })}
-                    </span>
-                  </div>
-                  <button
-                    onClick={async () => {
-                      if (clientPendingCredits.length === 0) {
-                        // Recargar créditos
-                        try {
-                          const pending = await getClientCredits(selectedClient.id, "PENDING");
-                          const partiallyPaid = await getClientCredits(selectedClient.id, "PARTIALLY_PAID");
-                          const allPending = [...pending, ...partiallyPaid];
-                          
-                          if (allPending.length === 0) {
-                            Swal.fire({
-                              icon: "info",
-                              title: "Sin créditos pendientes",
-                              text: "Este cliente no tiene créditos pendientes",
-                              confirmButtonText: "Entendido",
-                            });
-                            return;
-                          }
-                          
-                          if (allPending.length === 1) {
-                            setSelectedCredit(allPending[0]);
-                            setShowCreditPaymentModal(true);
-                          } else {
-                            const { value: selectedCreditId } = await Swal.fire({
-                              title: "Seleccionar Crédito",
-                              html: `
-                                <p>Este cliente tiene ${allPending.length} crédito(s) pendiente(s).</p>
-                                <select id="credit-select" class="swal2-select" style="width: 100%; margin-top: 10px;">
-                                  ${allPending.map(credit => `
-                                    <option value="${credit.id}">
-                                      Venta #${credit.saleId} - Saldo: $${credit.remainingAmount.toFixed(2)}
-                                    </option>
-                                  `).join('')}
-                                </select>
-                              `,
-                              showCancelButton: true,
-                              confirmButtonText: "Continuar",
-                              cancelButtonText: "Cancelar",
-                              preConfirm: () => {
-                                const select = document.getElementById("credit-select") as HTMLSelectElement;
-                                return parseInt(select.value);
-                              },
-                            });
-
-                            if (selectedCreditId) {
-                              const credit = allPending.find(c => c.id === selectedCreditId);
-                              if (credit) {
-                                setSelectedCredit(credit);
-                                setShowCreditPaymentModal(true);
-                              }
-                            }
-                          }
-                        } catch (error) {
-                          console.error("Error al cargar créditos:", error);
-                        }
-                      } else if (clientPendingCredits.length === 1) {
-                        setSelectedCredit(clientPendingCredits[0]);
-                        setShowCreditPaymentModal(true);
-                      } else {
-                        const { value: selectedCreditId } = await Swal.fire({
-                          title: "Seleccionar Crédito",
-                          html: `
-                            <p>Este cliente tiene ${clientPendingCredits.length} crédito(s) pendiente(s).</p>
-                            <select id="credit-select" class="swal2-select" style="width: 100%; margin-top: 10px;">
-                              ${clientPendingCredits.map(credit => `
-                                <option value="${credit.id}">
-                                  Venta #${credit.saleId} - Saldo: $${credit.remainingAmount.toFixed(2)}
-                                </option>
-                              `).join('')}
-                            </select>
-                          `,
-                          showCancelButton: true,
-                          confirmButtonText: "Continuar",
-                          cancelButtonText: "Cancelar",
-                          preConfirm: () => {
-                            const select = document.getElementById("credit-select") as HTMLSelectElement;
-                            return parseInt(select.value);
-                          },
-                        });
-
-                        if (selectedCreditId) {
-                          const credit = clientPendingCredits.find(c => c.id === selectedCreditId);
-                          if (credit) {
-                            setSelectedCredit(credit);
-                            setShowCreditPaymentModal(true);
-                          }
-                        }
-                      }
-                    }}
-                    style={{
-                      width: "100%",
-                      padding: "8px 12px",
-                      backgroundColor: "#059669",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "4px",
-                      fontSize: "0.85rem",
-                      fontWeight: "600",
-                      cursor: "pointer",
-                    }}
-                  >
-                    💳 Abonar Crédito
-                  </button>
-                </div>
-              )}
-            </div>
             <div className="table-scroll">
               <table className="venta-table">
                 <thead>

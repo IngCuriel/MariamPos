@@ -70,7 +70,18 @@
   }
   
   .filters {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filters > div:last-child {
+    width: 100%;
+    flex-direction: column;
+  }
+  
+  .search-group,
+  .category-group {
+    min-width: 100%;
   }
   
   .products-grid {

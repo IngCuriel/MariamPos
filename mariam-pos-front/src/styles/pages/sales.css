@@ -44,7 +44,7 @@
 .venta-main {
   display: flex;
   gap: 15px;
-  padding: 15px;
+  padding: 1px;
   flex: 1;
   overflow: hidden;
 }
@@ -96,6 +96,14 @@
   gap: 10px;
   margin-bottom: 15px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .venta-search {
+    flex-wrap: nowrap;
+    gap: 12px;
+  }
 }
 
 /* ===== INPUT DE BÚSQUEDA MODERNO Y TOUCH-FRIENDLY ===== */
@@ -105,6 +113,14 @@
   min-width: 250px;
   display: flex;
   align-items: center;
+}
+
+@media (min-width: 768px) {
+  .search-input-wrapper {
+    min-width: 200px;
+    max-width: 400px;
+    flex: 1 1 auto;
+  }
 }
 
 .search-input-modern {
@@ -299,13 +315,15 @@
   outline: none;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
 }
 
 @media (min-width: 768px) {
   .btn-common-product {
-    padding: 16px 24px;
-    font-size: 1rem;
-    min-width: 180px;
+    padding: 16px 20px;
+    font-size: 0.95rem;
+    min-width: auto;
+    flex: 0 0 auto;
   }
 }
 
@@ -375,13 +393,15 @@
   white-space: nowrap;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
 }
 
 @media (min-width: 768px) {
   .btn-categories {
-    padding: 16px 24px;
-    font-size: 1rem;
-    min-width: 180px;
+    padding: 16px 20px;
+    font-size: 0.95rem;
+    min-width: auto;
+    flex: 0 0 auto;
   }
 }
 
@@ -441,13 +461,15 @@
   white-space: nowrap;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
 }
 
 @media (min-width: 768px) {
   .btn-calculator {
-    padding: 16px 24px;
-    font-size: 1rem;
-    min-width: 180px;
+    padding: 16px 20px;
+    font-size: 0.95rem;
+    min-width: auto;
+    flex: 0 0 auto;
   }
 }
 
@@ -647,7 +669,7 @@
 .venta-right {
   flex: 2;
   background: #fff;
-  padding: 16px;
+  padding: 0px;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   display: flex;
@@ -665,7 +687,7 @@
 
 @media (max-width: 768px) {
   .venta-right {
-    padding: 12px;
+    padding: 1px;
     border-radius: 10px;
   }
 }
@@ -1044,9 +1066,16 @@
   box-shadow: 0 4px 12px rgba(22, 163, 74, 0.2);
 }
 
+/* Contenedor de Turno y Cliente */
+.shift-client-container {
+  display: flex;
+  gap: 12px;
+  padding: 0 15px;
+  margin-bottom: 0;
+}
+
 /* Indicador de Turno */
 .shift-indicator {
-  padding: 14px 20px;
   background: linear-gradient(135deg, 
     var(--shift-bg, #d1fae5) 0%, 
     var(--shift-bg-alt, #ecfdf5) 100%);
@@ -1057,6 +1086,19 @@
   flex-wrap: wrap;
   gap: 12px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.shift-column {
+  flex: 2;
+  min-width: 0;
+}
+
+.client-column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .shift-indicator:has(.btn-shift.close) {
@@ -1206,14 +1248,16 @@
   border: none;
   border-radius: 10px;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
-  margin-bottom: 16px;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .btn-client:hover {
@@ -1227,17 +1271,72 @@
   box-shadow: 0 1px 4px rgba(99, 102, 241, 0.3);
 }
 
+/* Información de crédito del cliente */
+.client-credit-info {
+  padding: 12px;
+  background-color: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #92400e;
+  width: 100%;
+}
+
+.btn-credit-payment {
+  width: 100%;
+  padding: 8px 12px;
+  background-color: #059669;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-credit-payment:hover {
+  background-color: #047857;
+  transform: translateY(-1px);
+}
+
+.btn-credit-payment:active {
+  transform: translateY(0);
+}
+
 @media (min-width: 768px) {
   .btn-client {
     padding: 16px 20px;
-    font-size: 1.05rem;
+    font-size: 1rem;
+  }
+  
+  .shift-client-container {
+    padding: 0 15px;
   }
 }
 
 @media (max-width: 768px) {
+  .shift-client-container {
+    flex-direction: column;
+    gap: 10px;
+    padding: 0 10px;
+  }
+  
+  .shift-column,
+  .client-column {
+    flex: 1;
+    width: 100%;
+  }
+  
+  .shift-indicator {
+    padding: 12px 16px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
   .btn-client {
     padding: 16px;
-    font-size: 1rem;
+    font-size: 0.95rem;
     min-height: 48px;
   }
 }
