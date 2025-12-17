@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { IoCloseCircleOutline } from "react-icons/io5";
 import Swal from "sweetalert2";
+import { createRoot } from "react-dom/client";
+import type { Root } from "react-dom/client";
 import {
   createCashMovement,
   getCashMovementsByShift,
@@ -12,6 +14,8 @@ import type {
   CashMovementType,
   CashRegisterShift,
 } from "../../types/index";
+import TouchCalculator from "../../components/TouchCalculator";
+import TouchTextKeyboard from "../../components/TouchTextKeyboard";
 import "../../styles/pages/sales/paymentModal.css";
 
 interface CashMovementModalProps {
@@ -35,6 +39,71 @@ const CashMovementModal: React.FC<CashMovementModalProps> = ({
   const [movements, setMovements] = useState<CashMovement[]>([]);
   const [loadingMovements, setLoadingMovements] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const reasonInputRef = useRef<HTMLInputElement>(null);
+
+  // Función para mostrar la calculadora touch
+  const showTouchCalculator = (
+    initialValue: string,
+    label: string,
+    onConfirm: (value: string) => void
+  ): void => {
+    const calculatorContainer = document.createElement('div');
+    calculatorContainer.id = 'touch-calculator-root';
+    document.body.appendChild(calculatorContainer);
+
+    const root: Root = createRoot(calculatorContainer);
+
+    const handleClose = () => {
+      root.unmount();
+      document.body.removeChild(calculatorContainer);
+    };
+
+    const handleConfirm = (value: string) => {
+      onConfirm(value);
+      handleClose();
+    };
+
+    root.render(
+      <TouchCalculator
+        initialValue={initialValue}
+        label={label}
+        onConfirm={handleConfirm}
+        onClose={handleClose}
+      />
+    );
+  };
+
+  // Función para mostrar el teclado de letras
+  const showTouchTextKeyboard = (
+    initialValue: string,
+    label: string,
+    onConfirm: (value: string) => void
+  ): void => {
+    const keyboardContainer = document.createElement('div');
+    keyboardContainer.id = 'touch-text-keyboard-root';
+    document.body.appendChild(keyboardContainer);
+
+    const root: Root = createRoot(keyboardContainer);
+
+    const handleClose = () => {
+      root.unmount();
+      document.body.removeChild(keyboardContainer);
+    };
+
+    const handleConfirm = (value: string) => {
+      onConfirm(value);
+      handleClose();
+    };
+
+    root.render(
+      <TouchTextKeyboard
+        initialValue={initialValue}
+        label={label}
+        onConfirm={handleConfirm}
+        onClose={handleClose}
+      />
+    );
+  };
 
   // Cargar movimientos al montar
   useEffect(() => {
@@ -294,7 +363,7 @@ const CashMovementModal: React.FC<CashMovementModalProps> = ({
             {/* Monto */}
             <div className="input-section" style={{ marginBottom: "12px" }}>
               <label style={{ fontSize: "0.9rem" }}>Monto:</label>
-              <div className="input-wrapper">
+              <div className="input-wrapper" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                 <input
                   ref={inputRef}
                   type="number"
@@ -309,16 +378,52 @@ const CashMovementModal: React.FC<CashMovementModalProps> = ({
                       handleSubmit();
                     }
                   }}
-                  style={{ fontSize: "1rem" }}
+                  style={{ fontSize: "1rem", flex: 1 }}
                 />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentValue = amount.replace(/,/g, '') || '0';
+                    showTouchCalculator(currentValue, '💰 Monto', (newValue) => {
+                      setAmount(newValue);
+                      if (inputRef.current) {
+                        inputRef.current.focus();
+                        inputRef.current.select();
+                      }
+                    });
+                  }}
+                  style={{
+                    background: "#667eea",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "10px 16px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    fontSize: "0.9rem",
+                    whiteSpace: "nowrap",
+                    transition: "background 0.2s ease",
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#5568d3";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "#667eea";
+                  }}
+                  title="Abrir calculadora"
+                >
+                  🧮
+                </button>
               </div>
             </div>
 
             {/* Razón */}
             <div className="input-section" style={{ marginBottom: "12px" }}>
               <label style={{ fontSize: "0.9rem" }}>Razón *:</label>
-              <div className="input-wrapper">
+              <div className="input-wrapper" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                 <input
+                  ref={reasonInputRef}
                   type="text"
                   placeholder={
                     type === "ENTRADA"
@@ -333,8 +438,42 @@ const CashMovementModal: React.FC<CashMovementModalProps> = ({
                       handleSubmit();
                     }
                   }}
-                  style={{ fontSize: "0.9rem" }}
+                  style={{ fontSize: "0.9rem", flex: 1 }}
                 />
+                <button
+                  type="button"
+                  onClick={() => {
+                    showTouchTextKeyboard(reason, '📝 Razón', (newValue) => {
+                      setReason(newValue);
+                      if (reasonInputRef.current) {
+                        reasonInputRef.current.focus();
+                        reasonInputRef.current.select();
+                      }
+                    });
+                  }}
+                  style={{
+                    background: "#10b981",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "10px 16px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    fontSize: "0.9rem",
+                    whiteSpace: "nowrap",
+                    transition: "background 0.2s ease",
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#059669";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "#10b981";
+                  }}
+                  title="Abrir teclado de letras"
+                >
+                  ⌨️
+                </button>
               </div>
             </div>
 

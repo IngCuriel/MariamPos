@@ -1,0 +1,288 @@
+/* ============================================================
+   ⌨️ TECLADO TOUCH PARA TEXTO (LETRAS)
+   ============================================================ */
+
+.touch-text-keyboard-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+}
+
+.touch-text-keyboard-container {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 95%;
+  max-width: 800px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ===== HEADER ===== */
+.touch-text-keyboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.touch-text-keyboard-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+}
+
+.touch-text-keyboard-close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  cursor: pointer;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.touch-text-keyboard-close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.touch-text-keyboard-close-btn:active {
+  transform: scale(0.95);
+}
+
+/* ===== DISPLAY ===== */
+.touch-text-keyboard-display {
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 2px solid #e2e8f0;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.touch-text-keyboard-display-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1e293b;
+  text-align: center;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  word-break: break-word;
+  padding: 0 1rem;
+  width: 100%;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+/* ===== KEYPAD ===== */
+.touch-text-keyboard-keypad {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: white;
+  max-height: calc(90vh - 200px);
+  overflow-y: auto;
+}
+
+.touch-text-keyboard-row {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.touch-text-keyboard-btn {
+  padding: 0.875rem 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 50px;
+  flex: 0 1 auto;
+  min-width: 45px;
+}
+
+.touch-text-keyboard-btn:active {
+  transform: scale(0.92);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* Letter Buttons */
+.letter-btn {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  color: #1e293b;
+  flex: 0 1 calc(10% - 0.5rem);
+  min-width: 45px;
+}
+
+.letter-btn:hover {
+  background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.letter-btn:active {
+  background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
+}
+
+/* Action Buttons */
+.action-btn {
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+  color: white;
+  font-weight: 700;
+}
+
+.action-btn:hover {
+  background: linear-gradient(135deg, #475569 0%, #334155 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(71, 85, 105, 0.3);
+}
+
+.action-btn:active {
+  background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+}
+
+/* Special Buttons */
+.shift-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  flex: 0 1 25%;
+}
+
+.shift-btn:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+.space-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  flex: 1 1 40%;
+  min-width: 150px;
+}
+
+.space-btn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+.backspace-btn {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  flex: 0 1 20%;
+  min-width: 80px;
+}
+
+.backspace-btn:hover {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+}
+
+.clear-btn {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  flex: 1;
+}
+
+.clear-btn:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+}
+
+.confirm-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  flex: 1;
+}
+
+.confirm-btn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+/* ===== FOOTER ===== */
+.touch-text-keyboard-footer {
+  padding: 0.75rem 1.5rem;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+.touch-text-keyboard-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .touch-text-keyboard-container {
+    width: 100%;
+    max-width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .touch-text-keyboard-keypad {
+    padding: 1rem;
+    gap: 0.5rem;
+  }
+
+  .touch-text-keyboard-btn {
+    padding: 0.75rem 0.875rem;
+    font-size: 1rem;
+    min-height: 45px;
+    min-width: 40px;
+  }
+
+  .letter-btn {
+    flex: 0 1 calc(11% - 0.4rem);
+    min-width: 40px;
+  }
+
+  .touch-text-keyboard-display-value {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .touch-text-keyboard-btn {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.9rem;
+    min-height: 40px;
+    min-width: 35px;
+  }
+
+  .letter-btn {
+    flex: 0 1 calc(12% - 0.3rem);
+    min-width: 35px;
+  }
+
+  .touch-text-keyboard-display-value {
+    font-size: 1.1rem;
+  }
+}
+
