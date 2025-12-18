@@ -209,7 +209,7 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
         <Header
           title="🍺 Envases Retornables"
           onBack={onBack}
-          backText="← Volver"
+          backText="← Volver al Menu Principal"
         />
       </div>
 

@@ -682,7 +682,7 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
                   <div className="summary-totals movements-section">
                     <div className="summary-item movement-entrada">
                       <span className="summary-icon">💰</span>
-                      <span className="summary-label">Entradas:</span>
+                      <span className="summary-label">Entradas Efectivo:</span>
                       <span className="summary-amount" style={{ color: "#059669" }}>
                         +{resumenMovimientos.totalEntradas.toLocaleString("es-MX", {
                           style: "currency",
@@ -692,7 +692,7 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
                     </div>
                     <div className="summary-item movement-salida">
                       <span className="summary-icon">💸</span>
-                      <span className="summary-label">Salidas:</span>
+                      <span className="summary-label">Salidas Efectivo:</span>
                       <span className="summary-amount" style={{ color: "#dc2626" }}>
                         -{resumenMovimientos.totalSalidas.toLocaleString("es-MX", {
                           style: "currency",
@@ -700,7 +700,7 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
                         })}
                       </span>
                     </div>
-                    <div className="summary-item movement-neto">
+                    {/*<div className="summary-item movement-neto">
                       <span className="summary-icon">📊</span>
                       <span className="summary-label">Neto Movimientos:</span>
                       <span className="summary-amount" style={{ 
@@ -712,7 +712,7 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
                           currency: "MXN",
                         })}
                       </span>
-                    </div>
+                    </div>*/}
                   </div>
                 )}
               </div>

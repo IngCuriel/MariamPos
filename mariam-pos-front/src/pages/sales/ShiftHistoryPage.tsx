@@ -162,7 +162,7 @@ export default function ShiftHistoryPage({
       <Header
         title="📊 Historial de Turnos"
         onBack={onBack}
-        backText="← Volver al POS"
+        backText="← Volver al Menu Principal"
         className="shift-history-header"
       />
       

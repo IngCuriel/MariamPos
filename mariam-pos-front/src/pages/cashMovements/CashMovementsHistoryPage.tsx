@@ -105,7 +105,7 @@ export default function CashMovementsHistoryPage({
       <Header
         title="💰 Historial de Movimientos de Efectivo"
         onBack={onBack}
-        backText="← Volver"
+        backText="← Volver al Menu Principal"
         className="movements-header"
       />
 

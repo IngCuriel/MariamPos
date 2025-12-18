@@ -1229,6 +1229,27 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         html: successHtml,
         timer: 4000,
         showConfirmButton: false,
+        didClose: () => {
+          // Enfocar el input de búsqueda después de que se cierre el mensaje
+          setTimeout(() => {
+            if (inputRef.current) {
+              // Quitar el foco de cualquier elemento que lo tenga
+              if (document.activeElement && document.activeElement instanceof HTMLElement && document.activeElement !== inputRef.current) {
+                document.activeElement.blur();
+              }
+              inputRef.current.focus();
+              // Verificar y re-enfocar si es necesario
+              setTimeout(() => {
+                if (inputRef.current && document.activeElement !== inputRef.current) {
+                  if (document.activeElement && document.activeElement instanceof HTMLElement) {
+                    document.activeElement.blur();
+                  }
+                  inputRef.current.focus();
+                }
+              }, 50);
+            }
+          }, 100);
+        },
       });
       setClient("Publico en General");
       setSelectedClient(null);
@@ -1588,7 +1609,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         <Header
           title= {branch}
           onBack={onBack}
-          backText="← Volver al POS"
+          backText="← Volver al Menu Principal"
           className=""
         />
         

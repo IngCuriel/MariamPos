@@ -22,7 +22,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({
         <Header
           title="🛍️ Gestión de Productos"
           onBack={onBack}
-          backText="← Volver al Punto de Venta"
+          backText="← Volver al Menu Principal"
           className="products-page-header"
         />
         
@@ -35,7 +35,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({
                 Operaciones Principales
               </h2>
               <p className="products-section-description">
-                Gestiona tu inventario y catálogo de productos
+               Crear, editar y gestionar tu catálogo de productos
               </p>
             </div>
             <div className="products-modules-grid">

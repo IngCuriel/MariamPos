@@ -118,7 +118,6 @@ const POSPage: React.FC<POSPageProps> = ({
               <span className="section-icon">{section.icon}</span>
               {section.title}
             </h2>
-            <p className="pos-section-description">{section.description}</p>
           </div>
           <div 
             className="pos-modules-grid"
@@ -147,9 +146,9 @@ const POSPage: React.FC<POSPageProps> = ({
     <div className="pos-page">
       <div className="pos-page-container">
         <Header
-          title="🏪 Punto de Venta"
+          title="🏪 Menu Princupal"
           onBack={onBack}
-          backText="← Volver al Menú Principal"
+          backText="← Volver al Inicio"
           className="pos-page-header"
           actions={
             <button
