@@ -347,7 +347,7 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
         <Header
           title="Catálogo de Clientes"
           onBack={onBack}
-          backText="← Volver"
+          backText="← Volver al Menu Principal"
           className="catalog-header"
         />
         <div className="client-content">

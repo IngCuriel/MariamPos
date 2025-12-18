@@ -71,6 +71,13 @@
   align-items: start;
 }
 
+/* Mantener dos columnas en tablets y pantallas grandes */
+@media (min-width: 769px) {
+  .shift-history-content {
+    grid-template-columns: 1fr 1.2fr;
+  }
+}
+
 /* Sección de lista de turnos */
 .shifts-list-section {
   background: white;
@@ -460,16 +467,7 @@
 }
 
 /* Responsive */
-@media (max-width: 1400px) {
-  .shift-history-content {
-    grid-template-columns: 1fr;
-  }
-
-  .shift-details-section {
-    max-height: none;
-  }
-}
-
+/* Tablets y pantallas medianas - mantener dos columnas */
 @media (max-width: 1024px) {
   .totals-summary {
     grid-template-columns: repeat(2, 1fr);
@@ -486,7 +484,16 @@
   }
 }
 
+/* Solo en móviles - apilar en una columna */
 @media (max-width: 768px) {
+  .shift-history-content {
+    grid-template-columns: 1fr;
+  }
+
+  .shift-details-section {
+    max-height: none;
+  }
+
   .shift-history-container {
     padding: 15px;
   }
