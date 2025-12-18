@@ -231,7 +231,7 @@ export default function ShiftHistoryPage({
                   className="datepicker-input-large"
                 />
               </div>
-              <div className="filter-group">
+              {/*<div className="filter-group">
                 <label className="filter-label">Estado:</label>
                 <select
                   value={filterStatus}
@@ -243,7 +243,7 @@ export default function ShiftHistoryPage({
                   <option value="CLOSED">Cerrados</option>
                   <option value="CANCELLED">Cancelados</option>
                 </select>
-              </div> 
+              </div> */}
             </div>
 
             {loading ? (

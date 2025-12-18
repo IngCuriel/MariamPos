@@ -31,8 +31,7 @@
 .filters-section {
   display: flex;
   gap: 12px;
-  flex-wrap: wrap;
-  flex: 1;
+  flex-wrap: wrap; 
 }
 
 .filter-select,

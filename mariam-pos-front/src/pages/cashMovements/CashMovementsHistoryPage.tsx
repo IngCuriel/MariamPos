@@ -110,55 +110,7 @@ export default function CashMovementsHistoryPage({
       />
 
       <div className="movements-content">
-        {/* Filtros */}
-        <div className="filters-section">
-          <div className="filter-group">
-            <label className="filter-label">Desde:</label>
-            <DatePicker
-              selected={startDate}
-              onChange={(date) => setStartDate(date || new Date())}
-              locale="es"
-              dateFormat="yyyy-MM-dd"
-              className="datepicker-input"
-            />
-          </div>
-          <div className="filter-group">
-            <label className="filter-label">Hasta:</label>
-            <DatePicker
-              selected={endDate}
-              onChange={(date) => setEndDate(date || new Date())}
-              locale="es"
-              dateFormat="yyyy-MM-dd"
-              className="datepicker-input"
-            />
-          </div>
-          <div className="filter-group">
-            <label className="filter-label">🏪 Caja:</label>
-            <select
-              value={selectedCashRegister}
-              onChange={(e) => setSelectedCashRegister(e.target.value)}
-              className="cash-register-select"
-            >
-              <option value="all">Todas las cajas</option>
-              {availableCashRegisters.map((cashRegister) => (
-                <option key={cashRegister} value={cashRegister}>
-                  {cashRegister}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="filter-group">
-            <button
-              className="refresh-btn"
-              onClick={fetchMovements}
-              disabled={loading}
-            >
-              🔄 Actualizar
-            </button>
-          </div>
-        </div>
-
-        {/* Resumen de totales */}
+        {/* Resumen de totales - ARRIBA */}
         <div className="totals-summary">
           <div className="total-item entrada">
             <span className="total-label">💰 Total Entradas:</span>
@@ -181,6 +133,54 @@ export default function CashMovementsHistoryPage({
           <div className="total-item count">
             <span className="total-label">📋 Total Movimientos:</span>
             <span className="total-value">{movements.length}</span>
+          </div>
+        </div>
+
+        {/* Filtros - EN MEDIO */}
+        <div className="filters-section">
+          <div className="filter-group">
+            <label className="filter-label">Desde:</label>
+            <DatePicker
+              selected={startDate}
+              onChange={(date) => setStartDate(date || new Date())}
+              locale="es"
+              dateFormat="yyyy-MM-dd"
+              className="datepicker-input-large"
+            />
+          </div>
+          <div className="filter-group">
+            <label className="filter-label">Hasta:</label>
+            <DatePicker
+              selected={endDate}
+              onChange={(date) => setEndDate(date || new Date())}
+              locale="es"
+              dateFormat="yyyy-MM-dd"
+              className="datepicker-input-large"
+            />
+          </div>
+          <div className="filter-group">
+            <label className="filter-label">🏪 Caja:</label>
+            <select
+              value={selectedCashRegister}
+              onChange={(e) => setSelectedCashRegister(e.target.value)}
+              className="cash-register-select-large"
+            >
+              <option value="all">Todas las cajas</option>
+              {availableCashRegisters.map((cashRegister) => (
+                <option key={cashRegister} value={cashRegister}>
+                  {cashRegister}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="filter-group">
+            <button
+              className="refresh-btn-large"
+              onClick={fetchMovements}
+              disabled={loading}
+            >
+              🔄 Actualizar
+            </button>
           </div>
         </div>
 
