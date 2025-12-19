@@ -539,7 +539,10 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         setContainersDepositInfo(adjustedContainersInfo);
 
         // Continuar con el flujo normal - el importe se agregará al total en el modal
-        setShowModal(true);
+        // Esperar un momento para que SweetAlert2 se cierre completamente antes de abrir el modal
+        setTimeout(() => {
+          setShowModal(true);
+        }, 100); // Pequeño delay para permitir que SweetAlert2 se cierre completamente
       }
     } else {
       // No hay envases - flujo normal

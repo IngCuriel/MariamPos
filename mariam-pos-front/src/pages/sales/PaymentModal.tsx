@@ -2,8 +2,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { FaMoneyBillWave, FaCreditCard, FaGift } from "react-icons/fa";
 import { IoCloseCircleOutline } from "react-icons/io5";
 import Swal from "sweetalert2";
+import { createRoot } from "react-dom/client";
 import type { ConfirmPaymentData } from "../../types/index";
 import { getClientCreditSummary } from "../../api/credits";
+import TouchCalculator from "../../components/TouchCalculator";
 import "../../styles/pages/sales/paymentModal.css";
 import type { Client } from "../../types/index";
 
@@ -19,8 +21,6 @@ interface PaymentModalProps {
   onConfirm: (confirmData: ConfirmPaymentData) => void;
 }
 
-const bills = [500, 200, 100, 50]; // ← Aquí defines tus billetes
-
 const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDepositInfo, onClose, onConfirm }) => {
   const [paymentType, setPaymentType] = useState("efectivo");
   const [amountReceived, setAmountReceived] = useState<string>("");
@@ -29,6 +29,35 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
   const inputRef = useRef<HTMLInputElement>(null);
   const cashInputRef = useRef<HTMLInputElement>(null);
   const cardInputRef = useRef<HTMLInputElement>(null);
+
+  // Función para mostrar la calculadora táctil
+  const showTouchCalculator = (
+    currentValue: string,
+    label: string,
+    onConfirm: (value: string) => void
+  ) => {
+    const container = document.createElement("div");
+    container.id = "touch-calculator-container";
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    const handleClose = () => {
+      root.unmount();
+      document.body.removeChild(container);
+    };
+
+    root.render(
+      <TouchCalculator
+        initialValue={currentValue}
+        label={label}
+        onConfirm={(value) => {
+          onConfirm(value);
+          handleClose();
+        }}
+        onClose={handleClose}
+      />
+    );
+  };
 
   // Calcular total incluyendo depósito de envases
   const containersTotal = containersDepositInfo?.total || 0;
@@ -40,12 +69,45 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
   const totalMixed = cashReceived + cardReceived;
 
   useEffect(() => {
-    if (paymentType === "efectivo" && inputRef.current) {
-      inputRef.current.focus();
-    } else if (paymentType === "mixto" && cashInputRef.current) {
-      cashInputRef.current.focus();
-    }
-  }, [paymentType]);
+    const attemptFocus = (ref: React.RefObject<HTMLInputElement>) => {
+      if (ref.current && ref.current.offsetParent !== null) { // Verificar que el elemento esté visible
+        ref.current.focus();
+        ref.current.select();
+        if (document.activeElement !== ref.current) {
+          // Si el focus falló, intentar de nuevo con un pequeño delay
+          setTimeout(() => {
+            ref.current?.focus();
+            ref.current?.select();
+          }, 50);
+        }
+        return true;
+      }
+      return false;
+    };
+
+    const focusOnOpen = () => {
+      if (paymentType === "efectivo") {
+        if (!attemptFocus(inputRef)) {
+          requestAnimationFrame(() => setTimeout(() => attemptFocus(inputRef), 100));
+        }
+      } else if (paymentType === "mixto") {
+        if (!attemptFocus(cashInputRef)) {
+          requestAnimationFrame(() => setTimeout(() => attemptFocus(cashInputRef), 100));
+        }
+      }
+    };
+
+    // Intentar enfocar después de un pequeño delay para asegurar que el modal esté completamente renderizado
+    const timeoutId = setTimeout(focusOnOpen, 100);
+    const rafId = requestAnimationFrame(() => setTimeout(focusOnOpen, 200));
+    const anotherTimeoutId = setTimeout(focusOnOpen, 300);
+
+    return () => {
+      clearTimeout(timeoutId);
+      clearTimeout(anotherTimeoutId);
+      cancelAnimationFrame(rafId);
+    };
+  }, [paymentType, containersDepositInfo]); // Agregar containersDepositInfo a las dependencias
 
   // Limpiar campos cuando cambia el tipo de pago
   useEffect(() => {
@@ -586,43 +648,62 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
         {paymentType === "efectivo" && (
           <div className="input-section">
             <label>Monto recibido:</label>
-
-            {/* 💵 Botones de billetes */}
-            <div className="bills-grid">
-              {bills.map((b) => (
-                <button
-                  key={b}
-                  className="bill-btn"
-                  onClick={() => {
-                    const newAmount = (parseFloat(amountReceived || "0") + b).toString();
-                    setAmountReceived(newAmount);
-                  }}
-                >
-                  ${b}
-                </button>
-              ))}
-            </div>
-
-            {/* Input opcional */}
-            <div className="input-wrapper">
-            <input
-              ref={inputRef}
-              type="number"
-              placeholder="(Opcional)"
-              value={amountReceived}
-              onChange={(e) => setAmountReceived(e.target.value)}
-            />
-             {amountReceived.length > 0 && (
+            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <div className="input-wrapper" style={{ flex: 1 }}>
+                <input
+                  ref={inputRef}
+                  type="number"
+                  placeholder="0.00"
+                  value={amountReceived}
+                  onChange={(e) => setAmountReceived(e.target.value)}
+                  style={{ paddingRight: amountReceived.length > 0 ? '35px' : '10px' }}
+                />
+                {amountReceived.length > 0 && (
                   <button
                     className="clear-btn-payment"
                     onClick={() => {
                       setAmountReceived("");
                       inputRef.current?.focus();
                     }}
+                    title="Limpiar"
                   >
                     ❌
                   </button>
                 )}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const currentValue = amountReceived.replace(/,/g, '') || '0';
+                  showTouchCalculator(currentValue, '💰 Monto Recibido', (newValue) => {
+                    setAmountReceived(newValue);
+                    if (inputRef.current) {
+                      inputRef.current.focus();
+                      inputRef.current.select();
+                    }
+                  });
+                }}
+                title="Abrir calculadora táctil"
+                style={{
+                  padding: "12px 16px",
+                  fontSize: "1.5rem",
+                  backgroundColor: "#f3f4f6",
+                  border: "2px solid #d1d5db",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#e5e7eb";
+                  e.currentTarget.style.borderColor = "#9ca3af";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "#f3f4f6";
+                  e.currentTarget.style.borderColor = "#d1d5db";
+                }}
+              >
+                🧮
+              </button>
             </div>
             <p className="change-text">Cambio: ${change.toFixed(2)}</p>
           </div>
@@ -656,51 +737,73 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
                   </span>
                 )}
               </label>
-              <div className="bills-grid" style={{ marginBottom: "10px" }}>
-                {bills.map((b) => (
-                  <button
-                    key={b}
-                    className="bill-btn"
-                    onClick={() => {
-                      const newAmount = (parseFloat(cashAmount || "0") + b).toString();
-                      setCashAmount(newAmount);
+              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                <div className="input-wrapper" style={{ flex: 1 }}>
+                  <input
+                    ref={cashInputRef}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder={containersDepositInfo && containersDepositInfo.total > 0 ? `Mínimo: ${containersDepositInfo.total.toFixed(2)}` : "0.00"}
+                    value={cashAmount}
+                    onChange={(e) => {
+                      // Permitir cualquier valor mientras se escribe (validación al confirmar)
+                      setCashAmount(e.target.value);
                     }}
-                  >
-                    ${b}
-                  </button>
-                ))}
-              </div>
-              <div className="input-wrapper">
-                <input
-                  ref={cashInputRef}
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder={containersDepositInfo && containersDepositInfo.total > 0 ? `Mínimo: ${containersDepositInfo.total.toFixed(2)}` : "0.00"}
-                  value={cashAmount}
-                  onChange={(e) => {
-                    // Permitir cualquier valor mientras se escribe (validación al confirmar)
-                    setCashAmount(e.target.value);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Tab" && !e.shiftKey) {
-                      e.preventDefault();
-                      cardInputRef.current?.focus();
-                    }
-                  }}
-                />
-                {cashAmount.length > 0 && (
-                  <button
-                    className="clear-btn-payment"
-                    onClick={() => {
-                      setCashAmount("");
-                      cashInputRef.current?.focus();
+                    onKeyDown={(e) => {
+                      if (e.key === "Tab" && !e.shiftKey) {
+                        e.preventDefault();
+                        cardInputRef.current?.focus();
+                      }
                     }}
-                    title="Limpiar"
-                  >
-                    ❌
-                  </button>
-                )}
+                    style={{ paddingRight: cashAmount.length > 0 ? '35px' : '10px' }}
+                  />
+                  {cashAmount.length > 0 && (
+                    <button
+                      className="clear-btn-payment"
+                      onClick={() => {
+                        setCashAmount("");
+                        cashInputRef.current?.focus();
+                      }}
+                      title="Limpiar"
+                    >
+                      ❌
+                    </button>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentValue = cashAmount.replace(/,/g, '') || '0';
+                    showTouchCalculator(currentValue, '💰 Monto en Efectivo', (newValue) => {
+                      setCashAmount(newValue);
+                      if (cashInputRef.current) {
+                        cashInputRef.current.focus();
+                        cashInputRef.current.select();
+                      }
+                    });
+                  }}
+                  title="Abrir calculadora táctil"
+                  style={{
+                    padding: "12px 16px",
+                    fontSize: "1.5rem",
+                    backgroundColor: "#f3f4f6",
+                    border: "2px solid #d1d5db",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#e5e7eb";
+                    e.currentTarget.style.borderColor = "#9ca3af";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "#f3f4f6";
+                    e.currentTarget.style.borderColor = "#d1d5db";
+                  }}
+                >
+                  🧮
+                </button>
               </div>
               {/* Desglose del efectivo cuando hay envases */}
               {containersDepositInfo && containersDepositInfo.total > 0 && (
@@ -748,33 +851,70 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
                   </span>
                 )}
               </label>
-              <div className="input-wrapper">
-                <input
-                  ref={cardInputRef}
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  value={cardAmount}
-                  onChange={(e) => setCardAmount(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Tab" && e.shiftKey) {
-                      e.preventDefault();
-                      cashInputRef.current?.focus();
-                    }
-                  }}
-                />
-                {cardAmount.length > 0 && (
-                  <button
-                    className="clear-btn-payment"
-                    onClick={() => {
-                      setCardAmount("");
-                      cardInputRef.current?.focus();
+              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                <div className="input-wrapper" style={{ flex: 1 }}>
+                  <input
+                    ref={cardInputRef}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    value={cardAmount}
+                    onChange={(e) => setCardAmount(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Tab" && e.shiftKey) {
+                        e.preventDefault();
+                        cashInputRef.current?.focus();
+                      }
                     }}
-                  >
-                    ❌
-                  </button>
-                )}
+                    style={{ paddingRight: cardAmount.length > 0 ? '35px' : '10px' }}
+                  />
+                  {cardAmount.length > 0 && (
+                    <button
+                      className="clear-btn-payment"
+                      onClick={() => {
+                        setCardAmount("");
+                        cardInputRef.current?.focus();
+                      }}
+                      title="Limpiar"
+                    >
+                      ❌
+                    </button>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentValue = cardAmount.replace(/,/g, '') || '0';
+                    showTouchCalculator(currentValue, '💰 Monto en Tarjeta', (newValue) => {
+                      setCardAmount(newValue);
+                      if (cardInputRef.current) {
+                        cardInputRef.current.focus();
+                        cardInputRef.current.select();
+                      }
+                    });
+                  }}
+                  title="Abrir calculadora táctil"
+                  style={{
+                    padding: "12px 16px",
+                    fontSize: "1.5rem",
+                    backgroundColor: "#f3f4f6",
+                    border: "2px solid #d1d5db",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#e5e7eb";
+                    e.currentTarget.style.borderColor = "#9ca3af";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "#f3f4f6";
+                    e.currentTarget.style.borderColor = "#d1d5db";
+                  }}
+                >
+                  🧮
+                </button>
               </div>
             </div>
 

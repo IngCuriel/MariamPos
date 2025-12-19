@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Header from "../../components/Header";
 import Swal from "sweetalert2";
 import {
@@ -10,6 +10,7 @@ import {
   type Container,
   type CreateContainerInput,
 } from "../../api/containers";
+import { getProductsFilters } from "../../api/products";
 import type { Product, ProductPresentation } from "../../types/index";
 import "../../styles/pages/containers/containers.css";
 
@@ -37,10 +38,86 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
   });
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  
+  // Estados para búsqueda de productos
+  const [productSearchTerm, setProductSearchTerm] = useState("");
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const productSearchRef = useRef<HTMLInputElement>(null);
+  const productDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadData();
   }, []);
+
+  const fetchProductsByFilter = async () => {
+    try {
+      setLoadingProducts(true);
+      const data = await getProductsFilters(productSearchTerm);
+      setFilteredProducts(data);
+      if (data.length > 0) {
+        setShowProductDropdown(true);
+      }
+    } catch (error) {
+      console.error("Error al buscar productos:", error);
+      setFilteredProducts([]);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
+  // Debounce para búsqueda de productos
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (productSearchTerm.length > 2) {
+        fetchProductsByFilter();
+      } else {
+        setFilteredProducts([]);
+        setShowProductDropdown(false);
+      }
+    }, 300);
+    return () => clearTimeout(handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productSearchTerm]);
+
+  // Cerrar dropdown al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        productDropdownRef.current &&
+        !productDropdownRef.current.contains(event.target as Node) &&
+        productSearchRef.current &&
+        !productSearchRef.current.contains(event.target as Node)
+      ) {
+        setShowProductDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleProductSearchChange = (value: string) => {
+    setProductSearchTerm(value);
+    if (value.length <= 2) {
+      setFilteredProducts([]);
+      setShowProductDropdown(false);
+    }
+  };
+
+  const handleProductSelect = (product: Product) => {
+    setSelectedProduct(product);
+    setProductSearchTerm(product.name);
+    setFormData({
+      ...formData,
+      productId: product.id,
+      presentationId: undefined, // Reset presentation when product changes
+    });
+    setShowProductDropdown(false);
+  };
 
   const loadData = async () => {
     try {
@@ -77,9 +154,22 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
         notes: container.notes || "",
         status: containerStatus,
       });
-      if (container.productId) {
+      if (container.productId && container.product) {
+        setSelectedProduct(container.product);
+        setProductSearchTerm(container.product.name);
+      } else if (container.productId) {
+        // Fallback: buscar producto si no está disponible directamente
         const product = products.find((p) => p.id === container.productId);
-        setSelectedProduct(product || null);
+        if (product) {
+          setSelectedProduct(product);
+          setProductSearchTerm(product.name);
+        } else {
+          setSelectedProduct(null);
+          setProductSearchTerm("");
+        }
+      } else {
+        setSelectedProduct(null);
+        setProductSearchTerm("");
       }
     } else {
       setEditingContainer(null);
@@ -93,6 +183,7 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
         status: null, // null = activo por defecto
       });
       setSelectedProduct(null);
+      setProductSearchTerm("");
     }
     setShowModal(true);
   };
@@ -101,16 +192,9 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
     setShowModal(false);
     setEditingContainer(null);
     setSelectedProduct(null);
-  };
-
-  const handleProductChange = (productId: string) => {
-    const product = products.find((p) => p.id === parseInt(productId));
-    setSelectedProduct(product || null);
-    setFormData({
-      ...formData,
-      productId: productId ? parseInt(productId) : undefined,
-      presentationId: undefined, // Reset presentation when product changes
-    });
+    setProductSearchTerm("");
+    setFilteredProducts([]);
+    setShowProductDropdown(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -146,12 +230,15 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
       }
       handleCloseModal();
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error al guardar envase:", error);
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? (error as { response?: { data?: { error?: string } } }).response?.data?.error
+        : undefined;
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: error.response?.data?.error || "No se pudo guardar el envase",
+        text: errorMessage || "No se pudo guardar el envase",
       });
     } finally {
       setLoading(false);
@@ -180,12 +267,15 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
           timer: 1500,
         });
         loadData();
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Error al eliminar envase:", error);
+        const errorMessage = error && typeof error === 'object' && 'response' in error
+          ? (error as { response?: { data?: { error?: string } } }).response?.data?.error
+          : undefined;
         Swal.fire({
           icon: "error",
           title: "Error",
-          text: error.response?.data?.error || "No se pudo eliminar el envase",
+          text: errorMessage || "No se pudo eliminar el envase",
         });
       } finally {
         setLoading(false);
@@ -200,7 +290,7 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
 
   const getAvailablePresentations = (): ProductPresentation[] => {
     if (!selectedProduct || !selectedProduct.presentations) return [];
-    return selectedProduct.presentations.filter((p) => !p.isDefault);
+    return selectedProduct.presentations; // Mostrar todas las presentaciones, incluyendo la base
   };
 
   return (
@@ -373,19 +463,65 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
 
               <div className="form-group">
                 <label htmlFor="productId">Producto (Opcional)</label>
-                <select
-                  id="productId"
-                  value={formData.productId || ""}
-                  onChange={(e) => handleProductChange(e.target.value)}
-                  className="form-select"
-                >
-                  <option value="">Sin producto</option>
-                  {products.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.name}
-                    </option>
-                  ))}
-                </select>
+                <div style={{ position: "relative" }} ref={productDropdownRef}>
+                  <input
+                    ref={productSearchRef}
+                    id="productId"
+                    type="text"
+                    value={productSearchTerm}
+                    onChange={(e) => handleProductSearchChange(e.target.value)}
+                    onFocus={() => {
+                      if (filteredProducts.length > 0) {
+                        setShowProductDropdown(true);
+                      }
+                    }}
+                    placeholder="Buscar producto..."
+                    className="form-input"
+                  />
+                  {loadingProducts && (
+                    <span style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)" }}>
+                      Cargando...
+                    </span>
+                  )}
+                  {showProductDropdown && filteredProducts.length > 0 && (
+                    <div className="product-dropdown" style={{
+                      position: "absolute",
+                      top: "100%",
+                      left: 0,
+                      right: 0,
+                      backgroundColor: "white",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "8px",
+                      maxHeight: "200px",
+                      overflowY: "auto",
+                      zIndex: 1000,
+                      boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+                      marginTop: "4px"
+                    }}>
+                      {filteredProducts.map((product) => (
+                        <div
+                          key={product.id}
+                          className="dropdown-item"
+                          onClick={() => handleProductSelect(product)}
+                          style={{
+                            padding: "12px 16px",
+                            cursor: "pointer",
+                            borderBottom: "1px solid #f3f4f6",
+                            transition: "background-color 0.2s"
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = "#f3f4f6";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = "white";
+                          }}
+                        >
+                          <strong>{product.name}</strong> ({product.code})
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {selectedProduct && getAvailablePresentations().length > 0 && (
@@ -404,10 +540,10 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
                     }
                     className="form-select"
                   >
-                    <option value="">Sin presentación</option>
+                    <option value="">Sin presentación (Base)</option>
                     {getAvailablePresentations().map((presentation) => (
                       <option key={presentation.id} value={presentation.id}>
-                        {presentation.name} ({presentation.quantity} unidades)
+                        {presentation.name} ({presentation.quantity} unidades) {presentation.isDefault && "(Base)"}
                       </option>
                     ))}
                   </select>

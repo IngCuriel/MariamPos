@@ -42,6 +42,15 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
     }
   }, [isOpen]);
 
+  // Enfocar el input de nombre completo cuando se muestra el formulario de creación
+  useEffect(() => {
+    if (showCreateForm) {
+      setTimeout(() => {
+        nameInputRef.current?.focus();
+      }, 100); // Pequeño delay para asegurar que el modal esté renderizado
+    }
+  }, [showCreateForm]);
+
   useEffect(() => {
     if (searchTerm.trim() === "") {
       setFilteredClients(clients);
@@ -103,7 +112,7 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
       const displayName = newClient.alias
         ? `${newClient.name} (${newClient.alias})`
         : newClient.name;
-      onSelect(displayName);
+      onSelect(displayName, newClient); // Pasar el objeto Client completo
       onClose();
     } catch (error: any) {
       Swal.fire({

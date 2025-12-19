@@ -26,7 +26,7 @@ export default function ShiftHistoryPage({
   );
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<string>("");
+  const [filterStatus, _setFilterStatus] = useState<string>("");
 
   useEffect(() => {
     fetchShifts();
