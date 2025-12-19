@@ -183,7 +183,7 @@ export default function ShiftHistoryPage({
               </div>
               <div className="total-item">
                 <span className="total-label">💳 Tarjeta Total:</span>
-                <span className="total-value card">
+                <span className="total-value cards">
                   {totals.totalCard.toLocaleString("es-MX", {
                     style: "currency",
                     currency: "MXN",
@@ -255,7 +255,7 @@ export default function ShiftHistoryPage({
                 <table className="shifts-table">
                   <thead>
                     <tr>
-                      <th>Folio</th>
+                      {/*<th>Folio</th>*/}
                       <th>Fecha Inicio</th>
                       <th>Caja</th>
                       <th>Cajero</th>
@@ -270,7 +270,7 @@ export default function ShiftHistoryPage({
                         className={selectedShift?.id === shift.id ? "selected" : ""}
                         onClick={() => handleSelectShift(shift)}
                       >
-                        <td className="folio-cell">{shift.shiftNumber}</td>
+                        {/*<td className="folio-cell">{shift.shiftNumber}</td>*/}
                         <td className="date-cell">{formatDate(shift.startTime)}</td>
                         <td className="cash-register-cell">{shift.cashRegister}</td>
                         <td className="cashier-cell">{shift.cashierName || "Anónimo"}</td>
