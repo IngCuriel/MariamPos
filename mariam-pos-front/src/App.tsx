@@ -64,7 +64,7 @@ function App() {
       case 'help':
         return <HelpPage onBack={goToPOS} />;
       case 'pos':
-        return <POSPage onBack={goToMain} onProductsClick={goToProducts} onSalesClick={goToSales} onClientClick={gotoClients} onReportClick={gotoReport} onInventoryClick={goToInventory} onUsersClick={goToUsers} onShiftHistoryClick={goToShiftHistory} onCashMovementsHistoryClick={goToCashMovementsHistory} onCopiesClick={goToCopies} onContainersClick={goToContainers} onHelpClick={goToHelp} onSuppliersClick={goToSuppliers} onPurchasesClick={goToPurchases} onAccountPayablesClick={goToAccountPayables} />;
+        return <POSPage onBack={goToMain} onProductsClick={goToCatalog} onSalesClick={goToSales} onClientClick={gotoClients} onReportClick={gotoReport} onInventoryClick={goToInventory} onUsersClick={goToUsers} onShiftHistoryClick={goToShiftHistory} onCashMovementsHistoryClick={goToCashMovementsHistory} onCopiesClick={goToCopies} onContainersClick={goToContainers} onHelpClick={goToHelp} onSuppliersClick={goToSuppliers} onPurchasesClick={goToPurchases} onAccountPayablesClick={goToAccountPayables} />;
       case 'products':
         return (
           <ProductsPage 
@@ -77,13 +77,15 @@ function App() {
       case 'catalog':
         return (
           <CatalogPage 
-            onBack={goToProducts} 
+            onBack={goToPOS}
+            onCategories={goToCategories}
+            onCreateKit={goToKit}
           />
         );
       case 'categories':
         return (
           <CategoriesPage 
-            onBack={goToProducts} 
+            onBack={goToCatalog} 
             categories={categories}
             onAdd={addCategory}
             onEdit={updateCategory}
@@ -111,7 +113,7 @@ function App() {
       case 'containers':
         return <ContainersPage onBack={goToPOS} />;
       case 'kit':
-        return <NewKitPage onBack={goToProducts} />;
+        return <NewKitPage onBack={goToCatalog} />;
       case 'suppliers':
         return <SuppliersPage onBack={goToPOS} />;
       case 'purchases':

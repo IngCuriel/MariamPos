@@ -24,9 +24,11 @@ import Swal from "sweetalert2";
 
 interface CatalogPageProps {
   onBack: () => void;
+  onCategories?: () => void;
+  onCreateKit?: () => void;
 }
 
-const CatalogPage: React.FC<CatalogPageProps> = ({ onBack }) => {
+const CatalogPage: React.FC<CatalogPageProps> = ({ onBack, onCategories, onCreateKit }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [productsEdit, setProductsEdit] = useState<Product | null>(null);
   const [kitEdit, setKitEdit] = useState<Product | null>(null); // 🆕 Para kits
@@ -35,7 +37,11 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack }) => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [showEditKitModal, setShowEditKitModal] = useState(false); // 🆕 Modal de edición de kit
+  const [showActionsMenu, setShowActionsMenu] = useState(false); // 🆕 Menú desplegable de acciones
+  const [menuDirection, setMenuDirection] = useState<'up' | 'down'>('up'); // 🆕 Dirección del menú
   const inputRef = useRef<HTMLInputElement>(null); // 👈 referencia al input
+  const actionsMenuRef = useRef<HTMLDivElement>(null); // 👈 referencia al menú desplegable
+  const actionsToggleRef = useRef<HTMLButtonElement>(null); // 👈 referencia al botón toggle
 
   const [loading, setLoading] = useState(false);
 
@@ -45,6 +51,41 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack }) => {
     fetchCategories();
     fetchProducts();
   }, []);
+
+  // Calcular dirección del menú (arriba o abajo) basado en el espacio disponible
+  useEffect(() => {
+    if (showActionsMenu && actionsToggleRef.current) {
+      const toggleRect = actionsToggleRef.current.getBoundingClientRect();
+      const spaceAbove = toggleRect.top;
+      const spaceBelow = window.innerHeight - toggleRect.bottom;
+      const menuHeight = 200; // Altura aproximada del menú (4 items * ~50px cada uno)
+      
+      // Si hay más espacio abajo, desplegar hacia abajo, si no hacia arriba
+      if (spaceBelow >= menuHeight || spaceBelow > spaceAbove) {
+        setMenuDirection('down');
+      } else {
+        setMenuDirection('up');
+      }
+    }
+  }, [showActionsMenu]);
+
+  // Cerrar menú desplegable al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(event.target as Node) &&
+          actionsToggleRef.current && !actionsToggleRef.current.contains(event.target as Node)) {
+        setShowActionsMenu(false);
+      }
+    };
+
+    if (showActionsMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showActionsMenu]);
 
   useEffect(() => {
     if(searchTerm.length > 2) {
@@ -351,54 +392,120 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack }) => {
         <Header
           title="Catálogo de Productos"
           onBack={onBack}
-          backText="← Volver a Productos"
+          backText="← Volver al Menu Principal"
           className="catalog-header"
         />
 
         <div className="catalog-content">
-          {/* Filtros */}
-          <Card className="filters-card">
-            <div className="filters">
-              <div className="search-group">
-                <label htmlFor="search">Buscar producto:</label>
+          {/* Sección de Filtros */}
+          <Card className="catalog-filters-section">
+            <div className="catalog-filters-header">
+              <h3 className="catalog-section-title">
+                <span className="section-icon">🔍</span>
+                Filtros de Búsqueda
+              </h3>
+            </div>
+            <div className="catalog-filters">
+              <div className="catalog-filter-group">
+                <label htmlFor="search" className="catalog-filter-label">
+                  Buscar producto
+                </label>
                 <input
                   type="text"
-                  ref={inputRef} // 👈 referencia aquí
+                  ref={inputRef}
                   id="search"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Nombre o descripción..."
-                  className="search-input"
+                  className="catalog-search-input"
                 />
               </div>
 
-              <div className="category-group">
-                <label htmlFor="category">Categoría:</label>
+              <div className="catalog-filter-group">
+                <label htmlFor="category" className="catalog-filter-label">
+                  Categoría
+                </label>
                 <select
-                      id="category"
-                      value={selectedCategory}
-                      onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="category-select-touch"
-                    >
-                      <option value="">Todas las categorías</option>
-                      {categories.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
-              </div>
-              <div>
-                <Button
-                  variant="success"
-                  onClick={handleAddNew}
-                  className="add-category-btn"
+                  id="category"
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="catalog-category-select"
                 >
-                  ➕ Agregar Producto
-                </Button>
-                <Button variant="warning" onClick={handleDownloadPDF} className="download-btn">
-                  📄 Descargar PDF
-                </Button>
+                  <option value="">Todas las categorías</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="catalog-filter-group catalog-actions-group">
+                <label className="catalog-filter-label" style={{ visibility: 'hidden' }}>
+                  Acciones
+                </label>
+                <div className="catalog-actions-dropdown" ref={actionsMenuRef}>
+                  <button
+                    type="button"
+                    ref={actionsToggleRef}
+                    className="catalog-actions-toggle"
+                    onClick={() => setShowActionsMenu(!showActionsMenu)}
+                  >
+                    <span className="btn-icon">⚙️</span>
+                    <span className="btn-text">Acciones</span>
+                    <span className={`dropdown-arrow ${showActionsMenu ? 'open' : ''}`}>
+                      {menuDirection === 'up' ? '▲' : '▼'}
+                    </span>
+                  </button>
+                  {showActionsMenu && (
+                    <div className={`catalog-actions-menu menu-${menuDirection}`}>
+                      <button
+                        type="button"
+                        className="catalog-menu-item catalog-menu-add"
+                        onClick={() => {
+                          handleAddNew();
+                          setShowActionsMenu(false);
+                        }}
+                      >
+                        <span className="menu-icon">➕</span>
+                        <span className="menu-text">Agregar Producto</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="catalog-menu-item catalog-menu-categories"
+                        onClick={() => {
+                          onCategories?.();
+                          setShowActionsMenu(false);
+                        }}
+                      >
+                        <span className="menu-icon">📂</span>
+                        <span className="menu-text">Categorías</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="catalog-menu-item catalog-menu-kit"
+                        onClick={() => {
+                          onCreateKit?.();
+                          setShowActionsMenu(false);
+                        }}
+                      >
+                        <span className="menu-icon">🏷️</span>
+                        <span className="menu-text">Agregar Kit</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="catalog-menu-item catalog-menu-download"
+                        onClick={() => {
+                          handleDownloadPDF();
+                          setShowActionsMenu(false);
+                        }}
+                      >
+                        <span className="menu-icon">📄</span>
+                        <span className="menu-text">Descargar PDF</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </Card>
@@ -436,97 +543,85 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack }) => {
                     className="catalog-product-card"
                     variant="product"
                   >
-                    <div 
-                      className="catalog-card-header"
-                      style={{ background: colorVariant.bg }}
-                    >
-                      {product.icon && (
-                        <div className="catalog-product-icon">{product.icon}</div>
-                      )}
-                      {product.isKit && (
-                        <span className="catalog-category-badge" style={{ 
-                          backgroundColor: '#059669', 
-                          color: 'white',
-                          fontWeight: '700',
-                          fontSize: '0.85rem'
-                        }}>
-                          🏷️ Kit
-                        </span>
-                      )}
-                      {product.category && (
-                        <span className="catalog-category-badge">
-                          {product.category.name}
-                        </span>
-                      )}
+                    {/* Header compacto con icono y badges */}
+                    <div className="catalog-card-header-compact">
+                      <div className="catalog-header-left">
+                        {product.icon && (
+                          <div className="catalog-product-icon-compact">{product.icon}</div>
+                        )}
+                        <div className="catalog-header-info">
+                          <h3 className="catalog-product-name-compact" title={product.name}>
+                            {product.name}
+                          </h3>
+                          <div className="catalog-product-meta">
+                            <span className="catalog-code-compact">
+                              {product.code || "Sin código"}
+                            </span>
+                            {product.category && (
+                              <span className="catalog-category-tag">
+                                {product.category.name}
+                              </span>
+                            )}
+                            {product.isKit && (
+                              <span className="catalog-kit-tag">
+                                🏷️ Kit
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     
-                    <div className="catalog-product-body">
-                      <h3 className="catalog-product-name" title={product.name}>
-                        {product.name}
-                        {product.isKit && (
-                          <span style={{ 
-                            marginLeft: '0.5rem', 
-                            fontSize: '0.85rem', 
-                            color: '#059669',
-                            fontWeight: '600'
-                          }}>
-                            (Kit)
-                          </span>
+                    {/* Descripción compacta (si existe) */}
+                    {product.description && (
+                      <div className="catalog-description-compact" title={product.description}>
+                        {product.description}
+                      </div>
+                    )}
+
+                    {/* Información de kit (si aplica) */}
+                    {product.isKit && product.kitItems && product.kitItems.length > 0 && (
+                      <div className="catalog-kit-info">
+                        <span className="kit-info-text">
+                          Contiene {product.kitItems.length} producto{product.kitItems.length !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Footer con precios y acciones */}
+                    <div className="catalog-card-footer">
+                      <div className="catalog-pricing-compact">
+                        <div className="price-row-main">
+                          <span className="price-label-compact">Precio</span>
+                          <span className="price-value-compact">${product.price.toFixed(2)}</span>
+                        </div>
+                        {product.cost && product.cost > 0 && (
+                          <div className="price-row-secondary">
+                            <span className="cost-label-compact">Costo: ${product.cost.toFixed(2)}</span>
+                            <span className="margin-badge-compact">
+                              +${(product.price - product.cost).toFixed(2)}
+                            </span>
+                          </div>
                         )}
-                      </h3>
-                      
-                      <div className="catalog-product-code">
-                        <span className="code-label">Código:</span>
-                        <span className="code-value">{product.code || "Sin código"}</span>
                       </div>
-
-                      {product.description && (
-                        <p className="catalog-product-description" title={product.description}>
-                          {product.description}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="catalog-product-pricing">
-                      <div className="price-main">
-                        <span className="price-label">Precio</span>
-                        <span className="price-value">${product.price.toFixed(2)}</span>
+                      <div className="catalog-actions-compact">
+                        <button
+                          type="button"
+                          className="catalog-action-btn-compact catalog-edit-btn-compact"
+                          onClick={() => onEdit(product)}
+                          title="Editar producto"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          type="button"
+                          className="catalog-action-btn-compact catalog-delete-btn-compact"
+                          onClick={() => handleDelete(product.id)}
+                          title="Eliminar producto"
+                        >
+                          🗑️
+                        </button>
                       </div>
-                      {product.isKit && product.kitItems && product.kitItems.length > 0 && (
-                        <div className="cost-info" style={{ marginTop: '0.5rem' }}>
-                          <span className="cost-label" style={{ fontSize: '0.85rem' }}>
-                            Contiene {product.kitItems.length} producto{product.kitItems.length !== 1 ? 's' : ''}
-                          </span>
-                        </div>
-                      )}
-                      {product.cost && product.cost > 0 && (
-                        <div className="cost-info">
-                          <span className="cost-label">Costo:</span>
-                          <span className="cost-value">${product.cost.toFixed(2)}</span>
-                          <span className="margin-badge">
-                            +${(product.price - product.cost).toFixed(2)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="catalog-product-actions">
-                      <Button
-                        variant="info"
-                        size="small"
-                        onClick={() => onEdit(product)}
-                        className="catalog-edit-btn"
-                      >
-                        ✏️ Editar
-                      </Button>
-                      <Button
-                        variant="warning"
-                        size="small"
-                        onClick={() => handleDelete(product.id)}
-                        className="catalog-delete-btn"
-                      >
-                        🗑️ Eliminar
-                      </Button>
                     </div>
                   </Card>
                 );
