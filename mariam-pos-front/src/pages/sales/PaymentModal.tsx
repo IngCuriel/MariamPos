@@ -503,59 +503,77 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleConfirm, onClose]);
 
+  const hasContainersDeposit = containersDepositInfo && containersDepositInfo.total > 0;
+
   return (
     <div className="modal-overlay">
-      <div className="modal-container">
+      <div 
+        className={`modal-container ${hasContainersDeposit ? 'payment-with-containers' : ''}`}
+        style={hasContainersDeposit ? { maxWidth: "1200px", width: "95%" } : {}}
+      >
         <button className="close-btn" onClick={onClose}>
           <IoCloseCircleOutline size={32} />
         </button>
 
         <h2 className="modal-title">💰 Cobrar Venta</h2>
 
-        {containersDepositInfo && containersDepositInfo.total > 0 && (
-          <div className="containers-deposit-section" style={{
-            background: "#f0fdf4",
-            border: "2px solid #059669",
-            borderRadius: "8px",
-            padding: "1rem",
-            marginBottom: "1rem",
+        {hasContainersDeposit ? (
+          <div className="payment-two-columns" style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "1.5rem",
+            marginBottom: "1.5rem",
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
-              <span style={{ fontSize: "1.5rem" }}>🍺</span>
-              <strong style={{ fontSize: "1rem", color: "#059669" }}>Depósito de Envases</strong>
-            </div>
-            <div style={{ marginBottom: "0.5rem" }}>
-              {containersDepositInfo.details.map((detail, idx) => (
-                <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: "0.25rem 0", fontSize: "0.9rem" }}>
-                  <span>{detail.name} ({detail.quantity})</span>
-                  <strong>${detail.amount.toFixed(2)}</strong>
+            {/* Columna izquierda: Depósito de Envases */}
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <div className="containers-deposit-section" style={{
+                background: "#f0fdf4",
+                border: "2px solid #059669",
+                borderRadius: "8px",
+                padding: "1rem",
+                flex: 1,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
+                  <span style={{ fontSize: "1.5rem" }}>🍺</span>
+                  <strong style={{ fontSize: "1rem", color: "#059669" }}>Depósito de Envases</strong>
                 </div>
-              ))}
+                <div style={{ marginBottom: "0.5rem" }}>
+                  {containersDepositInfo.details.map((detail, idx) => (
+                    <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: "0.25rem 0", fontSize: "0.9rem" }}>
+                      <span>{detail.name} ({detail.quantity})</span>
+                      <strong>${detail.amount.toFixed(2)}</strong>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "0.5rem", borderTop: "1px solid #059669", fontWeight: "600" }}>
+                  <span>Total envases:</span>
+                  <strong style={{ color: "#059669" }}>${containersDepositInfo.total.toFixed(2)}</strong>
+                </div>
+              </div>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "0.5rem", borderTop: "1px solid #059669", fontWeight: "600" }}>
-              <span>Total envases:</span>
-              <strong style={{ color: "#059669" }}>${containersDepositInfo.total.toFixed(2)}</strong>
+
+            {/* Columna derecha: Totales de la venta */}
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-start" }}>
+              <div className="total-section">
+                <p>Subtotal productos:</p>
+                <p style={{ fontSize: "1.2rem", color: "#6b7280" }}>${total.toFixed(2)}</p>
+              </div>
+              <div className="total-section">
+                <p>Depósito envases:</p>
+                <p style={{ fontSize: "1.2rem", color: "#059669" }}>+${containersDepositInfo.total.toFixed(2)}</p>
+              </div>
+              <div className="total-section" style={{ borderTop: "2px solid #1f2937", paddingTop: "0.5rem", marginTop: "0.5rem" }}>
+                <p style={{ fontSize: "1.1rem", fontWeight: "600" }}>Total a cobrar:</p>
+                <h1 style={{ fontSize: "2rem", color: "#059669" }}>${totalNumber.toFixed(2)}</h1>
+              </div>
             </div>
           </div>
+        ) : (
+          <div className="total-section" style={{ marginBottom: "1rem" }}>
+            <p style={{ fontSize: "1.1rem", fontWeight: "600" }}>Total a cobrar:</p>
+            <h1 style={{ fontSize: "2rem", color: "#059669" }}>${totalNumber.toFixed(2)}</h1>
+          </div>
         )}
-
-        {/* Solo mostrar subtotal si hay depósito de envases */}
-        {containersDepositInfo && containersDepositInfo.total > 0 && (
-          <>
-            <div className="total-section">
-              <p>Subtotal productos:</p>
-              <p style={{ fontSize: "1.2rem", color: "#6b7280" }}>${total.toFixed(2)}</p>
-            </div>
-            <div className="total-section">
-              <p>Depósito envases:</p>
-              <p style={{ fontSize: "1.2rem", color: "#059669" }}>+${containersDepositInfo.total.toFixed(2)}</p>
-            </div>
-          </>
-        )}
-        <div className="total-section" style={{ borderTop: containersDepositInfo && containersDepositInfo.total > 0 ? "2px solid #1f2937" : "none", paddingTop: containersDepositInfo && containersDepositInfo.total > 0 ? "0.5rem" : "0", marginTop: containersDepositInfo && containersDepositInfo.total > 0 ? "0.5rem" : "0" }}>
-          <p style={{ fontSize: "1.1rem", fontWeight: "600" }}>Total a cobrar:</p>
-          <h1 style={{ fontSize: "2rem", color: "#059669" }}>${totalNumber.toFixed(2)}</h1>
-        </div>
 
         <div className="payment-options" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "10px" }}>
           <button

@@ -231,4 +231,19 @@
   font-size: 1.2rem;
   color: #059669;
 }
+
+/* Layout de dos columnas cuando hay depósitos de envases */
+.payment-two-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .payment-two-columns {
+    grid-template-columns: 1fr; /* Stack columns on small screens */
+    gap: 1rem;
+  }
+}
   
