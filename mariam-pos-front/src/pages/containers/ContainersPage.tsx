@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Header from "../../components/Header";
 import Swal from "sweetalert2";
 import {
@@ -6,10 +6,10 @@ import {
   createContainer,
   updateContainer,
   deleteContainer,
+  getProductsForSelector,
   type Container,
   type CreateContainerInput,
 } from "../../api/containers";
-import { getProductsFilters } from "../../api/products";
 import type { Product, ProductPresentation } from "../../types/index";
 import "../../styles/pages/containers/containers.css";
 
@@ -19,6 +19,7 @@ interface ContainersPageProps {
 
 export default function ContainersPage({ onBack }: ContainersPageProps) {
   const [containers, setContainers] = useState<Container[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingContainer, setEditingContainer] = useState<Container | null>(null);
@@ -36,75 +37,20 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
   });
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  
-  // Estados para búsqueda de productos en el modal
-  const [productSearchTerm, setProductSearchTerm] = useState("");
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(false);
-  const [showProductDropdown, setShowProductDropdown] = useState(false);
-  const productSearchRef = useRef<HTMLInputElement>(null);
-  const productDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadData();
   }, []);
 
-  const fetchProducts = async () => {
-    try {
-      setLoadingProducts(true);
-      const data = await getProductsFilters(productSearchTerm);
-      setFilteredProducts(data);
-      setShowProductDropdown(data.length > 0);
-    } catch (error) {
-      console.error("Error al buscar productos:", error);
-      setFilteredProducts([]);
-      setShowProductDropdown(false);
-    } finally {
-      setLoadingProducts(false);
-    }
-  };
-
-  // Búsqueda de productos con debounce
-  useEffect(() => {
-    if (productSearchTerm.length > 2) {
-      const handler = setTimeout(() => {
-        fetchProducts();
-      }, 300);
-      return () => clearTimeout(handler);
-    } else if (productSearchTerm.length === 0) {
-      setFilteredProducts([]);
-      setShowProductDropdown(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productSearchTerm]);
-
-  // Cerrar dropdown al hacer click fuera
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        productDropdownRef.current &&
-        !productDropdownRef.current.contains(event.target as Node) &&
-        productSearchRef.current &&
-        !productSearchRef.current.contains(event.target as Node)
-      ) {
-        setShowProductDropdown(false);
-      }
-    };
-
-    if (showProductDropdown) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showProductDropdown]);
-
   const loadData = async () => {
     try {
       setLoading(true);
-      const containersData = await getContainers();
+      const [containersData, productsData] = await Promise.all([
+        getContainers(), // Cargar todos los envases (activos e inactivos) para el catálogo
+        getProductsForSelector(),
+      ]);
       setContainers(containersData);
+      setProducts(productsData);
     } catch (error) {
       console.error("Error al cargar datos:", error);
       Swal.fire({
@@ -117,7 +63,7 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
     }
   };
 
-  const handleOpenModal = async (container?: Container) => {
+  const handleOpenModal = (container?: Container) => {
     if (container) {
       setEditingContainer(container);
       // Convertir status a número o null (null o != 0 = activo, 0 = inactivo)
@@ -131,15 +77,9 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
         notes: container.notes || "",
         status: containerStatus,
       });
-      if (container.productId && container.product) {
-        // Si tenemos el producto completo del container, usarlo directamente
-        setSelectedProduct(container.product);
-        setProductSearchTerm(container.product.name);
-      } else if (container.productId) {
-        // Si solo tenemos el ID pero no el producto completo, dejar el campo vacío
-        // El usuario puede buscar el producto manualmente
-        setProductSearchTerm("");
-        setSelectedProduct(null);
+      if (container.productId) {
+        const product = products.find((p) => p.id === container.productId);
+        setSelectedProduct(product || null);
       }
     } else {
       setEditingContainer(null);
@@ -153,7 +93,6 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
         status: null, // null = activo por defecto
       });
       setSelectedProduct(null);
-      setProductSearchTerm("");
     }
     setShowModal(true);
   };
@@ -162,35 +101,16 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
     setShowModal(false);
     setEditingContainer(null);
     setSelectedProduct(null);
-    setProductSearchTerm("");
-    setFilteredProducts([]);
-    setShowProductDropdown(false);
   };
 
-  const handleProductSelect = (product: Product) => {
-    setSelectedProduct(product);
-    setProductSearchTerm(product.name);
+  const handleProductChange = (productId: string) => {
+    const product = products.find((p) => p.id === parseInt(productId));
+    setSelectedProduct(product || null);
     setFormData({
       ...formData,
-      productId: product.id,
+      productId: productId ? parseInt(productId) : undefined,
       presentationId: undefined, // Reset presentation when product changes
     });
-    setFilteredProducts([]);
-    setShowProductDropdown(false);
-  };
-
-  const handleProductSearchChange = (value: string) => {
-    setProductSearchTerm(value);
-    if (value === "") {
-      setSelectedProduct(null);
-      setFormData({
-        ...formData,
-        productId: undefined,
-        presentationId: undefined,
-      });
-      setFilteredProducts([]);
-      setShowProductDropdown(false);
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -226,15 +146,12 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
       }
       handleCloseModal();
       loadData();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al guardar envase:", error);
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : (error as { response?: { data?: { error?: string } } })?.response?.data?.error || "No se pudo guardar el envase";
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: errorMessage,
+        text: error.response?.data?.error || "No se pudo guardar el envase",
       });
     } finally {
       setLoading(false);
@@ -263,15 +180,12 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
           timer: 1500,
         });
         loadData();
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error al eliminar envase:", error);
-        const errorMessage = error instanceof Error 
-          ? error.message 
-          : (error as { response?: { data?: { error?: string } } })?.response?.data?.error || "No se pudo eliminar el envase";
         Swal.fire({
           icon: "error",
           title: "Error",
-          text: errorMessage,
+          text: error.response?.data?.error || "No se pudo eliminar el envase",
         });
       } finally {
         setLoading(false);
@@ -286,8 +200,7 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
 
   const getAvailablePresentations = (): ProductPresentation[] => {
     if (!selectedProduct || !selectedProduct.presentations) return [];
-    // Incluir TODAS las presentaciones, incluyendo la base (isDefault)
-    return selectedProduct.presentations;
+    return selectedProduct.presentations.filter((p) => !p.isDefault);
   };
 
   return (
@@ -460,86 +373,19 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
 
               <div className="form-group">
                 <label htmlFor="productId">Producto (Opcional)</label>
-                <div style={{ position: "relative" }}>
-                  <input
-                    ref={productSearchRef}
-                    id="productId"
-                    type="text"
-                    value={productSearchTerm}
-                    onChange={(e) => handleProductSearchChange(e.target.value)}
-                    onFocus={() => {
-                      if (filteredProducts.length > 0) {
-                        setShowProductDropdown(true);
-                      }
-                    }}
-                    placeholder="Buscar producto..."
-                    className="form-input"
-                  />
-                  {loadingProducts && (
-                    <span style={{ 
-                      position: "absolute", 
-                      right: "10px", 
-                      top: "50%", 
-                      transform: "translateY(-50%)",
-                      color: "#6b7280",
-                      fontSize: "0.85rem"
-                    }}>
-                      Buscando...
-                    </span>
-                  )}
-                  {showProductDropdown && filteredProducts.length > 0 && (
-                    <div
-                      ref={productDropdownRef}
-                      style={{
-                        position: "absolute",
-                        top: "100%",
-                        left: 0,
-                        right: 0,
-                        backgroundColor: "white",
-                        border: "1px solid #d1d5db",
-                        borderRadius: "8px",
-                        boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-                        maxHeight: "200px",
-                        overflowY: "auto",
-                        zIndex: 1000,
-                        marginTop: "4px",
-                      }}
-                    >
-                      {filteredProducts.map((product) => (
-                        <div
-                          key={product.id}
-                          onClick={() => handleProductSelect(product)}
-                          style={{
-                            padding: "12px 16px",
-                            cursor: "pointer",
-                            borderBottom: "1px solid #f3f4f6",
-                            transition: "background-color 0.2s",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = "#f9fafb";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = "white";
-                          }}
-                        >
-                          <div style={{ fontWeight: 600, color: "#1f2937" }}>
-                            {product.name}
-                          </div>
-                          {product.code && (
-                            <div style={{ fontSize: "0.85rem", color: "#6b7280", marginTop: "4px" }}>
-                              Código: {product.code}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                {selectedProduct && (
-                  <small style={{ display: "block", marginTop: "4px", color: "#059669", fontSize: "0.85rem" }}>
-                    ✓ Producto seleccionado: {selectedProduct.name}
-                  </small>
-                )}
+                <select
+                  id="productId"
+                  value={formData.productId || ""}
+                  onChange={(e) => handleProductChange(e.target.value)}
+                  className="form-select"
+                >
+                  <option value="">Sin producto</option>
+                  {products.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {selectedProduct && getAvailablePresentations().length > 0 && (
@@ -558,11 +404,10 @@ export default function ContainersPage({ onBack }: ContainersPageProps) {
                     }
                     className="form-select"
                   >
-                    <option value="">Sin presentación (Base)</option>
+                    <option value="">Sin presentación</option>
                     {getAvailablePresentations().map((presentation) => (
                       <option key={presentation.id} value={presentation.id}>
                         {presentation.name} ({presentation.quantity} unidades)
-                        {presentation.isDefault ? " - Base" : ""}
                       </option>
                     ))}
                   </select>

@@ -2,11 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { FaMoneyBillWave, FaCreditCard, FaGift } from "react-icons/fa";
 import { IoCloseCircleOutline } from "react-icons/io5";
 import Swal from "sweetalert2";
-import { createRoot } from "react-dom/client";
-import type { Root } from "react-dom/client";
 import type { ConfirmPaymentData } from "../../types/index";
 import { getClientCreditSummary } from "../../api/credits";
-import TouchCalculator from "../../components/TouchCalculator";
 import "../../styles/pages/sales/paymentModal.css";
 import type { Client } from "../../types/index";
 
@@ -22,38 +19,9 @@ interface PaymentModalProps {
   onConfirm: (confirmData: ConfirmPaymentData) => void;
 }
 
+const bills = [500, 200, 100, 50]; // ← Aquí defines tus billetes
+
 const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDepositInfo, onClose, onConfirm }) => {
-  // Función para mostrar la calculadora touch
-  const showTouchCalculator = (
-    initialValue: string,
-    label: string,
-    onConfirm: (value: string) => void
-  ): void => {
-    const calculatorContainer = document.createElement('div');
-    calculatorContainer.id = 'touch-calculator-root';
-    document.body.appendChild(calculatorContainer);
-
-    const root: Root = createRoot(calculatorContainer);
-
-    const handleClose = () => {
-      root.unmount();
-      document.body.removeChild(calculatorContainer);
-    };
-
-    const handleConfirm = (value: string) => {
-      onConfirm(value);
-      handleClose();
-    };
-
-    root.render(
-      <TouchCalculator
-        initialValue={initialValue}
-        label={label}
-        onConfirm={handleConfirm}
-        onClose={handleClose}
-      />
-    );
-  };
   const [paymentType, setPaymentType] = useState("efectivo");
   const [amountReceived, setAmountReceived] = useState<string>("");
   const [cashAmount, setCashAmount] = useState<string>("");
@@ -71,61 +39,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
   const change = paymentType === "efectivo" ? Math.max(received - totalNumber, 0) : 0;
   const totalMixed = cashReceived + cardReceived;
 
-  // Enfocar input cuando el modal se monta o cuando cambia el tipo de pago
   useEffect(() => {
-    // Usar requestAnimationFrame y múltiples timeouts para asegurar que el modal esté completamente renderizado
-    const focusInput = () => {
-      if (paymentType === "efectivo" && inputRef.current) {
-        // Verificar que el input esté visible antes de enfocar
-        if (inputRef.current.offsetParent !== null) {
-          inputRef.current.focus();
-          inputRef.current.select();
-          // Verificar que el focus fue exitoso
-          if (document.activeElement !== inputRef.current) {
-            // Si no funcionó, intentar de nuevo
-            setTimeout(() => {
-              if (inputRef.current) {
-                inputRef.current.focus();
-                inputRef.current.select();
-              }
-            }, 50);
-          }
-        }
-      } else if (paymentType === "mixto" && cashInputRef.current) {
-        // Verificar que el input esté visible antes de enfocar
-        if (cashInputRef.current.offsetParent !== null) {
-          cashInputRef.current.focus();
-          cashInputRef.current.select();
-          // Verificar que el focus fue exitoso
-          if (document.activeElement !== cashInputRef.current) {
-            // Si no funcionó, intentar de nuevo
-            setTimeout(() => {
-              if (cashInputRef.current) {
-                cashInputRef.current.focus();
-                cashInputRef.current.select();
-              }
-            }, 50);
-          }
-        }
-      }
-    };
-
-    // Usar requestAnimationFrame para asegurar que el DOM esté listo
-    const rafId = requestAnimationFrame(() => {
-      focusInput();
-    });
-
-    // También intentar después de delays para asegurar que funcione
-    const timeout1 = setTimeout(focusInput, 100);
-    const timeout2 = setTimeout(focusInput, 200);
-    const timeout3 = setTimeout(focusInput, 300);
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      clearTimeout(timeout1);
-      clearTimeout(timeout2);
-      clearTimeout(timeout3);
-    };
+    if (paymentType === "efectivo" && inputRef.current) {
+      inputRef.current.focus();
+    } else if (paymentType === "mixto" && cashInputRef.current) {
+      cashInputRef.current.focus();
+    }
   }, [paymentType]);
 
   // Limpiar campos cuando cambia el tipo de pago
@@ -531,66 +450,50 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
 
         <h2 className="modal-title">💰 Cobrar Venta</h2>
 
-        {containersDepositInfo && containersDepositInfo.total > 0 ? (
-          // Layout de dos columnas cuando hay depósito de envases
-          <div className="payment-two-columns" style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "1rem",
+        {containersDepositInfo && containersDepositInfo.total > 0 && (
+          <div className="containers-deposit-section" style={{
+            background: "#f0fdf4",
+            border: "2px solid #059669",
+            borderRadius: "8px",
+            padding: "1rem",
             marginBottom: "1rem",
           }}>
-            {/* Columna izquierda: TODO el depósito de envases (detalles + total) */}
-            <div className="containers-deposit-section" style={{
-              background: "#f0fdf4",
-              border: "2px solid #059669",
-              borderRadius: "8px",
-              padding: "1rem",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
-                <span style={{ fontSize: "1.5rem" }}>🍺</span>
-                <strong style={{ fontSize: "1rem", color: "#059669" }}>Depósito de Envases</strong>
-              </div>
-              <div style={{ marginBottom: "0.5rem" }}>
-                {containersDepositInfo.details.map((detail, idx) => (
-                  <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: "0.25rem 0", fontSize: "0.9rem" }}>
-                    <span>{detail.name} ({detail.quantity})</span>
-                    <strong>${detail.amount.toFixed(2)}</strong>
-                  </div>
-                ))}
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "0.5rem", borderTop: "1px solid #059669", fontWeight: "600" }}>
-                <span>Total envases:</span>
-                <strong style={{ color: "#059669" }}>${containersDepositInfo.total.toFixed(2)}</strong>
-              </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
+              <span style={{ fontSize: "1.5rem" }}>🍺</span>
+              <strong style={{ fontSize: "1rem", color: "#059669" }}>Depósito de Envases</strong>
             </div>
-
-            {/* Columna derecha: Totales de la venta (subtotal productos, depósito envases, total a cobrar) */}
-            <div style={{
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "flex-start",
-            }}>
-              <div className="total-section">
-                <p>Subtotal productos:</p>
-                <p style={{ fontSize: "1.2rem", color: "#6b7280" }}>${total.toFixed(2)}</p>
-              </div>
-              <div className="total-section">
-                <p>Depósito envases:</p>
-                <p style={{ fontSize: "1.2rem", color: "#059669" }}>+${containersDepositInfo.total.toFixed(2)}</p>
-              </div>
-              <div className="total-section" style={{ borderTop: "2px solid #1f2937", paddingTop: "0.5rem", marginTop: "0.5rem" }}>
-                <p style={{ fontSize: "1.1rem", fontWeight: "600" }}>Total a cobrar:</p>
-                <h1 style={{ fontSize: "2rem", color: "#059669" }}>${totalNumber.toFixed(2)}</h1>
-              </div>
+            <div style={{ marginBottom: "0.5rem" }}>
+              {containersDepositInfo.details.map((detail, idx) => (
+                <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: "0.25rem 0", fontSize: "0.9rem" }}>
+                  <span>{detail.name} ({detail.quantity})</span>
+                  <strong>${detail.amount.toFixed(2)}</strong>
+                </div>
+              ))}
             </div>
-          </div>
-        ) : (
-          // Layout normal cuando NO hay depósito de envases
-          <div className="total-section">
-            <p style={{ fontSize: "1.1rem", fontWeight: "600" }}>Total a cobrar:</p>
-            <h1 style={{ fontSize: "2rem", color: "#059669" }}>${totalNumber.toFixed(2)}</h1>
+            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "0.5rem", borderTop: "1px solid #059669", fontWeight: "600" }}>
+              <span>Total envases:</span>
+              <strong style={{ color: "#059669" }}>${containersDepositInfo.total.toFixed(2)}</strong>
+            </div>
           </div>
         )}
+
+        {/* Solo mostrar subtotal si hay depósito de envases */}
+        {containersDepositInfo && containersDepositInfo.total > 0 && (
+          <>
+            <div className="total-section">
+              <p>Subtotal productos:</p>
+              <p style={{ fontSize: "1.2rem", color: "#6b7280" }}>${total.toFixed(2)}</p>
+            </div>
+            <div className="total-section">
+              <p>Depósito envases:</p>
+              <p style={{ fontSize: "1.2rem", color: "#059669" }}>+${containersDepositInfo.total.toFixed(2)}</p>
+            </div>
+          </>
+        )}
+        <div className="total-section" style={{ borderTop: containersDepositInfo && containersDepositInfo.total > 0 ? "2px solid #1f2937" : "none", paddingTop: containersDepositInfo && containersDepositInfo.total > 0 ? "0.5rem" : "0", marginTop: containersDepositInfo && containersDepositInfo.total > 0 ? "0.5rem" : "0" }}>
+          <p style={{ fontSize: "1.1rem", fontWeight: "600" }}>Total a cobrar:</p>
+          <h1 style={{ fontSize: "2rem", color: "#059669" }}>${totalNumber.toFixed(2)}</h1>
+        </div>
 
         <div className="payment-options" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "10px" }}>
           <button
@@ -683,73 +586,43 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
         {paymentType === "efectivo" && (
           <div className="input-section">
             <label>Monto recibido:</label>
-            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-              <div className="input-wrapper" style={{ flex: 1, position: "relative" }}>
-                <input
-                  ref={inputRef}
-                  type="number"
-                  placeholder="0.00"
-                  value={amountReceived}
-                  onChange={(e) => setAmountReceived(e.target.value)}
-                  style={{ 
-                    width: "100%",
-                    paddingRight: amountReceived.length > 0 ? "35px" : "10px"
+
+            {/* 💵 Botones de billetes */}
+            <div className="bills-grid">
+              {bills.map((b) => (
+                <button
+                  key={b}
+                  className="bill-btn"
+                  onClick={() => {
+                    const newAmount = (parseFloat(amountReceived || "0") + b).toString();
+                    setAmountReceived(newAmount);
                   }}
-                />
-                {amountReceived.length > 0 && (
+                >
+                  ${b}
+                </button>
+              ))}
+            </div>
+
+            {/* Input opcional */}
+            <div className="input-wrapper">
+            <input
+              ref={inputRef}
+              type="number"
+              placeholder="(Opcional)"
+              value={amountReceived}
+              onChange={(e) => setAmountReceived(e.target.value)}
+            />
+             {amountReceived.length > 0 && (
                   <button
                     className="clear-btn-payment"
                     onClick={() => {
                       setAmountReceived("");
                       inputRef.current?.focus();
                     }}
-                    title="Limpiar"
-                    style={{
-                      position: "absolute",
-                      right: "8px",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                    }}
                   >
                     ❌
                   </button>
                 )}
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const currentValue = amountReceived.replace(/,/g, '') || '0';
-                  showTouchCalculator(currentValue, '💰 Monto Recibido', (newValue) => {
-                    setAmountReceived(newValue);
-                    if (inputRef.current) {
-                      inputRef.current.focus();
-                      inputRef.current.select();
-                    }
-                  });
-                }}
-                style={{
-                  background: "#667eea",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "8px",
-                  padding: "10px 16px",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  fontSize: "0.9rem",
-                  whiteSpace: "nowrap",
-                  transition: "background 0.2s ease",
-                  flexShrink: 0,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#5568d3";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "#667eea";
-                }}
-                title="Abrir calculadora táctil"
-              >
-                🧮
-              </button>
             </div>
             <p className="change-text">Cambio: ${change.toFixed(2)}</p>
           </div>
@@ -783,84 +656,51 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
                   </span>
                 )}
               </label>
-              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                <div className="input-wrapper" style={{ flex: 1, position: "relative" }}>
-                  <input
-                    ref={cashInputRef}
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder={containersDepositInfo && containersDepositInfo.total > 0 ? `Mínimo: ${containersDepositInfo.total.toFixed(2)}` : "0.00"}
-                    value={cashAmount}
-                    onChange={(e) => {
-                      // Permitir cualquier valor mientras se escribe (validación al confirmar)
-                      setCashAmount(e.target.value);
+              <div className="bills-grid" style={{ marginBottom: "10px" }}>
+                {bills.map((b) => (
+                  <button
+                    key={b}
+                    className="bill-btn"
+                    onClick={() => {
+                      const newAmount = (parseFloat(cashAmount || "0") + b).toString();
+                      setCashAmount(newAmount);
                     }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Tab" && !e.shiftKey) {
-                        e.preventDefault();
-                        cardInputRef.current?.focus();
-                      }
+                  >
+                    ${b}
+                  </button>
+                ))}
+              </div>
+              <div className="input-wrapper">
+                <input
+                  ref={cashInputRef}
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder={containersDepositInfo && containersDepositInfo.total > 0 ? `Mínimo: ${containersDepositInfo.total.toFixed(2)}` : "0.00"}
+                  value={cashAmount}
+                  onChange={(e) => {
+                    // Permitir cualquier valor mientras se escribe (validación al confirmar)
+                    setCashAmount(e.target.value);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Tab" && !e.shiftKey) {
+                      e.preventDefault();
+                      cardInputRef.current?.focus();
+                    }
+                  }}
+                />
+                {cashAmount.length > 0 && (
+                  <button
+                    className="clear-btn-payment"
+                    onClick={() => {
+                      setCashAmount("");
+                      cashInputRef.current?.focus();
                     }}
-                    style={{ 
-                      width: "100%",
-                      paddingRight: cashAmount.length > 0 ? "35px" : "10px"
-                    }}
-                  />
-                  {cashAmount.length > 0 && (
-                    <button
-                      className="clear-btn-payment"
-                      onClick={() => {
-                        setCashAmount("");
-                        cashInputRef.current?.focus();
-                      }}
-                      title="Limpiar"
-                      style={{
-                        position: "absolute",
-                        right: "8px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                      }}
-                    >
-                      ❌
-                    </button>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const currentValue = cashAmount.replace(/,/g, '') || '0';
-                    showTouchCalculator(currentValue, '💰 Monto en Efectivo', (newValue) => {
-                      setCashAmount(newValue);
-                      if (cashInputRef.current) {
-                        cashInputRef.current.focus();
-                        cashInputRef.current.select();
-                      }
-                    });
-                  }}
-                  style={{
-                    background: "#667eea",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "8px",
-                    padding: "10px 16px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    fontSize: "0.9rem",
-                    whiteSpace: "nowrap",
-                    transition: "background 0.2s ease",
-                    flexShrink: 0,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "#5568d3";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "#667eea";
-                  }}
-                  title="Abrir calculadora táctil"
-                >
-                  🧮
-                </button>
+                    title="Limpiar"
+                  >
+                    ❌
+                  </button>
+                )}
               </div>
               {/* Desglose del efectivo cuando hay envases */}
               {containersDepositInfo && containersDepositInfo.total > 0 && (
@@ -908,81 +748,33 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
                   </span>
                 )}
               </label>
-              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                <div className="input-wrapper" style={{ flex: 1, position: "relative" }}>
-                  <input
-                    ref={cardInputRef}
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    value={cardAmount}
-                    onChange={(e) => setCardAmount(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Tab" && e.shiftKey) {
-                        e.preventDefault();
-                        cashInputRef.current?.focus();
-                      }
+              <div className="input-wrapper">
+                <input
+                  ref={cardInputRef}
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={cardAmount}
+                  onChange={(e) => setCardAmount(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Tab" && e.shiftKey) {
+                      e.preventDefault();
+                      cashInputRef.current?.focus();
+                    }
+                  }}
+                />
+                {cardAmount.length > 0 && (
+                  <button
+                    className="clear-btn-payment"
+                    onClick={() => {
+                      setCardAmount("");
+                      cardInputRef.current?.focus();
                     }}
-                    style={{ 
-                      width: "100%",
-                      paddingRight: cardAmount.length > 0 ? "35px" : "10px"
-                    }}
-                  />
-                  {cardAmount.length > 0 && (
-                    <button
-                      className="clear-btn-payment"
-                      onClick={() => {
-                        setCardAmount("");
-                        cardInputRef.current?.focus();
-                      }}
-                      title="Limpiar"
-                      style={{
-                        position: "absolute",
-                        right: "8px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                      }}
-                    >
-                      ❌
-                    </button>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const currentValue = cardAmount.replace(/,/g, '') || '0';
-                    showTouchCalculator(currentValue, '💳 Monto en Tarjeta', (newValue) => {
-                      setCardAmount(newValue);
-                      if (cardInputRef.current) {
-                        cardInputRef.current.focus();
-                        cardInputRef.current.select();
-                      }
-                    });
-                  }}
-                  style={{
-                    background: "#667eea",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "8px",
-                    padding: "10px 16px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    fontSize: "0.9rem",
-                    whiteSpace: "nowrap",
-                    transition: "background 0.2s ease",
-                    flexShrink: 0,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "#5568d3";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "#667eea";
-                  }}
-                  title="Abrir calculadora táctil"
-                >
-                  🧮
-                </button>
+                  >
+                    ❌
+                  </button>
+                )}
               </div>
             </div>
 

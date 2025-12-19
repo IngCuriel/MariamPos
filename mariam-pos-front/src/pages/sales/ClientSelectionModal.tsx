@@ -99,11 +99,11 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
         alias: newClientAlias.trim() || undefined,
       });
 
-      // Seleccionar el cliente recién creado - pasar el objeto completo
+      // Seleccionar el cliente recién creado
       const displayName = newClient.alias
         ? `${newClient.name} (${newClient.alias})`
         : newClient.name;
-      onSelect(displayName, newClient); // Pasar también el objeto Client completo
+      onSelect(displayName);
       onClose();
     } catch (error: any) {
       Swal.fire({
@@ -278,13 +278,7 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
             {/* Botón para crear nuevo cliente */}
             <div style={{ marginBottom: "15px" }}>
               <button
-                onClick={() => {
-                  setShowCreateForm(true);
-                  // Enfocar el input de nombre completo después de mostrar el formulario
-                  setTimeout(() => {
-                    nameInputRef.current?.focus();
-                  }, 100);
-                }}
+                onClick={() => setShowCreateForm(true)}
                 style={{
                   width: "100%",
                   padding: "12px",

@@ -377,18 +377,18 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
           const detailsHtml = details
             .map(
               (detail, idx) =>
-                `<div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-bottom: 1px solid #e5e7eb;">
+                `<div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #e5e7eb;">
                   <div style="flex: 1;">
-                    <span style="font-weight: 700; color: #1f2937; font-size: 1.1rem;">${detail.name}</span>
-                    <div style="margin-top: 0.5rem; font-size: 1rem; color: #6b7280;">
-                      Precio unitario: <strong>$${detail.unitPrice.toFixed(2)}</strong>
+                    <span style="font-weight: 600; color: #1f2937;">${detail.name}</span>
+                    <div style="margin-top: 0.25rem; font-size: 0.85rem; color: #6b7280;">
+                      Precio unitario: $${detail.unitPrice.toFixed(2)}
                     </div>
                   </div>
-                  <div style="display: flex; align-items: center; gap: 0.75rem; margin-left: 1rem;">
+                  <div style="display: flex; align-items: center; gap: 0.5rem; margin-left: 1rem;">
                     <button 
                       type="button" 
                       class="btn-decrease-${idx}" 
-                      style="width: 40px; height: 40px; border: 1px solid #d1d5db; background: #f9fafb; border-radius: 6px; cursor: pointer; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; font-weight: 700; ${detail.adjustedQuantity <= 0 ? 'opacity: 0.5; cursor: not-allowed;' : ''}"
+                      style="width: 32px; height: 32px; border: 1px solid #d1d5db; background: #f9fafb; border-radius: 4px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; ${detail.adjustedQuantity <= 0 ? 'opacity: 0.5; cursor: not-allowed;' : ''}"
                       ${detail.adjustedQuantity <= 0 ? 'disabled' : ''}
                     >−</button>
                     <input 
@@ -397,16 +397,16 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                       value="${detail.adjustedQuantity}" 
                       min="0" 
                       max="${detail.quantity}"
-                      style="width: 70px; text-align: center; border: 2px solid #d1d5db; border-radius: 6px; padding: 0.5rem; font-weight: 700; font-size: 1.1rem;"
+                      style="width: 60px; text-align: center; border: 1px solid #d1d5db; border-radius: 4px; padding: 0.25rem; font-weight: 600;"
                     />
                     <button 
                       type="button" 
                       class="btn-increase-${idx}" 
-                      style="width: 40px; height: 40px; border: 1px solid #d1d5db; background: #f9fafb; border-radius: 6px; cursor: pointer; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; font-weight: 700; ${detail.adjustedQuantity >= detail.quantity ? 'opacity: 0.5; cursor: not-allowed;' : ''}"
+                      style="width: 32px; height: 32px; border: 1px solid #d1d5db; background: #f9fafb; border-radius: 4px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; ${detail.adjustedQuantity >= detail.quantity ? 'opacity: 0.5; cursor: not-allowed;' : ''}"
                       ${detail.adjustedQuantity >= detail.quantity ? 'disabled' : ''}
                     >+</button>
-                    <span style="color: #6b7280; font-size: 1rem; font-weight: 600;">/ ${detail.quantity}</span>
-                    <span style="margin-left: 0.75rem; font-weight: 700; color: #059669; min-width: 100px; text-align: right; font-size: 1.2rem;" id="amount-${idx}">
+                    <span style="color: #6b7280; font-size: 0.85rem;">/ ${detail.quantity}</span>
+                    <span style="margin-left: 0.5rem; font-weight: 600; color: #059669; min-width: 80px; text-align: right;" id="amount-${idx}">
                       $${(detail.adjustedQuantity * detail.unitPrice).toFixed(2)}
                     </span>
                   </div>
@@ -416,17 +416,18 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
 
           return `
             <div style="text-align: left; margin-top: 1rem;">
-              <p style="font-size: 1.1rem; color: #6b7280; margin-bottom: 1.5rem; font-weight: 500;">
+              <p style="font-weight: 600; margin-bottom: 0.75rem; font-size: 1rem;">Cliente: <strong>${client}</strong></p>
+              <p style="font-size: 0.9rem; color: #6b7280; margin-bottom: 1rem;">
                 Ajuste las cantidades si el cliente trajo algunos envases:
               </p>
               <div style="margin: 1rem 0; max-height: 300px; overflow-y: auto;">
                 ${detailsHtml}
               </div>
-              <div style="display: flex; justify-content: space-between; padding: 1rem 0; margin-top: 0.5rem; border-top: 2px solid #1f2937; font-size: 1.3rem;">
-                <span style="font-weight: 700;"><strong>Total de envases:</strong> <span id="total-count" style="color: #3b82f6;">${totalCount}</span></span>
-                <span style="font-weight: 700;"><strong>Total a cobrar:</strong> <span style="color: #059669; font-size: 1.4rem;" id="total-amount">$${totalAmount.toFixed(2)}</span></span>
+              <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; margin-top: 0.5rem; border-top: 2px solid #1f2937; font-size: 1.1rem;">
+                <span><strong>Total de envases:</strong> <span id="total-count">${totalCount}</span></span>
+                <span><strong>Total a cobrar:</strong> <span style="color: #059669;" id="total-amount">$${totalAmount.toFixed(2)}</span></span>
               </div>
-              <p style="margin-top: 1rem; font-size: 1rem; color: #6b7280; font-style: italic;">
+              <p style="margin-top: 1rem; font-size: 0.9rem; color: #6b7280; font-style: italic;">
                 Este importe se agregará al total de la venta y se registrará como depósito de envases.
               </p>
             </div>
@@ -538,10 +539,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         setContainersDepositInfo(adjustedContainersInfo);
 
         // Continuar con el flujo normal - el importe se agregará al total en el modal
-        // Esperar un momento para que SweetAlert2 se cierre completamente antes de abrir el modal
-        setTimeout(() => {
-          setShowModal(true);
-        }, 100);
+        setShowModal(true);
       }
     } else {
       // No hay envases - flujo normal
