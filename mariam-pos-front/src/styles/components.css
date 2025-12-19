@@ -128,7 +128,7 @@
 .card-product {
   background: linear-gradient(145deg, #ffffff, #f8f9fa);
   text-align: center;
-  min-height: 200px;
+  min-height: 250px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -136,6 +136,7 @@
 
 /* Headers */
 .header {
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;

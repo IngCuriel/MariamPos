@@ -1,9 +1,10 @@
 .app-products-catalog {
   width: 100%;
-  min-height: 100vh;
-  align-items: center;
-  justify-content: center;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
   padding: 5px;
+  overflow: hidden;
 }
 
 .products-catalog-container {
@@ -13,7 +14,11 @@
   padding: 10px;
   max-width: 100%;
   width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   backdrop-filter: blur(10px);
+  overflow: hidden;
 }
  
 .modal-overlay-newEdit-product {

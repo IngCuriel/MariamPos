@@ -3,7 +3,6 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import Header from "../../components/Header";
 import Card from "../../components/Card";
-import Button from "../../components/Button";
 import type { Product, Category } from "../../types";
 import {
   getProducts,
@@ -523,105 +522,57 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack, onCategories, onCreat
                 <h3>No se encontraron productos</h3>
                 <p>Intenta ajustar los filtros de búsqueda</p>
               </Card>
-            ) : ( products.map((product, index) => {
-                // Colores rotativos para las tarjetas
-                const colorVariants = [
-                  { bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', border: '#667eea' },
-                  { bg: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', border: '#f5576c' },
-                  { bg: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', border: '#4facfe' },
-                  { bg: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', border: '#43e97b' },
-                  { bg: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', border: '#fa709a' },
-                  { bg: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)', border: '#30cfd0' },
-                  { bg: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)', border: '#a8edea' },
-                  { bg: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)', border: '#ff9a9e' },
-                ];
-                const colorVariant = colorVariants[index % colorVariants.length];
-                
+            ) : ( products.map((product) => {
                 return (
                   <Card
                     key={product.id}
                     className="catalog-product-card"
                     variant="product"
                   >
-                    {/* Header compacto con icono y badges */}
-                    <div className="catalog-card-header-compact">
-                      <div className="catalog-header-left">
-                        {product.icon && (
-                          <div className="catalog-product-icon-compact">{product.icon}</div>
-                        )}
-                        <div className="catalog-header-info">
-                          <h3 className="catalog-product-name-compact" title={product.name}>
-                            {product.name}
-                          </h3>
-                          <div className="catalog-product-meta">
-                            <span className="catalog-code-compact">
-                              {product.code || "Sin código"}
-                            </span>
-                            {product.category && (
-                              <span className="catalog-category-tag">
-                                {product.category.name}
-                              </span>
-                            )}
-                            {product.isKit && (
-                              <span className="catalog-kit-tag">
-                                🏷️ Kit
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                    {/* Header con color y nombre */}
+                    <div className="catalog-card-header-simple">
+                      {product.icon && (
+                        <div className="catalog-product-icon-simple">{product.icon}</div>
+                      )}
+                      <h3 className="catalog-product-name-simple" title={product.name}>
+                        {product.name}
+                      </h3>
                     </div>
                     
-                    {/* Descripción compacta (si existe) */}
-                    {product.description && (
-                      <div className="catalog-description-compact" title={product.description}>
-                        {product.description}
-                      </div>
-                    )}
-
-                    {/* Información de kit (si aplica) */}
-                    {product.isKit && product.kitItems && product.kitItems.length > 0 && (
-                      <div className="catalog-kit-info">
-                        <span className="kit-info-text">
-                          Contiene {product.kitItems.length} producto{product.kitItems.length !== 1 ? 's' : ''}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Footer con precios y acciones */}
-                    <div className="catalog-card-footer">
-                      <div className="catalog-pricing-compact">
-                        <div className="price-row-main">
-                          <span className="price-label-compact">Precio</span>
-                          <span className="price-value-compact">${product.price.toFixed(2)}</span>
+                    {/* Precios */}
+                    <div className="catalog-card-content-simple">
+                      <div className="catalog-pricing-simple">
+                        <div className="price-item-simple">
+                          <span className="price-label-simple">Precio</span>
+                          <span className="price-value-simple">${product.price.toFixed(2)}</span>
                         </div>
                         {product.cost && product.cost > 0 && (
-                          <div className="price-row-secondary">
-                            <span className="cost-label-compact">Costo: ${product.cost.toFixed(2)}</span>
-                            <span className="margin-badge-compact">
-                              +${(product.price - product.cost).toFixed(2)}
-                            </span>
+                          <div className="price-item-simple">
+                            <span className="price-label-simple">Costo</span>
+                            <span className="price-value-simple cost-value-simple">${product.cost.toFixed(2)}</span>
                           </div>
                         )}
                       </div>
-                      <div className="catalog-actions-compact">
-                        <button
-                          type="button"
-                          className="catalog-action-btn-compact catalog-edit-btn-compact"
-                          onClick={() => onEdit(product)}
-                          title="Editar producto"
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          type="button"
-                          className="catalog-action-btn-compact catalog-delete-btn-compact"
-                          onClick={() => handleDelete(product.id)}
-                          title="Eliminar producto"
-                        >
-                          🗑️
-                        </button>
-                      </div>
+                    </div>
+
+                    {/* Footer con acciones */}
+                    <div className="catalog-card-footer-simple">
+                      <button
+                        type="button"
+                        className="catalog-action-btn-simple catalog-edit-btn-simple"
+                        onClick={() => onEdit(product)}
+                        title="Editar producto"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        type="button"
+                        className="catalog-action-btn-simple catalog-delete-btn-simple"
+                        onClick={() => handleDelete(product.id)}
+                        title="Eliminar producto"
+                      >
+                        🗑️
+                      </button>
                     </div>
                   </Card>
                 );
