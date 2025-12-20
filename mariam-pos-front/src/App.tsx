@@ -29,7 +29,6 @@ function App() {
     goToMain, 
     goToHelp, 
     goToPOS, 
-    goToProducts, 
     goToCatalog,
     goToCategories,
     goToSales,
