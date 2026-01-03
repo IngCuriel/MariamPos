@@ -578,7 +578,6 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
                     </span>
                   </div>
                   <div className="summary-item regalo">
-                    <span className="summary-icon">🎁</span>
                     <span className="summary-label">Regalo:</span>
                     <span className="summary-amount">
                       {resumen.totalRegalo.toLocaleString("es-MX", {
@@ -600,7 +599,6 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
                     </div>
                   )}
                   <div className="summary-item total">
-                    <span className="summary-icon">💰</span>
                     <span className="summary-label">Total General:</span>
                     <span className="summary-amount total-amount">
                       {resumen.totalGeneral.toLocaleString("es-MX", {

@@ -575,6 +575,11 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
     localStorage.setItem("cart", JSON.stringify(cart));
     setSearch("");
     inputRef.current?.focus();
+    
+    // Si el carrito está vacío, reiniciar el contador de productos no registrados
+    if (cart.length === 0) {
+      setProductCounter(1);
+    }
   }, [cart]);
 
   useEffect(() => {
@@ -1602,6 +1607,8 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
 
     // Cargar el carrito
     setCart(() => cartItems);
+    // Reiniciar contador de productos no registrados al cargar una venta pendiente
+    setProductCounter(1);
 
     // Cerrar el modal
     setShowPendingSalesModal(false);
@@ -1912,7 +1919,10 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                     <th>Precio</th>
                     <th>Subtotal</th>
                     <th>
-                      <button onClick={() => setCart([])}>❌</button>
+                      <button onClick={() => {
+                        setCart([]);
+                        setProductCounter(1); // Reiniciar contador al limpiar carrito
+                      }}>❌</button>
                     </th>
                   </tr>
                 </thead>
