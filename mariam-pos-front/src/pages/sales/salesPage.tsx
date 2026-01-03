@@ -885,7 +885,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
     itemPrice?: number
   ) => {
     setCart((prev) =>
-      prev.map((item, index) => {
+      prev.map((item) => {
         // Para productos no registrados (id: 1, code: '000000'), usar name y price para identificarlos únicamente
         const isUnregisteredProduct = item.id === 1 && item.code === '000000';
         
