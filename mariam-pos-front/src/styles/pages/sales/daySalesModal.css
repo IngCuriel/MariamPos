@@ -143,6 +143,8 @@
   overflow: hidden;
   flex: 1;
   margin-top: 1rem;
+  min-height: 0;
+  max-height: calc(90vh - 200px);
 }
 
 /* ===== SUMMARY COLUMN (LEFT) ===== */
@@ -171,20 +173,29 @@
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
   overflow: hidden;
+  min-height: 0;
+  align-items: stretch;
+  height: 100%;
 }
 
 /* ===== SALES LIST ===== */
 .sales-list {
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   min-height: 0;
   padding-right: 1rem;
   border-right: 2px solid #e5e7eb;
+  height: 100%;
+  max-height: calc(90vh - 200px);
+  align-items: stretch;
 }
 
 .date-filter-section {
   margin-bottom: 1rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
 }
 
 .folio-count {
@@ -219,6 +230,7 @@
   justify-content: center;
   min-height: 200px;
   padding: 2rem;
+  flex: 1;
 }
 
 .sales-list table {
@@ -373,11 +385,21 @@
 }
 
 .table-container {
-  max-height: 400px; /* Altura máxima antes de activar el scroll */
-  overflow-y: auto;
+  flex: 1 1 0;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
   border: 1px solid #ddd;
   border-radius: 6px;
   background-color: #fff;
+  min-height: 300px;
+  max-height: 550px;
+  height: 550px;
+  position: relative;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #888 #f1f1f1;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
 }
 
 /* Asegura que la tabla ocupe todo el ancho */
@@ -501,19 +523,30 @@
   font-weight: bold;
 }
 
-/* Scroll estético */
+/* Scroll estético - Asegurar que el scrollbar sea visible */
 .table-container::-webkit-scrollbar {
-  width: 8px;
+  width: 12px;
+  display: block;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background-color: #f1f1f1;
+  border-radius: 6px;
+  -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.1);
 }
 
 .table-container::-webkit-scrollbar-thumb {
-  background-color: #ccc;
-  border-radius: 4px;
+  background-color: #888;
+  border-radius: 6px;
+  border: 2px solid #f1f1f1;
+  -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
 }
 
 .table-container::-webkit-scrollbar-thumb:hover {
-  background-color: #aaa;
+  background-color: #555;
 }
+
+/* Scrollbar para Firefox - propiedades ya definidas arriba */
 
 /* ===== DATEPICKER Z-INDEX FIX ===== */
 /* Asegurar que el calendario del DatePicker aparezca por encima de todo */
@@ -535,12 +568,6 @@
   z-index: 1;
 }
 
-.table-container {
-  position: relative;
-  z-index: 1;
-  max-height: 500px;
-}
-
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
   .modal-container-day-sales {
@@ -559,7 +586,8 @@
     border-bottom: 2px solid #eee;
     padding-right: 0;
     padding-bottom: 1rem;
-    max-height: 400px;
+    height: auto;
+    max-height: 50vh;
     overflow-y: auto;
   }
 
@@ -593,7 +621,9 @@
   }
 
   .table-container {
-    max-height: 300px;
+    height: 350px;
+    max-height: 350px;
+    min-height: 300px;
   }
 
   .sales-table {

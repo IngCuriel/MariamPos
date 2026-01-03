@@ -880,16 +880,33 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
   const handleUpdateQuantity = (
     id: number,
     presentationId: number | undefined,
-    change: number
+    change: number,
+    itemName?: string,
+    itemPrice?: number
   ) => {
     setCart((prev) =>
-      prev.map((item) => {
-        // Verificar que sea el mismo producto y presentación
-        const isSameItem =
-          item.id === id &&
-          ((presentationId !== undefined &&
-            item.selectedPresentation?.id === presentationId) ||
-            (presentationId === undefined && !item.selectedPresentation));
+      prev.map((item, index) => {
+        // Para productos no registrados (id: 1, code: '000000'), usar name y price para identificarlos únicamente
+        const isUnregisteredProduct = item.id === 1 && item.code === '000000';
+        
+        let isSameItem: boolean;
+        if (isUnregisteredProduct && itemName !== undefined && itemPrice !== undefined) {
+          // Para productos no registrados, verificar id, name y price
+          isSameItem =
+            item.id === id &&
+            item.name === itemName &&
+            item.price === itemPrice &&
+            ((presentationId !== undefined &&
+              item.selectedPresentation?.id === presentationId) ||
+              (presentationId === undefined && !item.selectedPresentation));
+        } else {
+          // Para productos normales, usar la lógica original
+          isSameItem =
+            item.id === id &&
+            ((presentationId !== undefined &&
+              item.selectedPresentation?.id === presentationId) ||
+              (presentationId === undefined && !item.selectedPresentation));
+        }
 
         if (isSameItem) {
           // Solo permitir actualizar cantidad para productos "Pieza" sin presentaciones
@@ -1940,7 +1957,13 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                                   className="quantity-btn quantity-btn-minus"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleUpdateQuantity(item.id, item.selectedPresentation?.id, -1);
+                                    handleUpdateQuantity(
+                                      item.id, 
+                                      item.selectedPresentation?.id, 
+                                      -1,
+                                      item.name,
+                                      item.price
+                                    );
                                   }}
                                   title="Disminuir cantidad"
                                 >
@@ -1951,7 +1974,13 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                                   className="quantity-btn quantity-btn-plus"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleUpdateQuantity(item.id, item.selectedPresentation?.id, 1);
+                                    handleUpdateQuantity(
+                                      item.id, 
+                                      item.selectedPresentation?.id, 
+                                      1,
+                                      item.name,
+                                      item.price
+                                    );
                                   }}
                                   title="Aumentar cantidad"
                                 >

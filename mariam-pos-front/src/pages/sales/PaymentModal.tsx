@@ -69,7 +69,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
   const totalMixed = cashReceived + cardReceived;
 
   useEffect(() => {
-    const attemptFocus = (ref: React.RefObject<HTMLInputElement | null>) => {
+    const attemptFocus = (ref: React.RefObject<HTMLInputElement>) => {
       if (ref.current && ref.current.offsetParent !== null) { // Verificar que el elemento esté visible
         ref.current.focus();
         ref.current.select();
