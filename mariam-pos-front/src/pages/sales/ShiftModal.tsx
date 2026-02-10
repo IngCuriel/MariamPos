@@ -316,8 +316,9 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
       // Fondo inicial + Ventas en efectivo + Neto de movimientos + Abonos en efectivo - Créditos generados
       // Los créditos se restan porque representan dinero que NO se recibió en efectivo
       // Siempre calcular localmente para asegurar precisión
-      const ventasEfectivo = summary.paymentMethods?.efectivo?.total || summary.paymentMethods?.Efectivo?.total || summary.totals?.totalCash || 0;
-      const ventasTarjeta = summary.paymentMethods?.tarjeta?.total || summary.paymentMethods?.Tarjeta?.total || summary.totals?.totalCard || 0;
+      // Ahora todas las claves están normalizadas en minúsculas
+      const ventasEfectivo = summary.paymentMethods?.efectivo?.total || summary.totals?.totalCash || 0;
+      const ventasTarjeta = summary.paymentMethods?.tarjeta?.total || summary.totals?.totalCard || 0;
       const netoMovimientos = summary.cashMovementsSummary?.neto || 0;
       const abonosEfectivo = summary.creditsInfo?.totalCreditPaymentsCash || 0;
       const creditosGenerados = summary.creditsInfo?.totalCreditsGenerated || 0;
@@ -411,15 +412,15 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
                     $${summary.totals.totalTransfer.toFixed(2)}
                   </p>
                 </div>
-                ${summary.paymentMethods?.Regalo ? `
+                ${summary.paymentMethods?.regalo ? `
                 <div style="margin-bottom: 12px;">
                   <span style="color: #6b7280; font-size: 0.95rem;">Regalo:</span>
                   <p style="margin: 4px 0; font-size: 1.1rem; font-weight: 600; color: #f59e0b;">
-                    $${summary.paymentMethods.Regalo.total.toFixed(2)}
+                    $${summary.paymentMethods.regalo.total.toFixed(2)}
                   </p>
                 </div>
                 ` : ''}
-                ${(summary.totals.totalOther - (summary.paymentMethods?.Regalo?.total || 0)) > 0 ? `
+                ${(summary.totals.totalOther - (summary.paymentMethods?.regalo?.total || 0)) > 0 ? `
                 <div style="margin-bottom: 12px;">
                   <span style="color: #6b7280; font-size: 0.95rem;">Otros:</span>
                   <p style="margin: 4px 0; font-size: 1.1rem; font-weight: 600; color: #6b7280;">
@@ -492,11 +493,220 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
               </p>
             </div>
             ${movementsHtml}
+            ${summary.sales && summary.sales.length > 0 ? `
+            <hr style="margin: 20px 0; border-color: #d1d5db;">
+            <div style="margin-bottom: 15px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <p style="font-weight: 600; font-size: 1rem; color: #1f2937; margin: 0;">
+                  📋 Folios del Turno (${summary.sales.length} ${summary.sales.length === 1 ? 'venta' : 'ventas'})
+                </p>
+                <button 
+                  id="toggle-folios-table" 
+                  onclick="
+                    const table = document.getElementById('folios-table-container');
+                    const btn = document.getElementById('toggle-folios-table');
+                    if (table.style.display === 'none') {
+                      table.style.display = 'block';
+                      btn.innerHTML = '👁️ Ocultar Tabla';
+                      btn.style.backgroundColor = '#dc2626';
+                    } else {
+                      table.style.display = 'none';
+                      btn.innerHTML = '👁️ Mostrar Tabla';
+                      btn.style.backgroundColor = '#3b82f6';
+                    }
+                  "
+                  style="
+                    padding: 8px 16px;
+                    background-color: #3b82f6;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    font-size: 0.875rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: background-color 0.2s;
+                  "
+                  onmouseover="this.style.opacity='0.9'"
+                  onmouseout="this.style.opacity='1'"
+                >
+                  👁️ Mostrar Tabla
+                </button>
+              </div>
+              <div id="folios-table-container" style="display: none;">
+                <div style="max-height: 400px; overflow-y: auto; overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb;">
+                  <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                    <thead style="position: sticky; top: 0; background: #f3f4f6; z-index: 10;">
+                      <tr style="border-bottom: 2px solid #d1d5db;">
+                        <th style="padding: 12px 8px; text-align: left; font-weight: 600; color: #374151; white-space: nowrap;">Folio</th>
+                        <th style="padding: 12px 8px; text-align: left; font-weight: 600; color: #374151; white-space: nowrap;">Fecha/Hora</th>
+                        <th style="padding: 12px 8px; text-align: left; font-weight: 600; color: #374151; white-space: nowrap;">Cliente</th>
+                        <th style="padding: 12px 8px; text-align: left; font-weight: 600; color: #374151; white-space: nowrap;">Método Pago</th>
+                        <th style="padding: 12px 8px; text-align: right; font-weight: 600; color: #374151; white-space: nowrap;">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${summary.sales
+                        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                        .map((sale: any) => {
+                          const saleDate = new Date(sale.createdAt);
+                          const dateStr = saleDate.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                          const timeStr = saleDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+                          const paymentMethod = sale.paymentMethod || 'No especificado';
+                          const methodLower = paymentMethod.toLowerCase();
+                          const clientName = sale.clientName || 'Cliente General';
+                          const folio = sale.folio || sale.id.toString();
+                          
+                          // Determinar método de pago y color
+                          let methodDisplay = '';
+                          let methodColor = '#6b7280';
+                          
+                          if (methodLower.includes('mixto')) {
+                            const cashMatch = paymentMethod.match(/efectivo[:\s]*\$?([\d.]+)/i);
+                            const cardMatch = paymentMethod.match(/tarjeta[:\s]*\$?([\d.]+)/i);
+                            const cashAmount = cashMatch ? parseFloat(cashMatch[1]) : 0;
+                            const cardAmount = cardMatch ? parseFloat(cardMatch[1]) : 0;
+                            methodDisplay = '💵 Efectivo: $' + cashAmount.toFixed(2) + '<br>💳 Tarjeta: $' + cardAmount.toFixed(2);
+                            methodColor = '#8b5cf6';
+                          } else if (methodLower.includes('efectivo') || methodLower === 'cash') {
+                            methodDisplay = '💵 Efectivo';
+                            methodColor = '#059669';
+                          } else if (methodLower.includes('tarjeta') || methodLower.includes('card')) {
+                            methodDisplay = '💳 Tarjeta';
+                            methodColor = '#3b82f6';
+                          } else if (methodLower.includes('transferencia') || methodLower.includes('transfer')) {
+                            methodDisplay = '🏦 Transferencia';
+                            methodColor = '#8b5cf6';
+                          } else if (methodLower.includes('regalo')) {
+                            methodDisplay = '🎁 Regalo';
+                            methodColor = '#f59e0b';
+                          } else {
+                            const shortMethod = paymentMethod.length > 25 ? paymentMethod.substring(0, 25) + '...' : paymentMethod;
+                            methodDisplay = '📝 ' + shortMethod;
+                          }
+                          
+                          return `
+                            <tr style="border-bottom: 1px solid #e5e7eb; transition: background-color 0.2s;" 
+                                onmouseover="this.style.backgroundColor='#f3f4f6'" 
+                                onmouseout="this.style.backgroundColor='transparent'">
+                              <td style="padding: 10px 8px; color: #1f2937; font-weight: 600;">${folio}</td>
+                              <td style="padding: 10px 8px; color: #6b7280; white-space: nowrap;">
+                                <div style="font-size: 0.85rem;">${dateStr}</div>
+                                <div style="font-size: 0.8rem; color: #9ca3af;">${timeStr}</div>
+                              </td>
+                              <td style="padding: 10px 8px; color: #374151; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${clientName}">${clientName}</td>
+                              <td style="padding: 10px 8px; color: ${methodColor}; font-size: 0.85rem; font-weight: 500; line-height: 1.4;">
+                                ${methodDisplay}
+                              </td>
+                              <td style="padding: 10px 8px; text-align: right; color: #059669; font-weight: 600; white-space: nowrap;">
+                                $${sale.total.toFixed(2)}
+                              </td>
+                            </tr>
+                          `;
+                        }).join('')}
+                    </tbody>
+                    <tfoot style="background: #f3f4f6; border-top: 2px solid #d1d5db;">
+                      <tr>
+                        <td colspan="4" style="padding: 12px 8px; text-align: right; font-weight: 700; color: #1f2937;">
+                          Total General:
+                        </td>
+                        <td style="padding: 12px 8px; text-align: right; font-weight: 700; color: #059669; font-size: 1rem;">
+                          $${summary.statistics.totalAmount.toFixed(2)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+                <!-- Resumen por método de pago -->
+                <div style="margin-top: 15px; padding: 15px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;">
+                  <p style="font-weight: 600; margin-bottom: 12px; font-size: 0.95rem; color: #1f2937;">
+                    💰 Resumen por Método de Pago:
+                  </p>
+                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; font-size: 0.9rem;">
+                    ${summary.paymentMethods?.efectivo ? `
+                      <div style="padding: 10px; background: #ecfdf5; border-left: 4px solid #059669; border-radius: 4px;">
+                        <div style="font-weight: 600; color: #059669; margin-bottom: 4px;">💵 Efectivo</div>
+                        <div style="font-size: 1.1rem; font-weight: 700; color: #047857;">
+                          $${summary.paymentMethods.efectivo.total.toFixed(2)}
+                        </div>
+                        <div style="font-size: 0.8rem; color: #6b7280; margin-top: 2px;">
+                          ${summary.paymentMethods.efectivo.count} ${summary.paymentMethods.efectivo.count === 1 ? 'venta' : 'ventas'}
+                        </div>
+                      </div>
+                    ` : ''}
+                    ${summary.paymentMethods?.tarjeta ? `
+                      <div style="padding: 10px; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 4px;">
+                        <div style="font-weight: 600; color: #3b82f6; margin-bottom: 4px;">💳 Tarjeta</div>
+                        <div style="font-size: 1.1rem; font-weight: 700; color: #1e40af;">
+                          $${summary.paymentMethods.tarjeta.total.toFixed(2)}
+                        </div>
+                        <div style="font-size: 0.8rem; color: #6b7280; margin-top: 2px;">
+                          ${summary.paymentMethods.tarjeta.count} ${summary.paymentMethods.tarjeta.count === 1 ? 'venta' : 'ventas'}
+                        </div>
+                      </div>
+                    ` : ''}
+                    ${summary.paymentMethods?.transferencia ? `
+                      <div style="padding: 10px; background: #f5f3ff; border-left: 4px solid #8b5cf6; border-radius: 4px;">
+                        <div style="font-weight: 600; color: #8b5cf6; margin-bottom: 4px;">🏦 Transferencia</div>
+                        <div style="font-size: 1.1rem; font-weight: 700; color: #6d28d9;">
+                          $${summary.paymentMethods.transferencia.total.toFixed(2)}
+                        </div>
+                        <div style="font-size: 0.8rem; color: #6b7280; margin-top: 2px;">
+                          ${summary.paymentMethods.transferencia.count} ${summary.paymentMethods.transferencia.count === 1 ? 'venta' : 'ventas'}
+                        </div>
+                      </div>
+                    ` : ''}
+                    ${summary.paymentMethods?.regalo ? `
+                      <div style="padding: 10px; background: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 4px;">
+                        <div style="font-weight: 600; color: #f59e0b; margin-bottom: 4px;">🎁 Regalo</div>
+                        <div style="font-size: 1.1rem; font-weight: 700; color: #d97706;">
+                          $${summary.paymentMethods.regalo.total.toFixed(2)}
+                        </div>
+                        <div style="font-size: 0.8rem; color: #6b7280; margin-top: 2px;">
+                          ${summary.paymentMethods.regalo.count} ${summary.paymentMethods.regalo.count === 1 ? 'venta' : 'ventas'}
+                        </div>
+                      </div>
+                    ` : ''}
+                    ${summary.paymentMethods?.otros ? `
+                      <div style="padding: 10px; background: #f9fafb; border-left: 4px solid #6b7280; border-radius: 4px;">
+                        <div style="font-weight: 600; color: #6b7280; margin-bottom: 4px;">📝 Otros</div>
+                        <div style="font-size: 1.1rem; font-weight: 700; color: #374151;">
+                          $${summary.paymentMethods.otros.total.toFixed(2)}
+                        </div>
+                        <div style="font-size: 0.8rem; color: #6b7280; margin-top: 2px;">
+                          ${summary.paymentMethods.otros.count} ${summary.paymentMethods.otros.count === 1 ? 'venta' : 'ventas'}
+                        </div>
+                      </div>
+                    ` : ''}
+                  </div>
+                </div>
+                <style>
+                  /* Scrollbar personalizado para la tabla */
+                  div[style*="max-height: 400px"]::-webkit-scrollbar {
+                    width: 8px;
+                    height: 8px;
+                  }
+                  div[style*="max-height: 400px"]::-webkit-scrollbar-track {
+                    background: #f1f1f1;
+                    border-radius: 4px;
+                  }
+                  div[style*="max-height: 400px"]::-webkit-scrollbar-thumb {
+                    background: #888;
+                    border-radius: 4px;
+                  }
+                  div[style*="max-height: 400px"]::-webkit-scrollbar-thumb:hover {
+                    background: #555;
+                  }
+                </style>
+              </div>
+            </div>
+            ` : ''}
           </div>
         `,
-        width: isMobile ? "95%" : "800px",
-        confirmButtonText: "Cerrar",
-        confirmButtonColor: "#3b82f6",
+        width: isMobile ? "95%" : "900px",
+        showConfirmButton: false,
+        showCloseButton: true, // Botón X nativo simple
+        allowOutsideClick: true,
+        allowEscapeKey: true,
       });
     } catch (error) {
       console.error("Error al cargar resumen:", error);

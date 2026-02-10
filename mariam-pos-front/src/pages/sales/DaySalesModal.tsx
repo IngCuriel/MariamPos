@@ -239,7 +239,8 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
         // Crear un contenedor temporal con el ticket mejorado para tamaño carta
         const tempContainer = document.createElement("div");
         tempContainer.style.width = "210mm"; // Ancho carta
-        tempContainer.style.minHeight = "279mm"; // Alto carta
+        tempContainer.style.height = "auto"; // Altura automática para que crezca con el contenido
+        tempContainer.style.minHeight = "279mm"; // Alto mínimo carta
         tempContainer.style.padding = "20mm";
         tempContainer.style.fontFamily = "Arial, sans-serif";
         tempContainer.style.background = "white";
@@ -248,6 +249,7 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
         tempContainer.style.left = "-9999px";
         tempContainer.style.top = "0";
         tempContainer.style.zIndex = "-1";
+        tempContainer.style.overflow = "visible"; // Permitir que el contenido se muestre completamente
         document.body.appendChild(tempContainer);
 
         // Crear el contenido de la nota de venta
@@ -270,6 +272,10 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
           div.textContent = text;
           return div.innerHTML;
         };
+
+        // Calcular total de productos (suma de todas las cantidades) y total de artículos
+        const totalProducts = sale?.details?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+        const totalItems = sale?.details?.length || 0;
 
         tempContainer.innerHTML = `
           <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 20px;">
@@ -305,7 +311,11 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
           </table>
 
           <div style="margin-top: 30px; border-top: 2px solid #000; padding-top: 20px;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span style="font-size: 14px; font-weight: 600;">Total de productos:</span>
+              <span style="font-size: 14px; font-weight: 600;">${totalProducts} (${totalItems} ${totalItems === 1 ? 'artículo' : 'artículos'})</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px; margin-top: 10px;">
               <span style="font-size: 16px; font-weight: bold;">Total:</span>
               <span style="font-size: 18px; font-weight: bold;">${sale.total.toLocaleString("es-MX", {
                 style: "currency",
@@ -325,6 +335,8 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
         `;
 
         // Esperar a que el contenido se renderice completamente
+        // Aumentar el tiempo si hay muchos productos
+        const waitTime = sale.details && sale.details.length > 20 ? 1000 : 500;
         setTimeout(async () => {
           try {
             const canvas = await html2canvas(tempContainer, {
@@ -333,6 +345,8 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
               logging: false,
               backgroundColor: "#ffffff",
               allowTaint: true,
+              height: tempContainer.scrollHeight, // Capturar toda la altura del contenido
+              windowWidth: tempContainer.scrollWidth, // Capturar todo el ancho
             });
 
             document.body.removeChild(tempContainer);
@@ -349,8 +363,26 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
             const imgWidth = pageWidth;
             const imgHeight = (canvas.height * imgWidth) / canvas.width;
             
-            // Agregar la imagen del ticket
-            pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+            // Si la imagen es más alta que una página, dividirla en múltiples páginas
+            if (imgHeight > pageHeight) {
+              let heightLeft = imgHeight;
+              let position = 0;
+              
+              // Agregar primera página (mostrar desde el inicio)
+              pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+              heightLeft -= pageHeight;
+              
+              // Agregar páginas adicionales si es necesario
+              while (heightLeft > 0) {
+                position -= pageHeight; // Mover la posición hacia arriba para mostrar la siguiente parte
+                pdf.addPage();
+                pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+              }
+            } else {
+              // Si cabe en una página, agregarlo normalmente
+              pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+            }
 
             // Agregar marca de agua "PAGADO" en todas las páginas
             const totalPages = pdf.internal.pages.length - 1;
@@ -395,7 +427,7 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
             }
             reject(error);
           }
-        }, 500); // Esperar 500ms para que se renderice
+        }, waitTime); // Esperar para que se renderice completamente (más tiempo si hay muchos productos)
       } catch (error) {
         reject(error);
       }

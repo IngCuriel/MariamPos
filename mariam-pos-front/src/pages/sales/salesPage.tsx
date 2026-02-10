@@ -898,12 +898,12 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         if (isUnregisteredProduct && itemName !== undefined && itemPrice !== undefined) {
           // Para productos no registrados, verificar id, name y price
           isSameItem =
-            item.id === id &&
+          item.id === id &&
             item.name === itemName &&
             item.price === itemPrice &&
-            ((presentationId !== undefined &&
-              item.selectedPresentation?.id === presentationId) ||
-              (presentationId === undefined && !item.selectedPresentation));
+          ((presentationId !== undefined &&
+            item.selectedPresentation?.id === presentationId) ||
+            (presentationId === undefined && !item.selectedPresentation));
         } else {
           // Para productos normales, usar la lógica original
           isSameItem =

@@ -157,6 +157,141 @@ export default function ShiftHistoryPage({
       .reduce((sum, sale) => sum + (sale.total || 0), 0);
   };
 
+  // Función para mostrar modal con folios del turno
+  const showFoliosModal = (shift: CashRegisterShift, summary: ShiftSummary | null) => {
+    const sales = summary?.sales || [];
+    
+    if (sales.length === 0) {
+      Swal.fire({
+        icon: "info",
+        title: "Sin ventas",
+        text: "Este turno no tiene ventas registradas",
+        confirmButtonText: "Cerrar",
+        confirmButtonColor: "#3b82f6",
+      });
+      return;
+    }
+
+    const isMobile = window.innerWidth < 768;
+
+    Swal.fire({
+      title: `📋 Folios del Turno ${shift.shiftNumber}`,
+      html: `
+        <div style="text-align: left; margin-top: 15px; font-size: 1.05rem; max-width: 100%;">
+          <p style="font-weight: 600; margin-bottom: 12px; font-size: 1rem; color: #1f2937;">
+            Total: ${sales.length} ${sales.length === 1 ? 'venta' : 'ventas'}
+          </p>
+          <div style="max-height: 500px; overflow-y: auto; overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+              <thead style="position: sticky; top: 0; background: #f3f4f6; z-index: 10;">
+                <tr style="border-bottom: 2px solid #d1d5db;">
+                  <th style="padding: 12px 8px; text-align: left; font-weight: 600; color: #374151; white-space: nowrap;">Folio</th>
+                  <th style="padding: 12px 8px; text-align: left; font-weight: 600; color: #374151; white-space: nowrap;">Fecha/Hora</th>
+                  <th style="padding: 12px 8px; text-align: left; font-weight: 600; color: #374151; white-space: nowrap;">Cliente</th>
+                  <th style="padding: 12px 8px; text-align: left; font-weight: 600; color: #374151; white-space: nowrap;">Método Pago</th>
+                  <th style="padding: 12px 8px; text-align: right; font-weight: 600; color: #374151; white-space: nowrap;">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${sales
+                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                  .map((sale) => {
+                    const saleDate = new Date(sale.createdAt);
+                    const dateStr = saleDate.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                    const timeStr = saleDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+                    const paymentMethod = sale.paymentMethod || 'No especificado';
+                    const methodLower = paymentMethod.toLowerCase();
+                    const clientName = sale.clientName || 'Cliente General';
+                    const folio = sale.folio || sale.id.toString();
+                    
+                    // Determinar método de pago y color
+                    let methodDisplay = '';
+                    let methodColor = '#6b7280';
+                    
+                    if (methodLower.includes('mixto')) {
+                      const cashMatch = paymentMethod.match(/efectivo[:\s]*\$?([\d.]+)/i);
+                      const cardMatch = paymentMethod.match(/tarjeta[:\s]*\$?([\d.]+)/i);
+                      const cashAmount = cashMatch ? parseFloat(cashMatch[1]) : 0;
+                      const cardAmount = cardMatch ? parseFloat(cardMatch[1]) : 0;
+                      methodDisplay = '💵 Efectivo: $' + cashAmount.toFixed(2) + '<br>💳 Tarjeta: $' + cardAmount.toFixed(2);
+                      methodColor = '#8b5cf6';
+                    } else if (methodLower.includes('efectivo') || methodLower === 'cash') {
+                      methodDisplay = '💵 Efectivo';
+                      methodColor = '#059669';
+                    } else if (methodLower.includes('tarjeta') || methodLower.includes('card')) {
+                      methodDisplay = '💳 Tarjeta';
+                      methodColor = '#3b82f6';
+                    } else if (methodLower.includes('transferencia') || methodLower.includes('transfer')) {
+                      methodDisplay = '🏦 Transferencia';
+                      methodColor = '#8b5cf6';
+                    } else if (methodLower.includes('regalo')) {
+                      methodDisplay = '🎁 Regalo';
+                      methodColor = '#f59e0b';
+                    } else {
+                      const shortMethod = paymentMethod.length > 25 ? paymentMethod.substring(0, 25) + '...' : paymentMethod;
+                      methodDisplay = '📝 ' + shortMethod;
+                    }
+                    
+                    return `
+                      <tr style="border-bottom: 1px solid #e5e7eb; transition: background-color 0.2s;" 
+                          onmouseover="this.style.backgroundColor='#f3f4f6'" 
+                          onmouseout="this.style.backgroundColor='transparent'">
+                        <td style="padding: 10px 8px; color: #1f2937; font-weight: 600;">${folio}</td>
+                        <td style="padding: 10px 8px; color: #6b7280; white-space: nowrap;">
+                          <div style="font-size: 0.85rem;">${dateStr}</div>
+                          <div style="font-size: 0.8rem; color: #9ca3af;">${timeStr}</div>
+                        </td>
+                        <td style="padding: 10px 8px; color: #374151; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${clientName}">${clientName}</td>
+                        <td style="padding: 10px 8px; color: ${methodColor}; font-size: 0.85rem; font-weight: 500; line-height: 1.4;">
+                          ${methodDisplay}
+                        </td>
+                        <td style="padding: 10px 8px; text-align: right; color: #059669; font-weight: 600; white-space: nowrap;">
+                          $${sale.total.toFixed(2)}
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+              </tbody>
+              <tfoot style="background: #f3f4f6; border-top: 2px solid #d1d5db;">
+                <tr>
+                  <td colspan="4" style="padding: 12px 8px; text-align: right; font-weight: 700; color: #1f2937;">
+                    Total General:
+                  </td>
+                  <td style="padding: 12px 8px; text-align: right; font-weight: 700; color: #059669; font-size: 1rem;">
+                    $${summary?.statistics?.totalAmount?.toFixed(2) || sales.reduce((sum, s) => sum + s.total, 0).toFixed(2)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <style>
+            /* Scrollbar personalizado para la tabla */
+            div[style*="max-height: 500px"]::-webkit-scrollbar {
+              width: 8px;
+              height: 8px;
+            }
+            div[style*="max-height: 500px"]::-webkit-scrollbar-track {
+              background: #f1f1f1;
+              border-radius: 4px;
+            }
+            div[style*="max-height: 500px"]::-webkit-scrollbar-thumb {
+              background: #888;
+              border-radius: 4px;
+            }
+            div[style*="max-height: 500px"]::-webkit-scrollbar-thumb:hover {
+              background: #555;
+            }
+          </style>
+        </div>
+      `,
+      width: isMobile ? "95%" : "900px",
+      showConfirmButton: false,
+      showCloseButton: true,
+      allowOutsideClick: true,
+      allowEscapeKey: true,
+    });
+  };
+
   return (
     <div className="shift-history-page">
       <Header
@@ -578,6 +713,38 @@ export default function ShiftHistoryPage({
                   <p className="notes-text">{selectedShift.notes}</p>
                 </div>
               )}
+
+              {/* Botón para ver folios del turno */}
+              <div className="details-card" style={{ marginTop: "20px" }}>
+                <button
+                  onClick={() => showFoliosModal(selectedShift, shiftSummary)}
+                  style={{
+                    width: "100%",
+                    padding: "14px 20px",
+                    backgroundColor: "#3b82f6",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontSize: "1rem",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#2563eb";
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "#3b82f6";
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.1)";
+                  }}
+                >
+                  📋 Ver Folios del Turno
+                </button>
+              </div>
             </div>
           ) : (
             <div className="no-selection">

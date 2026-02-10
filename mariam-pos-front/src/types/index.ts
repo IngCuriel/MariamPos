@@ -71,6 +71,10 @@ export interface Sale {
   cashRegister: string,  //Caja de cobro
   clientName?: string;
   details: SaleDetail[];
+  shift?: {
+    id: number;
+    shiftNumber: string;
+  };
 }
 
 // Representa el detalle de una venta
@@ -250,6 +254,15 @@ export interface ShiftSummary {
   paymentMethods: Record<string, {
     count: number;
     total: number;
+  }>;
+  sales?: Array<{
+    id: number;
+    folio?: string;
+    total: number;
+    paymentMethod?: string;
+    clientName?: string;
+    createdAt: Date;
+    status?: string;
   }>;
   cashMovements?: CashMovement[];
   cashMovementsSummary?: {
