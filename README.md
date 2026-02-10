@@ -84,3 +84,8 @@ npm run build:server
 
 # O método tradicional (también funciona)
 npm run dist
+
+# Release 14 de febrero 
+      modified:   mariam-pos-backend/src/controllers/cashRegisterController.js        
+      modified:   mariam-pos-backend/src/controllers/salesController.js
+  

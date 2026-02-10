@@ -213,6 +213,16 @@ export const DEFAULT_POS_CONFIG: POSPageConfig = {
       order: 3,
       onClick: "onCashMovementsHistoryClick",
     },
+    {
+      id: "online-store",
+      title: "Tienda Online",
+      icon: "🌐",
+      description: "Gestionar tienda en línea",
+      section: "operations",
+      visible: true,
+      order: 4,
+      onClick: "onOnlineStoreClick",
+    },
   ],
 };
 

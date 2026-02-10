@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import POSConfigModal from '../components/POSConfigModal';
+import OnlineStoreModal from '../components/OnlineStoreModal';
 import type { POSPageConfig, POSModuleConfig } from '../types/posConfig';
 import { loadPOSConfig, savePOSConfig } from '../utils/posConfig';
 import '../styles/pages/pos/posPage.css';
@@ -43,6 +44,7 @@ const POSPage: React.FC<POSPageProps> = ({
 }) => {
   const [config, setConfig] = useState<POSPageConfig>(loadPOSConfig());
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [showOnlineStoreModal, setShowOnlineStoreModal] = useState(false);
 
   // Mapeo de funciones onClick
   const onClickHandlers = useMemo(() => ({
@@ -60,6 +62,7 @@ const POSPage: React.FC<POSPageProps> = ({
     onReportClick,
     onShiftHistoryClick,
     onCashMovementsHistoryClick,
+    onOnlineStoreClick: () => setShowOnlineStoreModal(true),
   }), [
     onSalesClick,
     onProductsClick,
@@ -171,6 +174,11 @@ const POSPage: React.FC<POSPageProps> = ({
         onClose={() => setShowConfigModal(false)}
         onSave={handleConfigSave}
         currentConfig={config}
+      />
+
+      <OnlineStoreModal
+        isOpen={showOnlineStoreModal}
+        onClose={() => setShowOnlineStoreModal(false)}
       />
     </div>
   );
