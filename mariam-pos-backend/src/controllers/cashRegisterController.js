@@ -588,10 +588,12 @@ export const getShiftSummary = async (req, res) => {
     const averageTicket = totalSales > 0 ? totalAmount / totalSales : 0;
 
     // Desglose por método de pago
+    // Usar claves normalizadas en minúsculas para consistencia
     const paymentMethods = {};
     shift.sales.forEach((sale) => {
       const method = sale.paymentMethod || "Otros";
       const methodLower = method.toLowerCase();
+      const saleTotal = sale.total || 0;
       
       // Para pagos mixtos, crear entradas separadas para efectivo y tarjeta
       if (methodLower.includes("mixto")) {
@@ -601,45 +603,44 @@ export const getShiftSummary = async (req, res) => {
         const cashAmount = cashMatch ? parseFloat(cashMatch[1]) : 0;
         const cardAmount = cardMatch ? parseFloat(cardMatch[1]) : 0;
         
-        // Agregar a efectivo
+        // Agregar a efectivo (siempre en minúscula)
         if (!paymentMethods["efectivo"]) {
           paymentMethods["efectivo"] = { count: 0, total: 0 };
         }
         paymentMethods["efectivo"].count += 1;
         paymentMethods["efectivo"].total += cashAmount;
         
-        // Agregar a tarjeta
+        // Agregar a tarjeta (siempre en minúscula)
         if (!paymentMethods["tarjeta"]) {
           paymentMethods["tarjeta"] = { count: 0, total: 0 };
         }
         paymentMethods["tarjeta"].count += 1;
         paymentMethods["tarjeta"].total += cardAmount;
       } else if (methodLower.includes("regalo")) {
-        // Normalizar regalo
-        if (!paymentMethods["Regalo"]) {
-          paymentMethods["Regalo"] = { count: 0, total: 0 };
+        // Normalizar regalo (siempre en minúscula)
+        if (!paymentMethods["regalo"]) {
+          paymentMethods["regalo"] = { count: 0, total: 0 };
         }
-        paymentMethods["Regalo"].count += 1;
-        paymentMethods["Regalo"].total += sale.total || 0;
+        paymentMethods["regalo"].count += 1;
+        paymentMethods["regalo"].total += saleTotal;
       } else {
-        // Para otros métodos, mantener el comportamiento original
-        // Normalizar nombres comunes
-        let normalizedMethod = method;
+        // Para otros métodos, normalizar a minúsculas para consistencia
+        let normalizedMethod;
         if (methodLower.includes("efectivo") || methodLower === "cash") {
-          normalizedMethod = "Efectivo";
+          normalizedMethod = "efectivo";
         } else if (methodLower.includes("tarjeta") || methodLower.includes("card")) {
-          normalizedMethod = "Tarjeta";
+          normalizedMethod = "tarjeta";
         } else if (methodLower.includes("transferencia") || methodLower.includes("transfer")) {
-          normalizedMethod = "Transferencia";
-        } else if (method === "Otros" || method === "otros") {
-          normalizedMethod = "Otros";
+          normalizedMethod = "transferencia";
+        } else {
+          normalizedMethod = "otros";
         }
         
         if (!paymentMethods[normalizedMethod]) {
           paymentMethods[normalizedMethod] = { count: 0, total: 0 };
         }
         paymentMethods[normalizedMethod].count += 1;
-        paymentMethods[normalizedMethod].total += sale.total || 0;
+        paymentMethods[normalizedMethod].total += saleTotal;
       }
     });
 
@@ -708,12 +709,27 @@ export const getShiftSummary = async (req, res) => {
     });
 
     // Calcular ventas en efectivo basándose en las ventas actuales
-    const ventasEfectivo = paymentMethods["efectivo"]?.total || paymentMethods["Efectivo"]?.total || 0;
+    // Ahora todas las claves están en minúsculas, así que solo buscamos en minúsculas
+    const ventasEfectivo = paymentMethods["efectivo"]?.total || 0;
+    const ventasTarjeta = paymentMethods["tarjeta"]?.total || 0;
+    const ventasTransferencia = paymentMethods["transferencia"]?.total || 0;
+    const ventasOtros = (paymentMethods["otros"]?.total || 0) + (paymentMethods["regalo"]?.total || 0);
 
     // Calcular efectivo esperado (incluye movimientos, abonos en efectivo y resta créditos generados)
     // Los créditos se restan porque representan dinero que NO se recibió en efectivo
     // Siempre calcular basándose en valores actuales, no en valores almacenados
     const calculatedExpectedCash = shift.initialCash + ventasEfectivo + totalCashMovements + totalCreditPaymentsCash - totalCreditsGenerated;
+
+    // Preparar ventas para el resumen (solo campos necesarios)
+    const salesForSummary = shift.sales.map(sale => ({
+      id: sale.id,
+      folio: sale.folio || sale.id.toString(),
+      total: sale.total,
+      paymentMethod: sale.paymentMethod,
+      clientName: sale.clientName,
+      createdAt: sale.createdAt,
+      status: sale.status,
+    }));
 
     const summary = {
       shift: {
@@ -732,10 +748,10 @@ export const getShiftSummary = async (req, res) => {
         notes: shift.notes,
       },
       totals: {
-        totalCash: ventasEfectivo, // Usar valor calculado de las ventas actuales
-        totalCard: paymentMethods["tarjeta"]?.total || paymentMethods["Tarjeta"]?.total || 0,
-        totalTransfer: paymentMethods["transferencia"]?.total || paymentMethods["Transferencia"]?.total || 0,
-        totalOther: paymentMethods["Otros"]?.total || 0,
+        totalCash: ventasEfectivo, // Suma de todas las ventas en efectivo
+        totalCard: ventasTarjeta, // Suma de todas las ventas en tarjeta
+        totalTransfer: ventasTransferencia, // Suma de todas las ventas en transferencia
+        totalOther: ventasOtros, // Suma de otros métodos + regalos
       },
       statistics: {
         totalSales,
@@ -743,6 +759,7 @@ export const getShiftSummary = async (req, res) => {
         averageTicket,
       },
       paymentMethods,
+      sales: salesForSummary, // Incluir ventas en el summary
       cashMovements: movements, // Incluir movimientos en el summary
       cashMovementsSummary: {
         totalEntradas: movements.filter(m => m.type === "ENTRADA").reduce((sum, m) => sum + m.amount, 0),

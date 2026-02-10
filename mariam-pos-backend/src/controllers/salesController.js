@@ -134,6 +134,12 @@ export const getSalesByDateRange = async (req, res) => {
         details: {
           include: { product: true }, // Para mostrar info del producto
         },
+        shift: {
+          select: {
+            id: true,
+            shiftNumber: true,
+          },
+        },
       },
     });
 
@@ -304,20 +310,53 @@ export const getTopProducts = async (req, res) => {
       where = { createdAt: { gte: startDate, lte: endDate } };
     }
     
+    // Construir el where para los detalles de venta
+    const detailWhere = { ...where };
+    
     // Agregar filtro de caja si se especifica
     if (cashRegister) {
-      where.sale = {
+      detailWhere.sale = {
         cashRegister: cashRegister
       };
     }
     
-    const topProducts = await prisma.saleDetail.groupBy({
-      by: ["productName"],
-      _sum: { quantity: true },
-      where,
-      orderBy: { _sum: { quantity: "desc" } },
-      take: 10,
+    // Obtener todos los detalles de venta
+    const allDetails = await prisma.saleDetail.findMany({
+      where: detailWhere,
+      select: {
+        productName: true,
+        quantity: true,
+      },
     });
+
+    // Agrupar productos, normalizando productos no registrados
+    const productMap = new Map();
+    
+    allDetails.forEach((detail) => {
+      let normalizedName = detail.productName || 'Sin nombre';
+      
+      // Normalizar productos no registrados (que empiezan con "Producto no registrado")
+      // Pueden tener variaciones como "Producto no registrado 1", "Producto no registrado 2", etc.
+      if (normalizedName.toLowerCase().startsWith('producto no registrado')) {
+        normalizedName = 'Producto no registrado';
+      }
+      
+      if (productMap.has(normalizedName)) {
+        productMap.set(normalizedName, productMap.get(normalizedName) + detail.quantity);
+      } else {
+        productMap.set(normalizedName, detail.quantity);
+      }
+    });
+
+    // Convertir a array y ordenar por cantidad descendente
+    const topProducts = Array.from(productMap.entries())
+      .map(([productName, totalQuantity]) => ({
+        productName,
+        _sum: { quantity: totalQuantity },
+      }))
+      .sort((a, b) => b._sum.quantity - a._sum.quantity)
+      .slice(0, 10);
+
     res.json(topProducts);
   } catch (error) {
     res.status(500).json({ error: "Error al obtener productos más vendidos" });
