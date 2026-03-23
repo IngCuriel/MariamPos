@@ -108,9 +108,9 @@ export const DEFAULT_POS_CONFIG: POSPageConfig = {
       title: "Clientes",
       icon: "👥",
       description: "Catálogo y gestión de clientes",
-      section: "management",
+      section: "operations",
       visible: true,
-      order: 1,
+      order: 4,
       onClick: "onClientClick",
     },
     {
@@ -120,7 +120,7 @@ export const DEFAULT_POS_CONFIG: POSPageConfig = {
       description: "Control de stock y existencias",
       section: "management",
       visible: true,
-      order: 2,
+      order: 1,
       onClick: "onInventoryClick",
     },
     {
@@ -130,7 +130,7 @@ export const DEFAULT_POS_CONFIG: POSPageConfig = {
       description: "Gestionar usuarios y cajeros",
       section: "management",
       visible: true,
-      order: 3,
+      order: 2,
       onClick: "onUsersClick",
     },
     {
@@ -220,7 +220,7 @@ export const DEFAULT_POS_CONFIG: POSPageConfig = {
       description: "Gestionar tienda en línea",
       section: "operations",
       visible: true,
-      order: 4,
+      order: 5,
       onClick: "onOnlineStoreClick",
     },
   ],
