@@ -64,7 +64,7 @@ const CashExpressCajeroPanel: React.FC<CashExpressCajeroPanelProps> = ({ publicP
       setRequests(list);
     } catch {
       if (!silent) {
-        toast.error('No se pudieron cargar las solicitudes.');
+        toast.error('No se pudieron cargar las solicitudes de efectivo, revisa tu conexión a internet');
         setRequests([]);
       }
     } finally {

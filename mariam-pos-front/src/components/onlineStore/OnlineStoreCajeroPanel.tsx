@@ -127,7 +127,7 @@ const OnlineStoreCajeroPanel: React.FC = () => {
       setPreparationOrders(prep);
     } catch {
       if (!silent) {
-        toast.error('No se pudieron cargar los pedidos nuevos o confirmados.');
+        toast.error('No se pudieron cargar los pedidos, Revisa tu conexión a internet.');
         setReviewOrders([]);
         setPreparationOrders([]);
       }
