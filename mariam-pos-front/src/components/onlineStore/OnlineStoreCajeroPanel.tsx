@@ -13,6 +13,20 @@ const TAB_CONFIRMADOS = 'confirmados';
 const TAB_DISPONIBLES = 'disponibles';
 const TAB_AYUDA = 'ayuda';
 
+const ORDER_AVAILABILITY_ONLINE_PICKUP = 'online_pickup';
+
+/** Etiqueta cuando el pedido viene del catálogo pickup en tienda online (orderAvailability). */
+function OrderOnlinePickupBadge({ order }: Readonly<{ order: StoreOrder }>) {
+  if (order.orderAvailability !== ORDER_AVAILABILITY_ONLINE_PICKUP) {
+    return null;
+  }
+  return (
+    <span className="cajero-tienda-online-card-badge cajero-tienda-online-card-badge--online-pickup">
+      Disponible solo en tienda Online
+    </span>
+  );
+}
+
 function getDeliveryTypeInfo(order: StoreOrder) {
   const code = order.deliveryType?.code;
   const name = order.deliveryType?.name || 'Entrega';
@@ -392,6 +406,7 @@ const OnlineStoreCajeroPanel: React.FC = () => {
                               Nuevo
                             </span>
                           )}
+                          <OrderOnlinePickupBadge order={order} />
                         </div>
                         <span className="cajero-tienda-online-card-time">{getRelativeTime(order.createdAt)}</span>
                       </div>
@@ -473,6 +488,7 @@ const OnlineStoreCajeroPanel: React.FC = () => {
                           >
                             Confirmado
                           </span>
+                          <OrderOnlinePickupBadge order={order} />
                         </div>
                         <span className="cajero-tienda-online-card-time">{getRelativeTime(order.createdAt)}</span>
                       </div>
@@ -559,6 +575,7 @@ const OnlineStoreCajeroPanel: React.FC = () => {
                           <span className="cajero-tienda-online-card-badge cajero-tienda-online-card-badge--delivery" aria-hidden>
                             {deliveryInfo.label}
                           </span>
+                          <OrderOnlinePickupBadge order={order} />
                         </div>
                         <span className="cajero-tienda-online-card-time">
                           {getRelativeTime(order.readyAt || order.updatedAt || order.createdAt)}
@@ -680,6 +697,7 @@ const OnlineStoreCajeroPanel: React.FC = () => {
                   >
                     {STATUS_LABELS[lookupOrder.status] ?? lookupOrder.status}
                   </span>
+                  <OrderOnlinePickupBadge order={lookupOrder} />
                 </div>
                 <div className="cajero-tienda-online-ayuda-card-body">
                   <div className="cajero-tienda-online-ayuda-card-row">

@@ -67,6 +67,8 @@ export interface StoreOrder {
   total: number;
   status: string;
   notes?: string | null;
+  /** Origen: ej. online_pickup | local_delivery (catálogo tienda online). */
+  orderAvailability?: string | null;
   createdAt: string;
   updatedAt?: string;
   readyAt?: string | null;

@@ -507,6 +507,23 @@
   background: #059669;
 }
 
+.cajero-tienda-online-card-badge--online-pickup {
+  background: #0369a1;
+  color: #fff;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-size: 0.625rem;
+  padding: 3px 9px;
+}
+
+.cajero-tienda-online-ayuda-card-header .cajero-tienda-online-card-badge--online-pickup {
+  flex-basis: 100%;
+  width: 100%;
+  text-align: center;
+  font-size: 0.6875rem;
+  padding: 6px 10px;
+}
+
 .cajero-tienda-online-card--preparation .cajero-tienda-online-card-inner {
   border-left-color: #7c3aed;
 }
