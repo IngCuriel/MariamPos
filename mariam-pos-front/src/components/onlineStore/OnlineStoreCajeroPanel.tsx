@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'react-toastify';
-import { fetchOnlineStoreOrdersPage, fetchOnlineStoreOrderById, type StoreOrder } from '../../api/onlineStoreOrders';
-import { ORDER_STATUS, STATUS_COLORS, STATUS_LABELS } from '../../constants/onlineStoreOrderStatus';
+import { fetchOnlineStoreOrdersPage, type StoreOrder, type OrdersPagination } from '../../api/onlineStoreOrders';
+import { ORDER_STATUS } from '../../constants/onlineStoreOrderStatus';
 import OnlineStoreReviewModal from './OnlineStoreReviewModal';
 import OnlineStorePreparationModal from './OnlineStorePreparationModal';
 import OnlineStoreDeliveryModal from './OnlineStoreDeliveryModal';
@@ -11,7 +11,68 @@ import '../../styles/components/onlineStoreCajero.css';
 const TAB_POR_HACER = 'por-hacer';
 const TAB_CONFIRMADOS = 'confirmados';
 const TAB_DISPONIBLES = 'disponibles';
-const TAB_AYUDA = 'ayuda';
+const TAB_VENTAS_CONCRETADAS = 'ventas-concretadas';
+
+/** Zona usada al interpretar el rango en servidor y al mostrar fechas de pedidos. */
+const MEXICO_TIMEZONE = 'America/Mexico_City';
+
+function formatYYYYMMDDInMexico(d: Date): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: MEXICO_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(d);
+  const y = parts.find((p) => p.type === 'year')?.value ?? '';
+  const m = parts.find((p) => p.type === 'month')?.value ?? '';
+  const day = parts.find((p) => p.type === 'day')?.value ?? '';
+  return `${y}-${m}-${day}`;
+}
+
+/** Rango por defecto: el día civil actual en Ciudad de México (desde y hasta el mismo día). */
+function todayMexicoDateRange(): { dateFrom: string; dateTo: string } {
+  const d = formatYYYYMMDDInMexico(new Date());
+  return { dateFrom: d, dateTo: d };
+}
+
+function deliveryCostNumber(order: StoreOrder): number | null {
+  const c = order.deliveryCost;
+  if (c == null) return null;
+  const n = Number(c);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function summarizeCompletedSales(orders: StoreOrder[]) {
+  let totalVentas = 0;
+  let totalEnvios = 0;
+  let pedidosConEnvio = 0;
+  for (const o of orders) {
+    totalVentas += Number(o.total) || 0;
+    const dc = deliveryCostNumber(o);
+    if (dc != null) {
+      totalEnvios += dc;
+      pedidosConEnvio += 1;
+    }
+  }
+  return { totalVentas, totalEnvios, pedidosConEnvio, count: orders.length };
+}
+
+function formatOrderDateTimeMexico(iso: string): string {
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleString('es-MX', {
+      timeZone: MEXICO_TIMEZONE,
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return '—';
+  }
+}
 
 const ORDER_AVAILABILITY_ONLINE_PICKUP = 'online_pickup';
 
@@ -105,6 +166,15 @@ function sortOrdersNewestFirst(orderList: StoreOrder[]) {
   });
 }
 
+/** Orden para reporte por fecha de entrega (más reciente primero). */
+function sortOrdersByDeliveredNewest(orderList: StoreOrder[]) {
+  return [...orderList].sort((a, b) => {
+    const dateA = new Date(a.deliveredAt || a.createdAt || 0).getTime();
+    const dateB = new Date(b.deliveredAt || b.createdAt || 0).getTime();
+    return dateB - dateA;
+  });
+}
+
 async function fetchReviewOrdersSorted(): Promise<StoreOrder[]> {
   const dataReview = await fetchOnlineStoreOrdersPage(ORDER_STATUS.UNDER_REVIEW, 1, 100);
   const listReview = Array.isArray(dataReview?.orders) ? dataReview.orders : [];
@@ -136,10 +206,12 @@ const OnlineStoreCajeroPanel: React.FC = () => {
   const [reviewOrderId, setReviewOrderId] = useState<number | null>(null);
   const [preparationOrderId, setPreparationOrderId] = useState<number | null>(null);
   const [deliveryModalOrderId, setDeliveryModalOrderId] = useState<number | null>(null);
-  const [lookupFolio, setLookupFolio] = useState('');
-  const [lookupOrder, setLookupOrder] = useState<StoreOrder | null>(null);
-  const [lookupLoading, setLookupLoading] = useState(false);
-  const [lookupError, setLookupError] = useState<string | null>(null);
+  const [rangeDateFrom, setRangeDateFrom] = useState(() => todayMexicoDateRange().dateFrom);
+  const [rangeDateTo, setRangeDateTo] = useState(() => todayMexicoDateRange().dateTo);
+  const [rangeResults, setRangeResults] = useState<StoreOrder[] | null>(null);
+  const [rangePagination, setRangePagination] = useState<OrdersPagination | null>(null);
+  const [rangeLoading, setRangeLoading] = useState(false);
+  const [rangeError, setRangeError] = useState<string | null>(null);
 
   /**
    * Pedidos nuevos + confirmados: siempre en segundo plano (urgentes), en cualquier pestaña del modal.
@@ -182,7 +254,7 @@ const OnlineStoreCajeroPanel: React.FC = () => {
       if (!cancelled) setLoading(false);
     };
 
-    if (activeTab === TAB_AYUDA) {
+    if (activeTab === TAB_VENTAS_CONCRETADAS) {
       setLoading(false);
       void loadUrgentOrders({ silent: true });
       return () => {
@@ -239,8 +311,51 @@ const OnlineStoreCajeroPanel: React.FC = () => {
     return () => globalThis.clearInterval(interval);
   }, [activeTab, loadDeliveryOrders]);
 
+  const loadSalesReport = useCallback(async (from: string, to: string) => {
+    const f = from.trim();
+    const t = to.trim();
+    if (!f || !t) {
+      toast.error('Selecciona fecha inicial y fecha final.');
+      return;
+    }
+    if (f > t) {
+      toast.error('La fecha inicial no puede ser posterior a la final.');
+      return;
+    }
+    setRangeError(null);
+    setRangeLoading(true);
+    setRangeResults(null);
+    setRangePagination(null);
+    try {
+      const data = await fetchOnlineStoreOrdersPage(ORDER_STATUS.COMPLETED, 1, 100, {
+        dateFrom: f,
+        dateTo: t,
+        dateField: 'deliveredAt',
+      });
+      setRangeResults(sortOrdersByDeliveredNewest(data.orders));
+      setRangePagination(data.pagination);
+    } catch (e) {
+      setRangeResults(null);
+      setRangeError(e instanceof Error ? e.message : 'Error al cargar el reporte.');
+    } finally {
+      setRangeLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== TAB_VENTAS_CONCRETADAS) return;
+    const { dateFrom, dateTo } = todayMexicoDateRange();
+    setRangeDateFrom(dateFrom);
+    setRangeDateTo(dateTo);
+    void loadSalesReport(dateFrom, dateTo);
+  }, [activeTab, loadSalesReport]);
+
   const refreshForActiveTab = useCallback(async () => {
-    if (activeTab === TAB_AYUDA) {
+    if (activeTab === TAB_VENTAS_CONCRETADAS) {
+      const { dateFrom, dateTo } = todayMexicoDateRange();
+      setRangeDateFrom(dateFrom);
+      setRangeDateTo(dateTo);
+      await loadSalesReport(dateFrom, dateTo);
       await loadUrgentOrders({ silent: false });
       return;
     }
@@ -266,25 +381,14 @@ const OnlineStoreCajeroPanel: React.FC = () => {
     }
   };
 
-  const handleLookup = useCallback(async () => {
-    const folio = String(lookupFolio ?? '').trim();
-    if (!folio) {
-      toast.error('Ingresa el número de folio del pedido.');
-      return;
-    }
-    setLookupError(null);
-    setLookupOrder(null);
-    setLookupLoading(true);
-    try {
-      const data = await fetchOnlineStoreOrderById(folio);
-      setLookupOrder(data);
-    } catch {
-      setLookupOrder(null);
-      setLookupError('No se encontró un pedido con ese folio.');
-    } finally {
-      setLookupLoading(false);
-    }
-  }, [lookupFolio]);
+  const handleSalesReportSubmit = useCallback(() => {
+    void loadSalesReport(rangeDateFrom, rangeDateTo);
+  }, [loadSalesReport, rangeDateFrom, rangeDateTo]);
+
+  const salesSummary = useMemo(() => {
+    if (rangeResults === null) return null;
+    return summarizeCompletedSales(rangeResults);
+  }, [rangeResults]);
 
   const hasReview = reviewOrders.length > 0;
   const hasPreparation = preparationOrders.length > 0;
@@ -342,21 +446,23 @@ const OnlineStoreCajeroPanel: React.FC = () => {
           <button
             type="button"
             role="tab"
-            aria-selected={activeTab === TAB_AYUDA}
-            aria-controls="cajero-tab-panel-ayuda"
-            id="cajero-tab-ayuda"
-            className={`cajero-tienda-online-tab cajero-tienda-online-tab--tertiary ${activeTab === TAB_AYUDA ? 'cajero-tienda-online-tab--active' : ''}`}
-            onClick={() => setActiveTab(TAB_AYUDA)}
+            aria-selected={activeTab === TAB_VENTAS_CONCRETADAS}
+            aria-controls="cajero-tab-panel-ventas"
+            id="cajero-tab-ventas"
+            className={`cajero-tienda-online-tab cajero-tienda-online-tab--tertiary ${activeTab === TAB_VENTAS_CONCRETADAS ? 'cajero-tienda-online-tab--active' : ''}`}
+            onClick={() => setActiveTab(TAB_VENTAS_CONCRETADAS)}
           >
-            Ayuda al cliente
+            Ventas concretadas
           </button>
         </div>
         <button
           type="button"
           className="cajero-tienda-online-refresh"
           onClick={() => void refreshForActiveTab()}
-          disabled={loading || activeTab === TAB_AYUDA}
-          aria-label={loading ? 'Actualizando pedidos' : 'Actualizar pedidos de esta pestaña'}
+          disabled={loading || rangeLoading}
+          aria-label={
+            loading || rangeLoading ? 'Actualizando…' : 'Actualizar pedidos o reporte de esta pestaña'
+          }
           title="Actualizar"
         >
           <IoRefreshOutline
@@ -366,7 +472,7 @@ const OnlineStoreCajeroPanel: React.FC = () => {
         </button>
       </div>
 
-      {loading && activeTab !== TAB_AYUDA && (
+      {loading && activeTab !== TAB_VENTAS_CONCRETADAS && (
         <div className="cajero-tienda-online-loading" aria-live="polite">
           <div className="cajero-tienda-online-spinner" aria-hidden />
           <p>Cargando pedidos...</p>
@@ -630,131 +736,165 @@ const OnlineStoreCajeroPanel: React.FC = () => {
         </div>
       )}
 
-      {activeTab === TAB_AYUDA && (
+      {activeTab === TAB_VENTAS_CONCRETADAS && (
         <div
           className="cajero-tienda-online-ayuda"
-          id="cajero-tab-panel-ayuda"
+          id="cajero-tab-panel-ventas"
           role="tabpanel"
-          aria-labelledby="cajero-tab-ayuda"
-        >
-          <h2 id="cajero-ayuda-title" className="cajero-tienda-online-ayuda-title">
-            Consultar estado del pedido
-          </h2>
-          <p className="cajero-tienda-online-ayuda-desc">
-            El cliente puede indicar su número de folio para ver el estado actual del pedido. Solo consulta, sin
-            acciones.
-          </p>
-          <div className="cajero-tienda-online-ayuda-form">
-            <label htmlFor="cajero-ayuda-folio" className="cajero-tienda-online-ayuda-label">
-              Número de folio
-            </label>
-            <div className="cajero-tienda-online-ayuda-row">
-              <input
-                id="cajero-ayuda-folio"
-                type="text"
-                inputMode="numeric"
-                placeholder="Ej: 42"
-                className="cajero-tienda-online-ayuda-input"
-                value={lookupFolio}
-                onChange={(e) => {
-                  setLookupFolio(e.target.value);
-                  setLookupError(null);
+          aria-labelledby="cajero-tab-ventas"
+        > 
+
+          <section className="cajero-tienda-online-ayuda-range" aria-labelledby="cajero-ventas-range-title">
+            <div className="cajero-tienda-online-ayuda-range-grid cajero-tienda-online-ventas-range-grid">
+              <div className="cajero-tienda-online-ayuda-range-field">
+                <label htmlFor="cajero-ventas-range-from" className="cajero-tienda-online-ayuda-label">
+                  Desde
+                </label>
+                <input
+                  id="cajero-ventas-range-from"
+                  type="date"
+                  className="cajero-tienda-online-ayuda-input cajero-tienda-online-ayuda-input--date"
+                  value={rangeDateFrom}
+                  onChange={(e) => {
+                    setRangeDateFrom(e.target.value);
+                    setRangeError(null);
+                  }}
+                  aria-describedby="cajero-ventas-range-tz-hint"
+                />
+              </div>
+              <div className="cajero-tienda-online-ayuda-range-field">
+                <label htmlFor="cajero-ventas-range-to" className="cajero-tienda-online-ayuda-label">
+                  Hasta
+                </label>
+                <input
+                  id="cajero-ventas-range-to"
+                  type="date"
+                  className="cajero-tienda-online-ayuda-input cajero-tienda-online-ayuda-input--date"
+                  value={rangeDateTo}
+                  onChange={(e) => {
+                    setRangeDateTo(e.target.value);
+                    setRangeError(null);
+                  }}
+                  aria-describedby="cajero-ventas-range-tz-hint"
+                />
+              </div>
+            </div>
+            <p id="cajero-ventas-range-tz-hint" className="cajero-tienda-online-ayuda-hint">
+              Zona horaria del filtro: América/Ciudad de México (inicio y fin de cada día civil).
+            </p>
+            <div className="cajero-tienda-online-ventas-actions">
+              <button
+                type="button"
+                className="cajero-tienda-online-ayuda-btn cajero-tienda-online-ayuda-btn--secondary"
+                onClick={() => {
+                  const { dateFrom, dateTo } = todayMexicoDateRange();
+                  setRangeDateFrom(dateFrom);
+                  setRangeDateTo(dateTo);
+                  setRangeError(null);
+                  void loadSalesReport(dateFrom, dateTo);
                 }}
-                onKeyDown={(e) => e.key === 'Enter' && void handleLookup()}
-                aria-describedby="cajero-ayuda-hint"
-              />
+                disabled={rangeLoading}
+              >
+                Hoy (México)
+              </button>
               <button
                 type="button"
                 className="cajero-tienda-online-ayuda-btn"
-                onClick={() => void handleLookup()}
-                disabled={lookupLoading}
+                onClick={() => void handleSalesReportSubmit()}
+                disabled={rangeLoading}
               >
-                {lookupLoading ? 'Buscando...' : 'Buscar'}
+                {rangeLoading ? 'Generando…' : 'Generar reporte'}
               </button>
             </div>
-            <p id="cajero-ayuda-hint" className="cajero-tienda-online-ayuda-hint">
-              Ingresa el folio que aparece en la confirmación del pedido.
-            </p>
-          </div>
+          </section>
 
-          {lookupLoading && (
+          {rangeLoading && (
             <div className="cajero-tienda-online-ayuda-loading" aria-live="polite">
               <div className="cajero-tienda-online-spinner" aria-hidden />
-              <p>Buscando pedido...</p>
+              <p>Cargando ventas concretadas…</p>
             </div>
           )}
-          {lookupError && !lookupLoading && (
+          {rangeError && !rangeLoading && (
             <div className="cajero-tienda-online-ayuda-error" role="alert">
               <span className="cajero-tienda-online-ayuda-error-icon" aria-hidden>
                 ⚠
               </span>
-              <p>{lookupError}</p>
+              <p>{rangeError}</p>
             </div>
           )}
-          {lookupOrder && !lookupLoading && (
-            <div className="cajero-tienda-online-ayuda-result">
-              <div
-                className="cajero-tienda-online-ayuda-card"
-                style={
-                  {
-                    '--status-color': STATUS_COLORS[lookupOrder.status] || '#64748b',
-                  } as React.CSSProperties
-                }
-              >
-                <div className="cajero-tienda-online-ayuda-card-header">
-                  <span className="cajero-tienda-online-ayuda-card-folio">
-                    Folio <strong>{lookupOrder.id}</strong>
+          {rangeResults !== null && !rangeLoading && !rangeError && salesSummary && (
+            <div className="cajero-tienda-online-ventas-report">
+              <div className="cajero-tienda-online-ventas-totals" aria-live="polite">
+                <div className="cajero-tienda-online-ventas-total-card">
+                  <span className="cajero-tienda-online-ventas-total-label">Total ventas</span>
+                  <span className="cajero-tienda-online-ventas-total-value">
+                    {formatPrice(salesSummary.totalVentas)}
                   </span>
-                  <span
-                    className="cajero-tienda-online-ayuda-card-status"
-                    style={{
-                      backgroundColor: `${STATUS_COLORS[lookupOrder.status] || '#64748b'}22`,
-                      color: STATUS_COLORS[lookupOrder.status] || '#475569',
-                      borderColor: `${STATUS_COLORS[lookupOrder.status] || '#64748b'}44`,
-                    }}
-                  >
-                    {STATUS_LABELS[lookupOrder.status] ?? lookupOrder.status}
+                  <span className="cajero-tienda-online-ventas-total-hint">
+                    Suma del total de {salesSummary.count} pedido(s) mostrado(s)
                   </span>
-                  <OrderBranchBadge order={lookupOrder} />
-                  <OrderOnlinePickupBadge order={lookupOrder} />
                 </div>
-                <div className="cajero-tienda-online-ayuda-card-body">
-                  <div className="cajero-tienda-online-ayuda-card-row">
-                    <span className="cajero-tienda-online-ayuda-card-label">Cliente</span>
-                    <span className="cajero-tienda-online-ayuda-card-value">
-                      {lookupOrder.user?.name || lookupOrder.user?.email || '—'}
-                    </span>
-                  </div>
-                  <div className="cajero-tienda-online-ayuda-card-row">
-                    <span className="cajero-tienda-online-ayuda-card-label">Fecha</span>
-                    <span className="cajero-tienda-online-ayuda-card-value">
-                      {lookupOrder.createdAt
-                        ? new Date(lookupOrder.createdAt).toLocaleString('es-MX', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })
-                        : '—'}
-                    </span>
-                  </div>
-                  <div className="cajero-tienda-online-ayuda-card-row">
-                    <span className="cajero-tienda-online-ayuda-card-label">Entrega</span>
-                    <span className="cajero-tienda-online-ayuda-card-value">
-                      {lookupOrder.deliveryType?.name ?? '—'}
-                    </span>
-                  </div>
-                  <div className="cajero-tienda-online-ayuda-card-row cajero-tienda-online-ayuda-card-row--total">
-                    <span className="cajero-tienda-online-ayuda-card-label">Total</span>
-                    <span className="cajero-tienda-online-ayuda-card-value">{formatPrice(lookupOrder.total)}</span>
-                  </div>
+                <div className="cajero-tienda-online-ventas-total-card">
+                  <span className="cajero-tienda-online-ventas-total-label">Total envíos</span>
+                  <span className="cajero-tienda-online-ventas-total-value">
+                    {formatPrice(salesSummary.totalEnvios)}
+                  </span>
+                  <span className="cajero-tienda-online-ventas-total-hint">
+                    Suma de costo de envío en {salesSummary.pedidosConEnvio} pedido(s) con costo mayor a cero
+                  </span>
                 </div>
-                <p className="cajero-tienda-online-ayuda-card-note" aria-live="polite">
-                  Solo consulta. Para gestionar el pedido usa «Pedidos nuevos», «Pedidos confirmados» o «Disponibles para
-                  entrega».
-                </p>
               </div>
+
+              {rangePagination?.hasNext ? (
+                <p className="cajero-tienda-online-ventas-truncation" role="status">
+                  Hay más de 100 pedidos en el periodo: los totales y la tabla corresponden solo a esta primera página.
+                  Acota las fechas o exporta desde administración si necesitas el universo completo.
+                </p>
+              ) : null}
+
+              {rangeResults.length === 0 ? (
+                <p className="cajero-tienda-online-ventas-empty">No hay ventas concretadas en el periodo seleccionado.</p>
+              ) : (
+                <div className="cajero-tienda-online-ventas-table-wrap">
+                  <table className="cajero-tienda-online-ventas-table">
+                    <caption className="cajero-tienda-online-ventas-table-caption">
+                      Detalle de pedidos entregados en el periodo
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Folio</th>
+                        <th scope="col">Sucursal</th>
+                        <th scope="col">Cliente</th>
+                        <th scope="col">Creación</th>
+                        <th scope="col">Entrega</th>
+                        <th scope="col">Total</th>
+                        <th scope="col">Envío</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rangeResults.map((order) => {
+                        const clientName = order.user?.name || order.user?.email || '—';
+                        const dc = deliveryCostNumber(order);
+                        return (
+                          <tr key={`ventas-${order.id}`}>
+                            <td>{order.id}</td>
+                            <td>{order.branch?.name?.trim() || '—'}</td>
+                            <td>{clientName}</td>
+                            <td>{formatOrderDateTimeMexico(order.createdAt)}</td>
+                            <td>
+                              {order.deliveredAt
+                                ? formatOrderDateTimeMexico(order.deliveredAt)
+                                : '—'}
+                            </td>
+                            <td>{formatPrice(Number(order.total) || 0)}</td>
+                            <td>{dc != null ? formatPrice(dc) : '—'}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </div>

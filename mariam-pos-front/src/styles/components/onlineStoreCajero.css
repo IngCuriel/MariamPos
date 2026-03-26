@@ -213,6 +213,300 @@
   color: #94a3b8;
 }
 
+.cajero-tienda-online-ayuda-divider {
+  height: 1px;
+  margin: 24px 0;
+  background: linear-gradient(to right, transparent, #e2e8f0 12%, #e2e8f0 88%, transparent);
+  border: none;
+}
+
+.cajero-tienda-online-ayuda-range {
+  margin-bottom: 8px;
+}
+
+.cajero-tienda-online-ayuda-range-title {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cajero-tienda-online-ayuda-range-desc {
+  margin: 0 0 16px;
+  font-size: 0.875rem;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.cajero-tienda-online-ayuda-range-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+  margin-bottom: 8px;
+}
+
+.cajero-tienda-online-ayuda-range-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cajero-tienda-online-ayuda-range-field--status {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 640px) {
+  .cajero-tienda-online-ayuda-range-grid {
+    grid-template-columns: 1fr 1fr minmax(160px, 1.2fr);
+  }
+
+  .cajero-tienda-online-ayuda-range-field--status {
+    grid-column: auto;
+  }
+}
+
+.cajero-tienda-online-ayuda-input--date {
+  min-height: 44px;
+}
+
+.cajero-tienda-online-ayuda-select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  font-size: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  color: #0f172a;
+  cursor: pointer;
+}
+
+.cajero-tienda-online-ayuda-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}
+
+.cajero-tienda-online-ayuda-btn--secondary {
+  margin-top: 12px;
+  width: 100%;
+  max-width: 320px;
+  background: #f1f5f9;
+  color: #0f172a;
+  border: 2px solid #cbd5e1;
+}
+
+.cajero-tienda-online-ayuda-btn--secondary:hover:not(:disabled) {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+.cajero-tienda-online-ayuda-range-result {
+  margin-top: 16px;
+}
+
+.cajero-tienda-online-ayuda-range-summary {
+  margin: 0 0 12px;
+  font-size: 0.875rem;
+  color: #334155;
+  font-weight: 600;
+}
+
+.cajero-tienda-online-ayuda-range-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+}
+
+.cajero-tienda-online-ayuda-range-item {
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fafafa;
+}
+
+.cajero-tienda-online-ayuda-range-item-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.cajero-tienda-online-ayuda-range-item-folio {
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.cajero-tienda-online-ayuda-range-item-folio strong {
+  color: #0f172a;
+  font-size: 1rem;
+}
+
+.cajero-tienda-online-ayuda-range-item-status {
+  display: inline-block;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+
+.cajero-tienda-online-ayuda-range-item-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.cajero-tienda-online-ayuda-range-item-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8125rem;
+  color: #475569;
+}
+
+.cajero-tienda-online-ayuda-range-item-date {
+  color: #64748b;
+  font-size: 0.8125rem;
+}
+
+.cajero-tienda-online-ayuda-range-item-total {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 0.9375rem;
+}
+
+.cajero-tienda-online-ventas-range-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+.cajero-tienda-online-ventas-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+  align-items: center;
+}
+
+.cajero-tienda-online-ventas-report {
+  margin-top: 20px;
+}
+
+.cajero-tienda-online-ventas-totals {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+@media (min-width: 520px) {
+  .cajero-tienda-online-ventas-totals {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.cajero-tienda-online-ventas-total-card {
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.cajero-tienda-online-ventas-total-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.cajero-tienda-online-ventas-total-value {
+  display: block;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.cajero-tienda-online-ventas-total-hint {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.cajero-tienda-online-ventas-truncation {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  font-size: 0.8125rem;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+}
+
+.cajero-tienda-online-ventas-empty {
+  margin: 12px 0 0;
+  font-size: 0.9375rem;
+  color: #64748b;
+}
+
+.cajero-tienda-online-ventas-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.cajero-tienda-online-ventas-table-caption {
+  padding: 10px 12px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #475569;
+  text-align: left;
+  caption-side: top;
+}
+
+.cajero-tienda-online-ventas-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.cajero-tienda-online-ventas-table th,
+.cajero-tienda-online-ventas-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.cajero-tienda-online-ventas-table th {
+  font-weight: 700;
+  color: #475569;
+  background: #f8fafc;
+  white-space: nowrap;
+}
+
+.cajero-tienda-online-ventas-table td {
+  color: #334155;
+}
+
+.cajero-tienda-online-ventas-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
 .cajero-tienda-online-ayuda-loading {
   display: flex;
   flex-direction: column;

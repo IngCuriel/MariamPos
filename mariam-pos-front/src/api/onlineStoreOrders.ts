@@ -96,14 +96,30 @@ export interface OrdersPageResponse {
   pagination: OrdersPagination;
 }
 
+export interface OnlineStoreOrdersDateRange {
+  /** YYYY-MM-DD: inicio del día en América/Ciudad de México (API). */
+  dateFrom: string;
+  /** YYYY-MM-DD: fin del día en América/Ciudad de México (API). */
+  dateTo: string;
+  /**
+   * Campo del pedido usado para el rango en el API.
+   * `deliveredAt` = día de entrega; `createdAt` = día de creación (por defecto si no se envía).
+   */
+  dateField?: 'createdAt' | 'deliveredAt';
+}
+
 export async function fetchOnlineStoreOrdersPage(
   status: string | undefined,
   page = 1,
   limit = 100,
+  dateRange?: OnlineStoreOrdersDateRange | null,
 ): Promise<OrdersPageResponse> {
   try {
     const params: Record<string, string | number> = { page, limit };
     if (status) params.status = status;
+    if (dateRange?.dateFrom) params.dateFrom = dateRange.dateFrom;
+    if (dateRange?.dateTo) params.dateTo = dateRange.dateTo;
+    if (dateRange?.dateField) params.dateField = dateRange.dateField;
     const { data } = await onlineStoreClient.get<OrdersPageResponse>('/orders', { params });
     return data;
   } catch (error: unknown) {
