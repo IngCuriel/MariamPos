@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import axios from 'axios';
 import Card from './Card';
 import Button from './Button';
@@ -6,21 +6,29 @@ import {
   loginOnlineStore,
   removeOnlineStoreToken,
   getOnlineStoreUser,
+  getOnlineStoreToken,
   isOnlineStoreAuthenticated,
 } from '../api/onlineStoreOrders';
+import { useCashier } from '../contexts/CashierContext';
 import OnlineStoreCajeroPanel from './onlineStore/OnlineStoreCajeroPanel';
 import CashExpressCajeroPanel from './onlineStore/CashExpressCajeroPanel';
+import ServiciosRecargasAbonosPanel from './onlineStore/ServiciosRecargasAbonosPanel';
 import '../styles/components/onlineStoreModal.css';
+
+/** Mismo tipo que escucha el módulo embebido en mariam-store-client (si aplica). */
+const MARIAM_STORE_AUTH_MESSAGE = 'MARIAM_STORE_AUTH';
 interface OnlineStoreModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-type AuthPanel = 'hub' | 'orders' | 'cash-express';
+type AuthPanel = 'hub' | 'orders' | 'cash-express' | 'servicios-recargas';
 
 interface AppConfigJson {
   cashExpressUrl?: string;
   storeClientUrl?: string;
+  /** URL del módulo web (iframe). Si no se define, se puede derivar de storeClientUrl. */
+  recargasServiciosUrl?: string;
 }
 
 function resolveCashExpressUrl(config: AppConfigJson | null): string | null {
@@ -32,6 +40,32 @@ function resolveCashExpressUrl(config: AppConfigJson | null): string | null {
     return `${base.replace(/\/$/, '')}/cash-express`;
   }
   return null;
+}
+
+function resolveRecargasServiciosUrl(config: AppConfigJson | null): string | null {
+  if (!config) return null;
+  const direct = config.recargasServiciosUrl?.trim();
+  if (direct) return direct;
+  const base = config.storeClientUrl?.trim();
+  if (base) {
+    return `${base.replace(/\/$/, '')}/pos/cajero-recargas-servicios`;
+  }
+  return null;
+}
+
+function appendRecargasServiciosQueryParams(
+  baseUrl: string,
+  opts: { sucursal?: string | null; caja?: string | null; cajero?: string | null },
+): string {
+  try {
+    const u = new URL(baseUrl, globalThis.window?.location?.origin ?? 'http://localhost');
+    if (opts.sucursal?.trim()) u.searchParams.set('sucursal', opts.sucursal.trim());
+    if (opts.caja?.trim()) u.searchParams.set('caja', opts.caja.trim());
+    if (opts.cajero?.trim()) u.searchParams.set('cajero', opts.cajero.trim());
+    return u.toString();
+  } catch {
+    return baseUrl;
+  }
 }
 
 /** Credenciales por defecto en POS (solo para agilizar el acceso al cajero tienda online). */
@@ -60,12 +94,16 @@ function getOnlineStoreHeaderTitle(panel: AuthPanel): string {
       return 'Pedidos tienda online';
     case 'cash-express':
       return 'Cajero · Efectivo Express';
+    case 'servicios-recargas':
+      return 'Cobro de servicios y recargas';
     default:
       return 'Tienda online';
   }
 }
 
 const OnlineStoreModal: React.FC<OnlineStoreModalProps> = ({ isOpen, onClose }) => {
+  const { selectedCashier } = useCashier();
+  const recargasIframeRef = useRef<HTMLIFrameElement>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<Record<string, unknown> | null>(null);
   const [panel, setPanel] = useState<AuthPanel>('hub');
@@ -80,6 +118,31 @@ const OnlineStoreModal: React.FC<OnlineStoreModalProps> = ({ isOpen, onClose }) 
   );
 
   const cashExpressUrl = resolveCashExpressUrl(remoteConfig);
+  const recargasServiciosBaseUrl = resolveRecargasServiciosUrl(remoteConfig);
+  const recargasServiciosUrl = useMemo(() => {
+    if (!recargasServiciosBaseUrl) return null;
+    const sucursal = localStorage.getItem('sucursal');
+    const caja = localStorage.getItem('caja');
+    return appendRecargasServiciosQueryParams(recargasServiciosBaseUrl, {
+      sucursal,
+      caja,
+      cajero: selectedCashier?.name ?? undefined,
+    });
+  }, [recargasServiciosBaseUrl, selectedCashier]);
+
+  const handleRecargasIframeLoad = useCallback(() => {
+    const token = getOnlineStoreToken();
+    const u = getOnlineStoreUser();
+    const win = recargasIframeRef.current?.contentWindow;
+    if (!win || !token || !recargasServiciosUrl) return;
+    let targetOrigin: string;
+    try {
+      targetOrigin = new URL(recargasServiciosUrl).origin;
+    } catch {
+      return;
+    }
+    win.postMessage({ type: MARIAM_STORE_AUTH_MESSAGE, token, user: u }, targetOrigin);
+  }, [recargasServiciosUrl]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -181,7 +244,8 @@ const OnlineStoreModal: React.FC<OnlineStoreModalProps> = ({ isOpen, onClose }) 
   if (!isOpen) return null;
 
   const headerTitle = getOnlineStoreHeaderTitle(panel);
-  const headerIcon = panel === 'cash-express' ? '💸' : '🛒';
+  const headerIcon =
+    panel === 'cash-express' ? '💸' : panel === 'servicios-recargas' ? '📲' : '🛒';
   const showBack = isAuthenticated && panel !== 'hub';
   const userName = typeof user?.name === 'string' ? user.name : 'Usuario';
   const userEmail = typeof user?.email === 'string' ? user.email : '';
@@ -237,6 +301,28 @@ const OnlineStoreModal: React.FC<OnlineStoreModalProps> = ({ isOpen, onClose }) 
           <span className="online-store-hub-tile-hint">Entregas liberadas y registro de entrega (touch)</span>
         </button>
       </nav>
+
+      <div className="online-store-hub-secondary">
+        <button
+          type="button"
+          className="online-store-hub-tile-compact"
+          onClick={() => setPanel('servicios-recargas')}
+          aria-label="Abrir cobro de servicios y recargas"
+        >
+          <span className="online-store-hub-tile-compact-icon" aria-hidden>
+            📲
+          </span>
+          <span className="online-store-hub-tile-compact-text">
+            <span className="online-store-hub-tile-compact-title">Cobro de servicios y recargas</span>
+            <span className="online-store-hub-tile-compact-sub">
+              Reporte de saldo · recargas y pagos de servicios
+            </span>
+          </span>
+          <span className="online-store-hub-tile-compact-chevron" aria-hidden>
+            ›
+          </span>
+        </button>
+      </div>
     </div>
   );
 
@@ -246,9 +332,24 @@ const OnlineStoreModal: React.FC<OnlineStoreModalProps> = ({ isOpen, onClose }) 
     </div>
   );
 
+  const renderServiciosRecargasPanel = () => (
+    <div className="online-store-servicios-stack">
+      <section
+        className="online-store-servicios-section"
+        aria-labelledby="online-store-servicios-abonos-heading"
+      >
+        <h3 id="online-store-servicios-abonos-heading" className="online-store-servicios-section-title">
+          Ventas totales de  (recargas y servicios)
+        </h3> 
+        <ServiciosRecargasAbonosPanel />
+      </section>
+    </div>
+  );
+
   const renderAuthenticatedBody = () => {
     if (panel === 'hub') return renderHubPanel();
     if (panel === 'cash-express') return renderCashExpressPanel();
+    if (panel === 'servicios-recargas') return renderServiciosRecargasPanel();
     return <OnlineStoreCajeroPanel />;
   };
   return (
