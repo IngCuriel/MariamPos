@@ -8,6 +8,7 @@ import {
   isOnlineStoreAuthenticated,
 } from '../api/onlineStoreOrders';
 import OnlineStoreCajeroPanel from './onlineStore/OnlineStoreCajeroPanel';
+import CashExpressCajeroPanel from './onlineStore/CashExpressCajeroPanel';
 import '../styles/components/onlineStoreModal.css';
 interface OnlineStoreModalProps {
   isOpen: boolean;
@@ -37,8 +38,9 @@ function getOnlineStoreHeaderTitle(panel: AuthPanel): string {
     case 'hub':
       return 'Tienda online';
     case 'orders':
-      return 'Pedidos tienda online';    case 'cash-express':
-      return 'Efectivo Express';
+      return 'Pedidos tienda online';
+    case 'cash-express':
+      return 'Cajero · Efectivo Express';
     default:
       return 'Tienda online';
   }
@@ -48,7 +50,6 @@ const OnlineStoreModal: React.FC<OnlineStoreModalProps> = ({ isOpen, onClose }) 
   const [isAuthenticated, setIsAuthenticated] = useState(false);  const [user, setUser] = useState<Record<string, unknown> | null>(null);
   const [panel, setPanel] = useState<AuthPanel>('hub');
   const [remoteConfig, setRemoteConfig] = useState<AppConfigJson | null>(null);
-  const [cashIframeLoaded, setCashIframeLoaded] = useState(false);
 
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -116,17 +117,6 @@ const OnlineStoreModal: React.FC<OnlineStoreModalProps> = ({ isOpen, onClose }) 
     setPanel('hub');
   };
 
-  const openCashExpressExternal = () => {    if (cashExpressUrl) {
-      globalThis.open(cashExpressUrl, '_blank', 'noopener,noreferrer');
-    }
-  };
-
-  useEffect(() => {
-    if (panel !== 'cash-express') {
-      setCashIframeLoaded(false);
-    }
-  }, [panel]);
-
   if (!isOpen) return null;
 
   const headerTitle = getOnlineStoreHeaderTitle(panel);
@@ -183,58 +173,17 @@ const OnlineStoreModal: React.FC<OnlineStoreModalProps> = ({ isOpen, onClose }) 
           </span>
           <span className="online-store-hub-tile-title">Efectivo Express</span>
           <span className="online-store-hub-tile-subtitle">Entrega de Efectivo</span>
-          <span className="online-store-hub-tile-hint">Acceso al portal de efectivo</span>
+          <span className="online-store-hub-tile-hint">Entregas liberadas y registro de entrega (touch)</span>
         </button>
       </nav>
     </div>
   );
 
-  const renderCashExpressPanel = () => {
-    if (!cashExpressUrl) {
-      return (
-        <div className="online-store-cash-panel">
-          <div className="online-store-cash-placeholder">
-            <p className="online-store-cash-placeholder-title">URL no configurada</p>
-            <p className="online-store-cash-placeholder-text">
-              Agrega en <code className="online-store-code">public/config.json</code> el campo{' '}
-              <code className="online-store-code">cashExpressUrl</code> (URL completa) o{' '}
-              <code className="online-store-code">storeClientUrl</code> (base del sitio; se usará{' '}
-              <code className="online-store-code">/cash-express</code>).
-            </p>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="online-store-cash-panel">
-        <div className="online-store-cash-toolbar">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={openCashExpressExternal}
-            className="online-store-cash-external-btn"
-          >
-            Abrir en navegador
-          </Button>
-        </div>
-        {!cashIframeLoaded && (
-          <div className="online-store-cash-loading" role="status" aria-live="polite">
-            Cargando Efectivo Express…
-          </div>
-        )}
-        <div className="online-store-cash-iframe-wrap">
-          <iframe
-            title="Efectivo Express"
-            src={cashExpressUrl}
-            className="online-store-cash-iframe"
-            onLoad={() => setCashIframeLoaded(true)}
-            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
-          />
-        </div>
-      </div>
-    );
-  };
+  const renderCashExpressPanel = () => (
+    <div className="online-store-cash-panel online-store-cash-panel--native">
+      <CashExpressCajeroPanel publicPortalUrl={cashExpressUrl} />
+    </div>
+  );
 
   const renderAuthenticatedBody = () => {
     if (panel === 'hub') return renderHubPanel();

@@ -627,12 +627,17 @@
   font-weight: 500;
 }
 
-/* Efectivo Express (iframe) */
+/* Efectivo Express */
 .online-store-cash-panel {
   display: flex;
   flex-direction: column;
   gap: 12px;
   min-height: 320px;
+}
+
+.online-store-cash-panel--native {
+  min-height: 280px;
+  gap: 0;
 }
 
 .online-store-cash-toolbar {

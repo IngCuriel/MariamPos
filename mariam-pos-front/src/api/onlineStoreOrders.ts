@@ -3,7 +3,7 @@ import axios from 'axios';
 const ONLINE_STORE_API_URL = 'https://mariam-pos-web-api.onrender.com/api';
 // const ONLINE_STORE_API_URL = 'http://localhost:4000/api';
 
-const onlineStoreClient = axios.create({
+export const onlineStoreClient = axios.create({
   baseURL: ONLINE_STORE_API_URL,
   timeout: 30000,
   headers: {
