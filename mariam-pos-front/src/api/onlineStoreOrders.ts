@@ -1,10 +1,8 @@
 import axios from 'axios';
 
-// URL del API de la tienda online
 const ONLINE_STORE_API_URL = 'https://mariam-pos-web-api.onrender.com/api';
-// const ONLINE_STORE_API_URL = 'http://localhost:4000/api'; // Para desarrollo local
+// const ONLINE_STORE_API_URL = 'http://localhost:4000/api';
 
-// Crear cliente axios para la tienda online
 const onlineStoreClient = axios.create({
   baseURL: ONLINE_STORE_API_URL,
   timeout: 30000,
@@ -13,204 +11,229 @@ const onlineStoreClient = axios.create({
   },
 });
 
-// Interceptor para agregar token de autenticación
 onlineStoreClient.interceptors.request.use(
   (config) => {
-    // Obtener token del localStorage (si existe)
     const token = localStorage.getItem('online_store_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error),
 );
 
-// Interceptor para manejar errores
 onlineStoreClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       console.error('Token inválido o expirado para la tienda online');
-      // Limpiar token si es inválido
       localStorage.removeItem('online_store_token');
     }
     return Promise.reject(error);
-  }
+  },
 );
 
-export interface OrderItem {
+function mapAxiosError(error: unknown, fallback: string): Error {
+  if (axios.isAxiosError(error)) {
+    const msg = error.response?.data?.error;
+    return new Error(typeof msg === 'string' ? msg : fallback);
+  }
+  if (error instanceof Error) return error;
+  return new Error(fallback);
+}
+
+export interface StoreOrderItem {
   id: number;
-  productId: number;
+  productId: number | null;
   productName: string;
   quantity: number;
   unitPrice: number;
   subtotal: number;
-  isAvailable?: boolean;
+  isAvailable?: boolean | null;
+  confirmedQuantity?: number | null;
+  presentationName?: string | null;
+  presentationQuantity?: number | null;
 }
 
-export interface Order {
+export interface StoreDeliveryType {
   id: number;
-  folio: string;
-  total: number;
-  status: 'PENDIENTE' | 'CONFIRMADO' | 'EN_PREPARACION' | 'LISTO' | 'ENTREGADO' | 'CANCELADO';
-  notes: string | null;
-  userId: number;
-  branchId: number | null;
-  createdAt: string;
-  updatedAt: string;
-  items: OrderItem[];
-  branch?: {
-    id: number;
-    name: string;
-  } | null;
-  user?: {
-    id: number;
-    name: string;
-    email: string;
-  };
+  code?: string;
+  name?: string;
 }
 
-/**
- * Obtener todas las órdenes de la tienda online
- * @param status - (Opcional) Filtrar por estado
- * @returns Promise con array de órdenes
- */
-export const getOnlineStoreOrders = async (status?: string): Promise<Order[]> => {
-  try {
-    const params = status ? { status } : {};
-    const response = await onlineStoreClient.get<Order[]>('/orders', { params });
-    return response.data;
-  } catch (error: any) {
-    if (error.response) {
-      throw new Error(error.response.data?.error || 'Error al obtener órdenes');
-    } else if (error.request) {
-      throw new Error('Error de conexión. Verifica tu conexión a internet.');
-    } else {
-      throw new Error('Error al procesar la solicitud');
-    }
-  }
-};
+export interface StoreOrder {
+  id: number;
+  folio?: string;
+  total: number;
+  status: string;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+  readyAt?: string | null;
+  deliveredAt?: string | null;
+  /** Dirección de envío (envío a domicilio), viene del API al confirmar el cliente. */
+  deliveryAddress?: string | null;
+  deliveryCost?: number | null;
+  items: StoreOrderItem[];
+  branch?: { id: number; name: string } | null;
+  user?: { id: number; name?: string; email?: string };
+  deliveryType?: StoreDeliveryType | null;
+}
 
-/**
- * Obtener una orden específica por ID
- * @param id - ID de la orden
- * @returns Promise con la orden
- */
-export const getOnlineStoreOrderById = async (id: number): Promise<Order> => {
-  try {
-    const response = await onlineStoreClient.get<Order>(`/orders/${id}`);
-    return response.data;
-  } catch (error: any) {
-    if (error.response) {
-      if (error.response.status === 404) {
-        throw new Error('Orden no encontrada');
-      } else if (error.response.status === 403) {
-        throw new Error('No tienes permiso para ver esta orden');
-      }
-      throw new Error(error.response.data?.error || 'Error al obtener la orden');
-    } else if (error.request) {
-      throw new Error('Error de conexión. Verifica tu conexión a internet.');
-    } else {
-      throw new Error('Error al procesar la solicitud');
-    }
-  }
-};
+export interface OrdersPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
 
-/**
- * Actualizar estado de una orden (solo admin)
- * @param id - ID de la orden
- * @param status - Nuevo estado
- * @returns Promise con la orden actualizada
- */
-export const updateOnlineStoreOrderStatus = async (
-  id: number,
-  status: Order['status']
-): Promise<Order> => {
-  try {
-    const response = await onlineStoreClient.patch(`/orders/${id}/status`, { status });
-    return response.data.order;
-  } catch (error: any) {
-    if (error.response) {
-      if (error.response.status === 403) {
-        throw new Error('Solo los administradores pueden actualizar el estado');
-      }
-      throw new Error(error.response.data?.error || 'Error al actualizar el estado');
-    } else if (error.request) {
-      throw new Error('Error de conexión. Verifica tu conexión a internet.');
-    } else {
-      throw new Error('Error al procesar la solicitud');
-    }
-  }
-};
+export interface OrdersPageResponse {
+  orders: StoreOrder[];
+  pagination: OrdersPagination;
+}
 
-/**
- * Guardar token de autenticación para la tienda online
- * @param token - Token JWT
- */
+export async function fetchOnlineStoreOrdersPage(
+  status: string | undefined,
+  page = 1,
+  limit = 100,
+): Promise<OrdersPageResponse> {
+  try {
+    const params: Record<string, string | number> = { page, limit };
+    if (status) params.status = status;
+    const { data } = await onlineStoreClient.get<OrdersPageResponse>('/orders', { params });
+    return data;
+  } catch (error: unknown) {
+    throw mapAxiosError(error, 'Error al obtener pedidos');
+  }
+}
+
+export async function fetchOnlineStoreOrderById(id: string | number): Promise<StoreOrder> {
+  try {
+    const { data } = await onlineStoreClient.get<StoreOrder>(`/orders/${id}`);
+    return data;
+  } catch (error: unknown) {
+    throw mapAxiosError(error, 'Error al obtener el pedido');
+  }
+}
+
+export interface ReviewAvailabilityItemPayload {
+  itemId: number;
+  isAvailable: boolean;
+  confirmedQuantity: number;
+}
+
+export async function reviewOnlineStoreOrderAvailability(
+  orderId: number,
+  items: ReviewAvailabilityItemPayload[],
+): Promise<StoreOrder> {
+  try {
+    const { data } = await onlineStoreClient.post<{ order: StoreOrder }>(
+      `/orders/${orderId}/review-availability`,
+      { items },
+    );
+    return data.order;
+  } catch (error: unknown) {
+    throw mapAxiosError(error, 'Error al confirmar disponibilidad');
+  }
+}
+
+export async function markOnlineStoreOrderReady(orderId: number): Promise<StoreOrder> {
+  try {
+    const { data } = await onlineStoreClient.post<{ order: StoreOrder }>(
+      `/orders/${orderId}/mark-ready`,
+      {},
+    );
+    return data.order;
+  } catch (error: unknown) {
+    throw mapAxiosError(error, 'Error al marcar como listo');
+  }
+}
+
+export async function patchOnlineStoreOrderStatus(
+  orderId: number,
+  status: string,
+  deliveredAt?: string,
+): Promise<StoreOrder> {
+  try {
+    const body = deliveredAt != null ? { status, deliveredAt } : { status };
+    const { data } = await onlineStoreClient.patch<{ order: StoreOrder }>(
+      `/orders/${orderId}/status`,
+      body,
+    );
+    return data.order;
+  } catch (error: unknown) {
+    throw mapAxiosError(error, 'Error al actualizar estado');
+  }
+}
+
+export async function cancelOnlineStoreOrder(orderId: number, reason: string): Promise<StoreOrder> {
+  try {
+    const { data } = await onlineStoreClient.post<{ order: StoreOrder }>(`/orders/${orderId}/cancel`, {
+      reason: String(reason).trim(),
+    });
+    return data.order;
+  } catch (error: unknown) {
+    throw mapAxiosError(error, 'Error al cancelar el pedido');
+  }
+}
+
+export interface StoreProductPreview {
+  id: number;
+  name: string;
+  code?: string | null;
+  icon?: string | null;
+  images?: Array<{ url: string }>;
+}
+
+export async function fetchOnlineStoreProductById(productId: number): Promise<StoreProductPreview> {
+  try {
+    const { data } = await onlineStoreClient.get<StoreProductPreview>(`/products/${productId}`);
+    return data;
+  } catch (error: unknown) {
+    throw mapAxiosError(error, 'Error al obtener el producto');
+  }
+}
+
 export const setOnlineStoreToken = (token: string): void => {
   localStorage.setItem('online_store_token', token);
 };
 
-/**
- * Obtener token de autenticación para la tienda online
- * @returns Token o null si no existe
- */
 export const getOnlineStoreToken = (): string | null => {
   return localStorage.getItem('online_store_token');
 };
 
-/**
- * Eliminar token de autenticación
- */
 export const removeOnlineStoreToken = (): void => {
   localStorage.removeItem('online_store_token');
   localStorage.removeItem('online_store_user');
 };
 
-/**
- * Login en la tienda online
- * @param email - Email del usuario
- * @param password - Contraseña
- * @returns Promise con user y token
- */
-export const loginOnlineStore = async (email: string, password: string): Promise<{ user: any; token: string }> => {
+export const loginOnlineStore = async (
+  email: string,
+  password: string,
+): Promise<{ user: Record<string, unknown>; token: string }> => {
   try {
-    const response = await onlineStoreClient.post<{ user: any; token: string }>('/auth/login', {
-      email,
-      password,
-    });
-    
-    // Guardar token y usuario
+    const response = await onlineStoreClient.post<{ user: Record<string, unknown>; token: string }>(
+      '/auth/login',
+      { email, password },
+    );
     setOnlineStoreToken(response.data.token);
     localStorage.setItem('online_store_user', JSON.stringify(response.data.user));
-    
     return response.data;
-  } catch (error: any) {
-    if (error.response) {
-      if (error.response.status === 401) {
-        throw new Error('Email o contraseña incorrectos');
-      }
-      throw new Error(error.response.data?.error || 'Error al iniciar sesión');
-    } else if (error.request) {
-      throw new Error('Error de conexión. Verifica tu conexión a internet.');
-    } else {
-      throw new Error('Error al procesar la solicitud');
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      throw new Error('Email o contraseña incorrectos');
     }
+    throw mapAxiosError(error, 'Error al iniciar sesión');
   }
 };
 
-/**
- * Obtener usuario autenticado
- * @returns Usuario o null si no existe
- */
-export const getOnlineStoreUser = (): any | null => {
+export const getOnlineStoreUser = (): Record<string, unknown> | null => {
   const userStr = localStorage.getItem('online_store_user');
   if (userStr) {
     try {
-      return JSON.parse(userStr);
+      return JSON.parse(userStr) as Record<string, unknown>;
     } catch {
       return null;
     }
@@ -218,11 +241,6 @@ export const getOnlineStoreUser = (): any | null => {
   return null;
 };
 
-/**
- * Verificar si hay un usuario autenticado
- * @returns true si hay token y usuario
- */
 export const isOnlineStoreAuthenticated = (): boolean => {
   return !!(getOnlineStoreToken() && getOnlineStoreUser());
 };
-

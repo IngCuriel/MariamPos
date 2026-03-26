@@ -1,8 +1,10 @@
 {
   "mode": "client",
-  "apiUrl": "http://192.168.0.17:3001/api",
-  "serverUrl": "http://192.168.0.17:3001/api",
+  "apiUrl": "http://localhost:3001/api",
+  "serverUrl": "http://localhost:3001/api",
   "sucursal": "Sucursal Principal",
   "caja": "Caja 1",
-  "autoDetect": true
+  "autoDetect": true,
+  "storeClientUrl": "",
+  "cashExpressUrl": ""
 }

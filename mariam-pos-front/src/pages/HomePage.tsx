@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Card from '../components/Card';
 import { APP_CONFIG } from '../constants';
 import { getUsers } from '../api/users';
@@ -6,6 +6,7 @@ import { useCashier } from '../contexts/CashierContext';
 import type { User } from '../types/index';
 import '../styles/pages/home/homePage.css';
 
+const USERS_POLL_INTERVAL_MS = 3000;
 interface HomePageProps {
    onPOSClick: () => void;
 }
@@ -17,10 +18,42 @@ const HomePage: React.FC<HomePageProps> = ({ onPOSClick }) => {
   const [showWelcome, setShowWelcome] = useState(false);
   const [branchName, setBranchName] = useState<string>(APP_CONFIG.name);
 
-  useEffect(() => {
-    loadCashiers();
-    loadBranchInfo();
+  const fetchCashiers = useCallback(async (isInitialLoad: boolean) => {
+    try {
+      if (isInitialLoad) {
+        setLoading(true);
+      }
+      const allUsers = await getUsers();
+      const activeCashiers = allUsers.filter((user) => user.status === 'ACTIVE');
+      setCashiers(activeCashiers);
+    } catch (error) {
+      console.error('Error al cargar cajeros:', error);
+      setCashiers([]);
+    } finally {
+      if (isInitialLoad) {
+        setLoading(false);
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    void fetchCashiers(true);
+    loadBranchInfo();
+  }, [fetchCashiers]);
+
+  /**
+   * Reintenta `/users` cada 3s si aún no hay cajeros activos (backend lento o error temporal).
+   * Se detiene al aparecer al menos un usuario o al salir de esta vista (bienvenida / desmontaje).
+   */
+  useEffect(() => {
+    if (showWelcome || cashiers.length > 0) {
+      return undefined;
+    }
+    const id = globalThis.setInterval(() => {
+      void fetchCashiers(false);
+    }, USERS_POLL_INTERVAL_MS);
+    return () => globalThis.clearInterval(id);
+  }, [showWelcome, cashiers.length, fetchCashiers]);
 
   const loadBranchInfo = () => {
     const sucursal = localStorage.getItem('sucursal');
@@ -49,20 +82,6 @@ const HomePage: React.FC<HomePageProps> = ({ onPOSClick }) => {
           console.error('Error al cargar configuración:', error);
           // Mantener el valor por defecto si falla
         });
-    }
-  };
-
-  const loadCashiers = async () => {
-    try {
-      setLoading(true);
-      const allUsers = await getUsers();
-      const activeCashiers = allUsers.filter(user => user.status === 'ACTIVE');
-      setCashiers(activeCashiers);
-    } catch (error) {
-      console.error("Error al cargar cajeros:", error);
-      setCashiers([]);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -133,6 +152,11 @@ const HomePage: React.FC<HomePageProps> = ({ onPOSClick }) => {
             <p className="selection-description">
               Selecciona tu usuario para continuar
             </p>
+            {!loading && cashiers.length === 0 && (
+              <p className="selection-poll-hint" role="status" aria-live="polite">
+                Conectando con el servidor… la lista se actualiza sola cada pocos segundos.
+              </p>
+            )}
           </div>
 
           {loading ? (
