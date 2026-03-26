@@ -27,6 +27,21 @@ function OrderOnlinePickupBadge({ order }: Readonly<{ order: StoreOrder }>) {
   );
 }
 
+/** Sucursal del pedido según API (`branch.name`). */
+function OrderBranchBadge({ order }: Readonly<{ order: StoreOrder }>) {
+  const name = order.branch?.name?.trim();
+  if (!name) return null;
+  return (
+    <span
+      className="cajero-tienda-online-card-badge cajero-tienda-online-card-badge--branch"
+      title={`Sucursal: ${name}`}
+      aria-label={`Sucursal del pedido: ${name}`}
+    >
+      {name}
+    </span>
+  );
+}
+
 function getDeliveryTypeInfo(order: StoreOrder) {
   const code = order.deliveryType?.code;
   const name = order.deliveryType?.name || 'Entrega';
@@ -406,6 +421,7 @@ const OnlineStoreCajeroPanel: React.FC = () => {
                               Nuevo
                             </span>
                           )}
+                          <OrderBranchBadge order={order} />
                           <OrderOnlinePickupBadge order={order} />
                         </div>
                         <span className="cajero-tienda-online-card-time">{getRelativeTime(order.createdAt)}</span>
@@ -488,6 +504,7 @@ const OnlineStoreCajeroPanel: React.FC = () => {
                           >
                             Confirmado
                           </span>
+                          <OrderBranchBadge order={order} />
                           <OrderOnlinePickupBadge order={order} />
                         </div>
                         <span className="cajero-tienda-online-card-time">{getRelativeTime(order.createdAt)}</span>
@@ -575,6 +592,7 @@ const OnlineStoreCajeroPanel: React.FC = () => {
                           <span className="cajero-tienda-online-card-badge cajero-tienda-online-card-badge--delivery" aria-hidden>
                             {deliveryInfo.label}
                           </span>
+                          <OrderBranchBadge order={order} />
                           <OrderOnlinePickupBadge order={order} />
                         </div>
                         <span className="cajero-tienda-online-card-time">
@@ -697,6 +715,7 @@ const OnlineStoreCajeroPanel: React.FC = () => {
                   >
                     {STATUS_LABELS[lookupOrder.status] ?? lookupOrder.status}
                   </span>
+                  <OrderBranchBadge order={lookupOrder} />
                   <OrderOnlinePickupBadge order={lookupOrder} />
                 </div>
                 <div className="cajero-tienda-online-ayuda-card-body">
