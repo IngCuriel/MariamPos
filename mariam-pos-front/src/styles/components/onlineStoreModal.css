@@ -254,6 +254,18 @@
   margin-bottom: 16px;
 }
 
+.online-store-offline-banner {
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  color: #92400e;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .online-store-loading,
 .online-store-empty {
   text-align: center;

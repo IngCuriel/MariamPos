@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import Card from './Card';
 import Button from './Button';
 import {
@@ -33,6 +34,24 @@ function resolveCashExpressUrl(config: AppConfigJson | null): string | null {
   return null;
 }
 
+/** Credenciales por defecto en POS (solo para agilizar el acceso al cajero tienda online). */
+const DEFAULT_ONLINE_STORE_EMAIL = 'admin@mariamstore.com';
+const DEFAULT_ONLINE_STORE_PASSWORD = 'admin123'; // NOSONAR — credenciales de demo en POS solicitadas por producto
+
+const OFFLINE_LOGIN_MESSAGE = 'Revisa tu conexión a Internet.';
+
+function isNetworkLoginFailure(err: unknown): boolean {
+  if (axios.isAxiosError(err)) {
+    if (err.code === 'ERR_NETWORK' || err.code === 'ECONNABORTED') {
+      return true;
+    }
+    if (!err.response && typeof err.message === 'string' && err.message.toLowerCase().includes('network')) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function getOnlineStoreHeaderTitle(panel: AuthPanel): string {
   switch (panel) {
     case 'hub':
@@ -47,14 +66,18 @@ function getOnlineStoreHeaderTitle(panel: AuthPanel): string {
 }
 
 const OnlineStoreModal: React.FC<OnlineStoreModalProps> = ({ isOpen, onClose }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);  const [user, setUser] = useState<Record<string, unknown> | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<Record<string, unknown> | null>(null);
   const [panel, setPanel] = useState<AuthPanel>('hub');
   const [remoteConfig, setRemoteConfig] = useState<AppConfigJson | null>(null);
 
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
+  const [loginEmail, setLoginEmail] = useState(DEFAULT_ONLINE_STORE_EMAIL);
+  const [loginPassword, setLoginPassword] = useState(DEFAULT_ONLINE_STORE_PASSWORD);
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [browserOnline, setBrowserOnline] = useState(
+    () => globalThis.navigator?.onLine ?? true,
+  );
 
   const cashExpressUrl = resolveCashExpressUrl(remoteConfig);
 
@@ -90,20 +113,57 @@ const OnlineStoreModal: React.FC<OnlineStoreModalProps> = ({ isOpen, onClose }) 
     }
   }, [isOpen]);
 
-  const handleLogin = async (e: React.FormEvent) => {    e.preventDefault();
+  useEffect(() => {
+    if (isOpen) return;
+    setLoginEmail(DEFAULT_ONLINE_STORE_EMAIL);
+    setLoginPassword(DEFAULT_ONLINE_STORE_PASSWORD);
     setLoginError(null);
+    setLoginLoading(false);
+  }, [isOpen]);
+
+  useEffect(() => {
+    const syncOnline = () => {
+      setBrowserOnline(globalThis.navigator?.onLine ?? true);
+    };
+    globalThis.addEventListener?.('online', syncOnline);
+    globalThis.addEventListener?.('offline', syncOnline);
+    return () => {
+      globalThis.removeEventListener?.('online', syncOnline);
+      globalThis.removeEventListener?.('offline', syncOnline);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      setBrowserOnline(globalThis.navigator?.onLine ?? true);
+    }
+  }, [isOpen]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError(null);
+
+    if (globalThis.navigator?.onLine === false) {
+      setLoginError(OFFLINE_LOGIN_MESSAGE);
+      return;
+    }
+
     setLoginLoading(true);
 
     try {
       const response = await loginOnlineStore(loginEmail, loginPassword);
       setUser(response.user as Record<string, unknown>);
       setIsAuthenticated(true);
-      setLoginEmail('');
-      setLoginPassword('');
+      setLoginEmail(DEFAULT_ONLINE_STORE_EMAIL);
+      setLoginPassword(DEFAULT_ONLINE_STORE_PASSWORD);
       setPanel('hub');
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Error al iniciar sesión';
-      setLoginError(message);
+      if (isNetworkLoginFailure(err)) {
+        setLoginError(OFFLINE_LOGIN_MESSAGE);
+      } else {
+        const message = err instanceof Error ? err.message : 'Error al iniciar sesión';
+        setLoginError(message);
+      }
     } finally {
       setLoginLoading(false);
     }
@@ -113,7 +173,8 @@ const OnlineStoreModal: React.FC<OnlineStoreModalProps> = ({ isOpen, onClose }) 
     removeOnlineStoreToken();
     setIsAuthenticated(false);
     setUser(null);
-    setLoginEmail('');    setLoginPassword('');
+    setLoginEmail(DEFAULT_ONLINE_STORE_EMAIL);
+    setLoginPassword(DEFAULT_ONLINE_STORE_PASSWORD);
     setPanel('hub');
   };
 
@@ -228,8 +289,14 @@ const OnlineStoreModal: React.FC<OnlineStoreModalProps> = ({ isOpen, onClose }) 
               <div className="online-store-login-container">
                 <div className="online-store-login-header">
                   <h3>Iniciar sesión</h3>
-                  <p>Ingresa tus credenciales de administrador de la tienda en línea</p>
+                  <p>Credenciales de administrador cargadas; pulsa «Iniciar sesión» para continuar.</p>
                 </div>
+
+                {!browserOnline && (
+                  <div className="online-store-offline-banner" role="alert">
+                    {OFFLINE_LOGIN_MESSAGE}
+                  </div>
+                )}
 
                 {loginError && <div className="online-store-error">⚠️ {loginError}</div>}
 
@@ -269,7 +336,7 @@ const OnlineStoreModal: React.FC<OnlineStoreModalProps> = ({ isOpen, onClose }) 
                   <Button
                     type="submit"
                     variant="primary"
-                    disabled={loginLoading}
+                    disabled={loginLoading || !browserOnline}
                     className="online-store-login-button online-store-login-button--touch"
                   >
                     {loginSubmitLabel}
