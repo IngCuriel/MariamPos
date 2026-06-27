@@ -1352,9 +1352,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
     // Calcular el total del carrito
     const total = cart.reduce((sum, item) => {
       const itemPrice = item.selectedPresentation?.unitPrice || item.price;
-      const itemQuantity = item.presentationQuantity 
-        ? (item.selectedPresentation?.quantity || 1) * item.presentationQuantity
-        : item.quantity;
+      const itemQuantity = item.quantity;
       return sum + (itemPrice * itemQuantity);
     }, 0);
 
@@ -1475,10 +1473,11 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
 
     try {
       // Convertir el carrito a formato de detalles de venta pendiente
+      console.log('details pendiente', cart)
       const details = cart.map((item) => {
         const itemPrice = item.selectedPresentation?.unitPrice || item.price;
-        const itemQuantity = item.presentationQuantity 
-          ? (item.selectedPresentation?.quantity || 1) * item.presentationQuantity
+        const itemQuantity = item.selectedPresentation
+          ? (item.presentationQuantity ?? item.quantity)
           : item.quantity;
         const subTotal = itemPrice * itemQuantity;
 
@@ -1560,6 +1559,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
   };
 
   const handlePendingSaleSelect = (pendingSale: PendingSale) => {
+    console.log('pendiente cargar',pendingSale )
     // Convertir los detalles de la venta pendiente al formato del carrito
     const cartItems: ItemCart[] = pendingSale.details.map((detail) => {
       // Crear un producto básico con la información disponible
@@ -1582,15 +1582,15 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         selectedPresentation = {
           id: detail.presentationId,
           name: detail.presentationName,
-          quantity: 1, // Valor por defecto, no tenemos esta info
+          quantity: detail.product?.presentations?.find(p => p.id === detail.presentationId)?.quantity ?? 1,
           unitPrice: detail.basePrice || detail.price,
         };
       }
       
       // Calcular presentationQuantity si hay presentación
       let presentationQuantity: number | undefined;
-      if (selectedPresentation && selectedPresentation.quantity > 0) {
-        presentationQuantity = Math.ceil(detail.quantity / selectedPresentation.quantity);
+      if (selectedPresentation) {
+        presentationQuantity = Math.ceil(detail.quantity);
       }
       
       // Crear el item del carrito

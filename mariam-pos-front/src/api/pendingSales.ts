@@ -9,6 +9,9 @@ export interface PendingSaleDetail {
   productName?: string;
   presentationId?: number;
   presentationName?: string;
+  product?: {
+    presentations?: { id: number; name: string; quantity: number; unitPrice: number }[];
+  };
   saleType?: string;
   basePrice?: number;
 }
