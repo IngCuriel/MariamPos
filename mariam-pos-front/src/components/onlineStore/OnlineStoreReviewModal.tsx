@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import '../../styles/components/orderItemsShared.css';
 import {
   fetchOnlineStoreOrderById,
   reviewOnlineStoreOrderAvailability,
@@ -20,8 +21,8 @@ const formatPrice = (price: number) =>
   new Intl.NumberFormat('es-MX', {
     style: 'currency',
     currency: 'MXN',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(price ?? 0);
 
 const OnlineStoreReviewModal: React.FC<OnlineStoreReviewModalProps> = ({
@@ -161,9 +162,14 @@ const OnlineStoreReviewModal: React.FC<OnlineStoreReviewModalProps> = ({
     >
       <div className="cajero-review-modal">
         <header className="cajero-review-modal-header">
-          <h2 id="cajero-review-modal-title" className="cajero-review-modal-title">
-            Confirmar disponibilidad
-          </h2>
+          <h2 id="cajero-review-modal-title" className="cajero-review-modal-title">Disponibilidad</h2>
+          <div className="cajero-flow-steps-inline">
+            <span className="cajero-flow-dot cajero-flow-dot--active" title="Paso 1: Disponibilidad">1</span>
+            <span className="cajero-flow-line" />
+            <span className="cajero-flow-dot cajero-flow-dot--pending" title="Paso 2: Preparar">2</span>
+            <span className="cajero-flow-line" />
+            <span className="cajero-flow-dot cajero-flow-dot--pending" title="Paso 3: Entregar">3</span>
+          </div>
           <button type="button" className="cajero-review-modal-close" onClick={onClose} aria-label="Cerrar">
             ×
           </button>
@@ -194,87 +200,98 @@ const OnlineStoreReviewModal: React.FC<OnlineStoreReviewModalProps> = ({
               Marca la disponibilidad de cada producto. Al confirmar, se notificará al cliente.
             </p>
 
-            <div className="cajero-review-modal-list">
-              {(order.items || []).map((item) => (
-                <div key={item.id} className="cajero-review-modal-item">
-                  <div className="cajero-review-modal-item-info">
-                    {item.productId ? (
-                      <button
-                        type="button"
-                        className="cajero-review-modal-item-name cajero-review-modal-item-name-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleProductNameClick(item);
-                        }}
-                      >
-                        {item.productName}
-                      </button>
-                    ) : (
-                      <span className="cajero-review-modal-item-name">{item.productName}</span>
-                    )}
-                    <div className="cajero-review-modal-item-detail">
-                      <span className="cajero-review-modal-item-qty">{item.quantity}</span>
-                      <span className="cajero-review-modal-item-times"> × </span>
-                      <span className="cajero-review-modal-item-price">{formatPrice(item.unitPrice)}</span>
-                      <span className="cajero-review-modal-item-eq"> = </span>
-                      <span className="cajero-review-modal-item-subtotal">{formatPrice(item.subtotal)}</span>
-                    </div>
-                  </div>
-                  <div className="cajero-review-modal-item-actions">
-                    <div className="cajero-review-modal-availability-btns">
-                      <button
-                        type="button"
-                        className={`cajero-review-modal-av-btn ${
-                          itemAvailability[item.id] === true ? 'cajero-review-modal-av-btn--available' : ''
-                        }`}
-                        aria-pressed={itemAvailability[item.id] === true}
-                        onClick={() => handleItemAvailabilityChange(item.id, true)}
-                        disabled={saving}
-                      >
-                        ✓ Disponible
-                      </button>
-                      <button
-                        type="button"
-                        className={`cajero-review-modal-av-btn ${
-                          itemAvailability[item.id] === false ? 'cajero-review-modal-av-btn--unavailable' : ''
-                        }`}
-                        aria-pressed={itemAvailability[item.id] === false}
-                        onClick={() => handleItemAvailabilityChange(item.id, false)}
-                        disabled={saving}
-                      >
-                        ✕ No disponible
-                      </button>
-                      <button
-                        type="button"
-                        className={`cajero-review-modal-av-btn ${
-                          (itemAvailability[item.id] ?? null) === null ? 'cajero-review-modal-av-btn--pending' : ''
-                        }`}
-                        aria-pressed={(itemAvailability[item.id] ?? null) === null}
-                        onClick={() => handleItemAvailabilityChange(item.id, null)}
-                        disabled={saving}
-                      >
-                        ? Pendiente
-                      </button>
-                    </div>
-                    {itemAvailability[item.id] === true && (
-                      <div className="cajero-review-modal-qty-wrap">
-                        <label htmlFor={`cajero-review-qty-${item.id}`}>Cant. disponible:</label>
-                        <input
-                          id={`cajero-review-qty-${item.id}`}
-                          type="number"
-                          min={0}
-                          max={item.quantity}
-                          value={confirmedQuantity[item.id] ?? item.quantity}
-                          onChange={(e) => handleConfirmedQuantityChange(item.id, e.target.value, item.quantity)}
-                          className="cajero-review-modal-qty-input"
-                          disabled={saving}
-                        />
-                        <span> de {item.quantity}</span>
+            <div className="order-items-shared-header">
+              <span className="order-items-shared-title">Productos</span>
+              <span className="order-items-shared-count">{order.items?.length ?? 0}</span>
+              {(order.items?.length ?? 0) > 3 && <span className="order-items-shared-scroll-hint">↕ desliza</span>}
+            </div>
+
+            <div className="cajero-review-modal-list-wrapper">
+              <div className="cajero-review-modal-list" style={{ counterReset: 'item-counter' }}>
+                {(order.items || []).map((item) => (
+                  <div key={item.id} className="cajero-review-modal-item">
+                    <div className="cajero-review-modal-item-info">
+                      {item.productId ? (
+                        <button
+                          type="button"
+                          className="cajero-review-modal-item-name cajero-review-modal-item-name-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleProductNameClick(item);
+                          }}
+                        >
+                          {item.productName}
+                        </button>
+                      ) : (
+                        <span className="cajero-review-modal-item-name">{item.productName}</span>
+                      )}
+                      <div className="cajero-review-modal-item-detail">
+                        <span className="cajero-review-modal-item-label">Cantidad solicitada:</span>
+                        <span className="cajero-review-modal-item-qty">{item.quantity}</span>
+                        <span className="cajero-review-modal-item-times"> × </span>
+                        <span className="cajero-review-modal-item-label">P.U:</span>
+                        <span className="cajero-review-modal-item-price">{formatPrice(item.unitPrice)}</span>
+                        <span className="cajero-review-modal-item-eq"> = </span>
+                        <span className="cajero-review-modal-item-label">Total:</span>
+                        <span className="cajero-review-modal-item-subtotal">{formatPrice(item.subtotal)}</span>
                       </div>
-                    )}
+                    </div>
+                    <div className="cajero-review-modal-item-actions">
+                      <div className="cajero-review-modal-availability-btns">
+                        <button
+                          type="button"
+                          className={`cajero-review-modal-av-btn ${
+                            itemAvailability[item.id] === true ? 'cajero-review-modal-av-btn--available' : ''
+                          }`}
+                          aria-pressed={itemAvailability[item.id] === true}
+                          onClick={() => handleItemAvailabilityChange(item.id, true)}
+                          disabled={saving}
+                        >
+                          ✓ Disponible
+                        </button>
+                        <button
+                          type="button"
+                          className={`cajero-review-modal-av-btn ${
+                            itemAvailability[item.id] === false ? 'cajero-review-modal-av-btn--unavailable' : ''
+                          }`}
+                          aria-pressed={itemAvailability[item.id] === false}
+                          onClick={() => handleItemAvailabilityChange(item.id, false)}
+                          disabled={saving}
+                        >
+                          ✕ No disponible
+                        </button>
+                        <button
+                          type="button"
+                          className={`cajero-review-modal-av-btn ${
+                            (itemAvailability[item.id] ?? null) === null ? 'cajero-review-modal-av-btn--pending' : ''
+                          }`}
+                          aria-pressed={(itemAvailability[item.id] ?? null) === null}
+                          onClick={() => handleItemAvailabilityChange(item.id, null)}
+                          disabled={saving}
+                        >
+                          ? Pendiente
+                        </button>
+                      </div>
+                      {itemAvailability[item.id] === true && (
+                        <div className="cajero-review-modal-qty-wrap">
+                          <label htmlFor={`cajero-review-qty-${item.id}`}>Cant. disponible:</label>
+                          <input
+                            id={`cajero-review-qty-${item.id}`}
+                            type="number"
+                            min={0}
+                            max={item.quantity}
+                            value={confirmedQuantity[item.id] ?? item.quantity}
+                            onChange={(e) => handleConfirmedQuantityChange(item.id, e.target.value, item.quantity)}
+                            className="cajero-review-modal-qty-input"
+                            disabled={saving}
+                          />
+                          <span> de {item.quantity}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
             <footer className="cajero-review-modal-footer">

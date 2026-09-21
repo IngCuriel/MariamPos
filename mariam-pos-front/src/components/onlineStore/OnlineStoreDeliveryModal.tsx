@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import OrderItemsList from './OrderItemsList';
 import {
   fetchOnlineStoreOrderById,
   patchOnlineStoreOrderStatus,
@@ -29,14 +30,6 @@ const CANCELLATION_REASONS = [
 ] as const;
 
 type Step = 'main' | 'confirm-delivered' | 'cancel' | 'confirm-cancel';
-
-const formatPrice = (price: number) =>
-  new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency: 'MXN',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(price ?? 0);
 
 const OnlineStoreDeliveryModal: React.FC<OnlineStoreDeliveryModalProps> = ({
   open,
@@ -196,9 +189,14 @@ const OnlineStoreDeliveryModal: React.FC<OnlineStoreDeliveryModalProps> = ({
     >
       <div className="cajero-delivery-modal">
         <header className="cajero-delivery-modal-header">
-          <h2 id="cajero-delivery-modal-title" className="cajero-delivery-modal-title">
-            {stepTitle}
-          </h2>
+          <h2 id="cajero-delivery-modal-title" className="cajero-delivery-modal-title">{stepTitle}</h2>
+          <div className="cajero-flow-steps-inline">
+            <span className="cajero-flow-dot cajero-flow-dot--done" title="Paso 1: Disponibilidad">✓</span>
+            <span className="cajero-flow-line cajero-flow-line--done" />
+            <span className="cajero-flow-dot cajero-flow-dot--done" title="Paso 2: Preparar">✓</span>
+            <span className="cajero-flow-line cajero-flow-line--done" />
+            <span className="cajero-flow-dot cajero-flow-dot--active" title="Paso 3: Entregar">3</span>
+          </div>
           <button type="button" className="cajero-delivery-modal-close" onClick={onClose} aria-label="Cerrar">
             ×
           </button>
@@ -350,16 +348,15 @@ const OnlineStoreDeliveryModal: React.FC<OnlineStoreDeliveryModalProps> = ({
           </div>
         ) : (
           <>
-            <div className="cajero-delivery-modal-folio">Folio {order.id}</div>
-            <div className="cajero-delivery-modal-delivery-badge">
-              <span className="cajero-delivery-modal-delivery-icon" aria-hidden>
-                {deliveryIcon}
+            <div className="cajero-delivery-modal-topbar">
+              <span className="cajero-delivery-modal-topbar-folio">#{order.id}</span>
+              <span className="cajero-delivery-modal-topbar-badge">
+                {deliveryIcon} {deliveryLabel}
               </span>
-              <span className="cajero-delivery-modal-delivery-label">{deliveryLabel}</span>
+              <span className="cajero-delivery-modal-topbar-hint">
+                Valida productos antes de entregar
+              </span>
             </div>
-            <p className="cajero-delivery-modal-validation-hint">
-              Valida con el cliente que los productos coincidan antes de marcar como entregado o cancelar.
-            </p>
             {isInTransitDelivery && (
               <div className="cajero-delivery-modal-accordion">
                 <button
@@ -486,45 +483,23 @@ const OnlineStoreDeliveryModal: React.FC<OnlineStoreDeliveryModalProps> = ({
                 )}
               </div>
             )}
-            <div className="cajero-delivery-modal-products">
-              <h3 className="cajero-delivery-modal-products-title">Productos a entregar</h3>
-              <ul className="cajero-delivery-modal-products-list">
-                {items.map((item, index) => (
-                  <li key={item.id ?? `item-${index}`} className="cajero-delivery-modal-product">
-                    <span className="cajero-delivery-modal-product-check" aria-hidden>
-                      ✓
-                    </span>
-                    <div className="cajero-delivery-modal-product-content">
-                      <span className="cajero-delivery-modal-product-name">
-                        {item.productName ?? 'Producto'}
-                      </span>
-                      <span className="cajero-delivery-modal-product-detail">
-                        {item.quantity} × {formatPrice(item.unitPrice)}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="cajero-delivery-modal-total">
-              Total: <strong>{formatPrice(order.total)}</strong>
-            </div>
+            <OrderItemsList items={items} flowStep="delivery" />
             <footer className="cajero-delivery-modal-footer">
               <button
                 type="button"
-                className="cajero-delivery-modal-btn-secondary cajero-delivery-modal-btn-half"
+                className="cajero-delivery-modal-btn-cancel"
                 onClick={handleOpenCancel}
                 disabled={submitting}
               >
-                Cancelar pedido
+                ✕ Cancelar pedido
               </button>
               <button
                 type="button"
-                className="cajero-delivery-modal-btn-primary cajero-delivery-modal-btn-success cajero-delivery-modal-btn-half"
+                className="cajero-delivery-modal-btn-deliver"
                 onClick={handleOpenConfirmDelivered}
                 disabled={submitting}
               >
-                ✓ Entregado
+                ✓ Marcar como entregado
               </button>
             </footer>
           </>

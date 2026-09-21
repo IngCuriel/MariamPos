@@ -18,6 +18,7 @@ const formatCurrency = (value: number) =>
     style: 'currency',
     currency: 'MXN',
     minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(Number(value) || 0);
 
 function formatDateTimeMx(iso: string): string {

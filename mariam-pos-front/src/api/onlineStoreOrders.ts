@@ -1,5 +1,8 @@
 import axios from 'axios';
 
+/** Evento global emitido cuando el backend responde 401 (token inválido/expirado). */
+export const ONLINE_STORE_UNAUTHORIZED_EVENT = 'online-store-unauthorized';
+
 const ONLINE_STORE_API_URL = 'https://mariam-pos-web-api.onrender.com/api';
 // const ONLINE_STORE_API_URL = 'http://localhost:4000/api';
 
@@ -27,7 +30,9 @@ onlineStoreClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       console.error('Token inválido o expirado para la tienda online');
-      localStorage.removeItem('online_store_token');
+      // Limpia token + user y notifica a la UI para que desloguee en el acto.
+      removeOnlineStoreToken();
+      globalThis.dispatchEvent?.(new Event(ONLINE_STORE_UNAUTHORIZED_EVENT));
     }
     return Promise.reject(error);
   },

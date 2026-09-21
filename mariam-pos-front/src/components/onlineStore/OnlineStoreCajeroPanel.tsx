@@ -135,8 +135,8 @@ const formatPrice = (price: number) =>
   new Intl.NumberFormat('es-MX', {
     style: 'currency',
     currency: 'MXN',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(price);
 
 function getRelativeTime(dateString: string) {
@@ -410,6 +410,11 @@ const OnlineStoreCajeroPanel: React.FC = () => {
             onClick={() => setActiveTab(TAB_POR_HACER)}
           >
             Pedidos nuevos
+            {reviewOrders.length > 0 && (
+              <span className="cajero-tienda-online-tab-count" aria-hidden>
+                {reviewOrders.length}
+              </span>
+            )}
           </button>
           <button
             type="button"
@@ -452,7 +457,7 @@ const OnlineStoreCajeroPanel: React.FC = () => {
             className={`cajero-tienda-online-tab cajero-tienda-online-tab--tertiary ${activeTab === TAB_VENTAS_CONCRETADAS ? 'cajero-tienda-online-tab--active' : ''}`}
             onClick={() => setActiveTab(TAB_VENTAS_CONCRETADAS)}
           >
-            Ventas concretadas
+            Ventas
           </button>
         </div>
         <button
@@ -759,7 +764,6 @@ const OnlineStoreCajeroPanel: React.FC = () => {
                     setRangeDateFrom(e.target.value);
                     setRangeError(null);
                   }}
-                  aria-describedby="cajero-ventas-range-tz-hint"
                 />
               </div>
               <div className="cajero-tienda-online-ayuda-range-field">
@@ -775,36 +779,18 @@ const OnlineStoreCajeroPanel: React.FC = () => {
                     setRangeDateTo(e.target.value);
                     setRangeError(null);
                   }}
-                  aria-describedby="cajero-ventas-range-tz-hint"
                 />
               </div>
-            </div>
-            <p id="cajero-ventas-range-tz-hint" className="cajero-tienda-online-ayuda-hint">
-              Zona horaria del filtro: América/Ciudad de México (inicio y fin de cada día civil).
-            </p>
-            <div className="cajero-tienda-online-ventas-actions">
-              <button
-                type="button"
-                className="cajero-tienda-online-ayuda-btn cajero-tienda-online-ayuda-btn--secondary"
-                onClick={() => {
-                  const { dateFrom, dateTo } = todayMexicoDateRange();
-                  setRangeDateFrom(dateFrom);
-                  setRangeDateTo(dateTo);
-                  setRangeError(null);
-                  void loadSalesReport(dateFrom, dateTo);
-                }}
-                disabled={rangeLoading}
-              >
-                Hoy (México)
-              </button>
-              <button
-                type="button"
-                className="cajero-tienda-online-ayuda-btn"
-                onClick={() => void handleSalesReportSubmit()}
-                disabled={rangeLoading}
-              >
-                {rangeLoading ? 'Generando…' : 'Generar reporte'}
-              </button>
+              <div className="cajero-tienda-online-ayuda-range-field cajero-tienda-online-ayuda-range-field--action">
+                <button
+                  type="button"
+                  className="cajero-tienda-online-ayuda-btn"
+                  onClick={() => void handleSalesReportSubmit()}
+                  disabled={rangeLoading}
+                >
+                  {rangeLoading ? 'Generando…' : 'Generar reporte'}
+                </button>
+              </div>
             </div>
           </section>
 

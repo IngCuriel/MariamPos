@@ -386,15 +386,27 @@
 }
 
 .cajero-tienda-online-ventas-range-grid {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
+  align-items: end;
 }
 
-.cajero-tienda-online-ventas-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 12px;
-  align-items: center;
+/* Celda del botón dentro del grid: se alinea al fondo, a la altura de los inputs. */
+.cajero-tienda-online-ayuda-range-field--action {
+  justify-content: flex-end;
+}
+
+.cajero-tienda-online-ayuda-range-field--action .cajero-tienda-online-ayuda-btn {
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .cajero-tienda-online-ventas-range-grid {
+    grid-template-columns: 1fr 1fr minmax(150px, auto);
+  }
+
+  .cajero-tienda-online-ayuda-range-field--action .cajero-tienda-online-ayuda-btn {
+    width: auto;
+  }
 }
 
 .cajero-tienda-online-ventas-report {
@@ -717,7 +729,7 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .cajero-tienda-online-card {
@@ -737,7 +749,7 @@
 .cajero-tienda-online-card-inner {
   display: block;
   width: 100%;
-  padding: 16px 18px;
+  padding: 10px 14px;
   text-align: left;
   background: none;
   border: none;
@@ -745,7 +757,6 @@
   font: inherit;
   color: inherit;
   transition: background 0.15s;
-  min-height: 88px;
   border-left: 4px solid #2563eb;
 }
 
@@ -759,7 +770,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
   flex-wrap: wrap;
 }
 
@@ -870,8 +881,8 @@
 }
 
 .cajero-tienda-online-card-delivery {
-  margin-bottom: 10px;
-  padding: 10px 12px;
+  margin-bottom: 6px;
+  padding: 6px 10px;
   background: #f5f3ff;
   border-radius: 8px;
   border: 1px solid #e9e5ff;
@@ -892,10 +903,10 @@
 }
 
 .cajero-tienda-online-card-delivery-text {
-  margin: 6px 0 0 0;
-  font-size: 0.875rem;
+  margin: 2px 0 0 0;
+  font-size: 0.8125rem;
   color: #6b7280;
-  line-height: 1.4;
+  line-height: 1.3;
 }
 
 .cajero-tienda-online-card-time {
@@ -908,7 +919,7 @@
 .cajero-tienda-online-card-body {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 3px;
 }
 
 .cajero-tienda-online-card-row {
@@ -962,8 +973,8 @@
   align-items: center;
   justify-content: flex-end;
   gap: 4px;
-  margin-top: 12px;
-  padding-top: 12px;
+  margin-top: 6px;
+  padding-top: 6px;
   border-top: 1px solid #f1f5f9;
   font-size: 0.875rem;
   font-weight: 700;
@@ -973,6 +984,62 @@
 .cajero-tienda-online-card-inner:hover .cajero-tienda-online-card-cta {
   color: #1d4ed8;
 }
+
+/* ============================================================
+   SHARED: Flow Step Indicator INLINE (used in Review, Prep, Delivery)
+   ============================================================ */
+.cajero-flow-steps-inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cajero-flow-dot {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.65rem;
+  font-weight: 800;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.4);
+  background: transparent;
+  transition: all 0.2s;
+}
+
+.cajero-flow-dot--active {
+  background: #fff;
+  color: #1e3a5f;
+  border-color: #fff;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+}
+
+.cajero-flow-dot--done {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.cajero-flow-dot--pending {
+  border-color: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.cajero-flow-line {
+  width: 16px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 1px;
+}
+
+.cajero-flow-line--done {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* ============================================================ */
+
 /* Modal tipo touch: confirmar disponibilidad - Cajero Tienda Online */
 .cajero-review-modal-overlay {
   position: fixed;
@@ -1075,11 +1142,103 @@
   overflow-y: auto;
   padding: 16px 20px 20px;
   min-height: 120px;
+  max-height: 55vh;
+  scroll-behavior: smooth;
+  /* Scrollbar estilizado */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.cajero-review-modal-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cajero-review-modal-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.cajero-review-modal-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.cajero-review-modal-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Indicador de que hay más items (gradiente inferior) */
+.cajero-review-modal-list-wrapper {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cajero-review-modal-list-wrapper::after {
+  content: '';
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 32px;
+  background: linear-gradient(to top, rgba(255, 255, 255, 0.95), transparent);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+/* Contador de items */
+.cajero-review-modal-list-count {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 20px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.cajero-review-modal-list-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #667eea;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  margin-left: 8px;
 }
 
 .cajero-review-modal-item {
   padding: 16px 0;
   border-bottom: 1px solid #e2e8f0;
+  position: relative;
+  counter-increment: item-counter;
+}
+
+.cajero-review-modal-item::before {
+  content: counter(item-counter);
+  position: absolute;
+  top: 18px;
+  left: -8px;
+  width: 22px;
+  height: 22px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #64748b;
 }
 
 .cajero-review-modal-item:last-child {
@@ -1088,6 +1247,7 @@
 
 .cajero-review-modal-item-info {
   margin-bottom: 12px;
+  padding-left: 22px;
 }
 
 .cajero-review-modal-item-name {
@@ -1122,6 +1282,14 @@
   gap: 2px 4px;
   font-size: 1rem;
   color: #475569;
+}
+
+.cajero-review-modal-item-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .cajero-review-modal-item-qty {
@@ -1615,6 +1783,43 @@
   color: #64748b;
 }
 
+/* Topbar compacta: preparar pedido */
+.cajero-prep-modal-topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.cajero-prep-modal-topbar-folio {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #334155;
+  background: #e2e8f0;
+  padding: 2px 8px;
+  border-radius: 5px;
+}
+
+.cajero-prep-modal-topbar-badge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0c4a6e;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+  padding: 2px 8px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+.cajero-prep-modal-topbar-hint {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-left: auto;
+}
+
+/* Legacy (keep for compat) */
 .cajero-prep-modal-folio {
   padding: 12px 20px;
   font-size: 0.9375rem;
@@ -1711,6 +1916,51 @@
   background: #d1fae5;
 }
 
+/* Items marcados como no disponibles */
+.cajero-prep-modal-item--unavailable {
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
+.cajero-prep-modal-item--unavailable:hover {
+  border-color: #f87171;
+  background: #fee2e2;
+}
+
+.cajero-prep-modal-item--unavailable .cajero-prep-modal-item-name {
+  color: #dc2626;
+  text-decoration: line-through;
+  text-decoration-color: #fca5a5;
+}
+
+.cajero-prep-modal-item--unavailable .cajero-prep-modal-item-breakdown {
+  opacity: 0.7;
+}
+
+.cajero-prep-modal-item--unavailable .cajero-prep-modal-item-checkbox-custom {
+  border-color: #f87171;
+}
+
+.cajero-prep-modal-item--unavailable.cajero-prep-modal-item--checked .cajero-prep-modal-item-checkbox-custom {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+.cajero-prep-modal-item-unavailable-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #fff;
+  background: #dc2626;
+  border-radius: 4px;
+  vertical-align: middle;
+  text-decoration: none;
+}
+
 .cajero-prep-modal-item-checkbox {
   position: absolute;
   opacity: 0;
@@ -1759,6 +2009,58 @@
 .cajero-prep-modal-item-detail {
   font-size: 0.875rem;
   color: #64748b;
+}
+
+/* Breakdown de cantidad/precio/total */
+.cajero-prep-modal-item-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 6px;
+  font-size: 0.85rem;
+}
+
+.cajero-prep-modal-item-breakdown-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cajero-prep-modal-item-breakdown-label {
+  color: #64748b;
+  font-weight: 500;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.cajero-prep-modal-item-breakdown-value {
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.cajero-prep-modal-item-breakdown-value--total {
+  color: #059669;
+  font-size: 0.9rem;
+}
+
+.cajero-prep-modal-item-breakdown-value--warn {
+  color: #d97706;
+}
+
+.cajero-prep-modal-item-breakdown-value--red {
+  color: #dc2626;
+}
+
+/* Unavailable item breakdown override */
+.cajero-prep-modal-item--unavailable .cajero-prep-modal-item-breakdown-value {
+  color: #f87171;
+}
+
+.cajero-prep-modal-item--unavailable .cajero-prep-modal-item-breakdown-value--total {
+  color: #f87171;
+  text-decoration: line-through;
+  text-decoration-color: #fca5a5;
 }
 
 .cajero-prep-modal-footer {
@@ -1890,7 +2192,7 @@
   background: #fff;
   border-radius: 16px;
   width: 100%;
-  max-width: 520px;
+  max-width: 700px;
   max-height: calc(100vh - 32px);
   display: flex;
   flex-direction: column;
@@ -1960,6 +2262,44 @@
   color: #64748b;
 }
 
+/* Topbar compacta: folio + estado + hint en una línea */
+.cajero-delivery-modal-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.cajero-delivery-modal-topbar-folio {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #334155;
+  background: #e2e8f0;
+  padding: 2px 10px;
+  border-radius: 6px;
+}
+
+.cajero-delivery-modal-topbar-badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #047857;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  padding: 3px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.cajero-delivery-modal-topbar-hint {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* Legacy (keep for other steps that may use them) */
 .cajero-delivery-modal-folio {
   padding: 12px 20px;
   font-size: 0.9375rem;
@@ -2005,12 +2345,12 @@
 .cajero-delivery-modal-accordion-trigger {
   display: grid;
   grid-template-columns: auto 1fr;
-  column-gap: 12px;
-  row-gap: 2px;
+  column-gap: 10px;
+  row-gap: 1px;
   align-items: center;
   width: 100%;
-  min-height: 52px;
-  padding: 14px 20px;
+  min-height: 42px;
+  padding: 10px 16px;
   margin: 0;
   border: none;
   border-radius: 0;
@@ -2237,10 +2577,33 @@
   flex: 1;
   overflow-y: auto;
   padding: 16px 20px;
+  max-height: 45vh;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+  position: relative;
+}
+
+.cajero-delivery-modal-products::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cajero-delivery-modal-products::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.cajero-delivery-modal-products::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.cajero-delivery-modal-products::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .cajero-delivery-modal-products-title {
-  margin: 0 0 12px 0;
+  margin: 0;
   font-size: 0.875rem;
   font-weight: 700;
   color: #64748b;
@@ -2248,6 +2611,224 @@
   letter-spacing: 0.03em;
 }
 
+.cajero-delivery-modal-products-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  position: sticky;
+  top: -16px;
+  background: #fff;
+  padding: 4px 0 8px;
+  z-index: 1;
+}
+
+.cajero-delivery-modal-products-count {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+
+.cajero-delivery-modal-products-scroll-hint {
+  color: #94a3b8;
+  font-weight: 400;
+  font-size: 0.75rem;
+}
+
+/* Tabla de productos */
+.cajero-delivery-modal-products-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.cajero-delivery-modal-products-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.cajero-delivery-table-th {
+  padding: 10px 12px;
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid #e2e8f0;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.cajero-delivery-table-th--center {
+  text-align: center;
+}
+
+.cajero-delivery-table-th--right {
+  text-align: right;
+}
+
+.cajero-delivery-table-row {
+  transition: background 0.15s;
+}
+
+.cajero-delivery-table-row:hover {
+  background: #f8fafc;
+}
+
+.cajero-delivery-table-row--unavailable {
+  background: #fef2f2;
+}
+
+.cajero-delivery-table-row--unavailable:hover {
+  background: #fee2e2;
+}
+
+.cajero-delivery-table-row--unavailable .cajero-delivery-table-td--name {
+  text-decoration: line-through;
+  color: #dc2626;
+}
+
+.cajero-delivery-table-row--unavailable .cajero-delivery-table-td--total {
+  color: #dc2626;
+  text-decoration: line-through;
+}
+
+.cajero-delivery-table-row--partial {
+  background: #fffbeb;
+}
+
+.cajero-delivery-table-row--partial:hover {
+  background: #fef3c7;
+}
+
+.cajero-delivery-table-td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.cajero-delivery-table-td--status {
+  white-space: nowrap;
+}
+
+.cajero-delivery-table-td--name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.cajero-delivery-table-td--center {
+  text-align: center;
+}
+
+.cajero-delivery-table-td--right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.cajero-delivery-table-td--deliver {
+  font-size: 1rem;
+}
+
+.cajero-delivery-table-td--total {
+  font-weight: 700;
+  color: #059669;
+}
+
+/* Badges de estado */
+.cajero-delivery-status-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.cajero-delivery-status-badge--ok {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.cajero-delivery-status-badge--warn {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+.cajero-delivery-status-badge--red {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+}
+
+/* Leyenda informativa */
+.cajero-delivery-modal-legend {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.cajero-delivery-modal-legend-title {
+  margin: 0 0 8px 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.cajero-delivery-modal-legend-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cajero-delivery-modal-legend-item {
+  font-size: 0.825rem;
+  color: #475569;
+  padding: 4px 0;
+}
+
+.cajero-delivery-modal-legend-item--red {
+  color: #dc2626;
+}
+
+.cajero-delivery-modal-legend-item--warn {
+  color: #d97706;
+}
+
+/* Total global */
+.cajero-delivery-modal-total {
+  padding: 14px 20px;
+  border-top: 2px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 1rem;
+  color: #475569;
+}
+
+.cajero-delivery-modal-total-label {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.cajero-delivery-modal-total-value {
+  color: #059669;
+  font-size: 1.25rem;
+}
+
+/* Legacy list styles (kept for compatibility) */
 .cajero-delivery-modal-products-list {
   list-style: none;
   margin: 0;
@@ -2300,28 +2881,70 @@
   color: #64748b;
 }
 
-.cajero-delivery-modal-total {
-  padding: 12px 20px;
-  border-top: 1px solid #e2e8f0;
-  font-size: 1rem;
-  color: #475569;
-}
-
-.cajero-delivery-modal-total strong {
-  color: #059669;
-  font-size: 1.125rem;
-}
-
 .cajero-delivery-modal-footer {
-  padding: 16px 20px;
-  border-top: 1px solid #e2e8f0;
+  padding: 12px 16px;
+  border-top: 2px solid #e2e8f0;
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-shrink: 0;
+  background: #f8fafc;
 }
 
 .cajero-delivery-modal-btn-half {
   flex: 1;
+}
+
+/* Botón cancelar pedido */
+.cajero-delivery-modal-btn-cancel {
+  flex: 1;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 2px solid #fca5a5;
+  background: #fff;
+  color: #dc2626;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cajero-delivery-modal-btn-cancel:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #f87171;
+}
+
+.cajero-delivery-modal-btn-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Botón entregar */
+.cajero-delivery-modal-btn-deliver {
+  flex: 1.5;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: none;
+  background: linear-gradient(135deg, #059669, #047857);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
+}
+
+.cajero-delivery-modal-btn-deliver:hover:not(:disabled) {
+  background: linear-gradient(135deg, #047857, #065f46);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
+  transform: translateY(-1px);
+}
+
+.cajero-delivery-modal-btn-deliver:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .cajero-delivery-modal-actions {

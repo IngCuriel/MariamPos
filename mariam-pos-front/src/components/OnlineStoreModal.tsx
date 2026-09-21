@@ -130,7 +130,9 @@ const OnlineStoreModal: React.FC<OnlineStoreModalProps> = ({ isOpen, onClose }) 
     });
   }, [recargasServiciosBaseUrl, selectedCashier]);
 
-  const handleRecargasIframeLoad = useCallback(() => {
+  // Legacy: autentica el iframe de recargas/servicios dentro de "Tienda en Línea".
+  // Se conserva mientras la versión nueva (RechargesPage) convive con la legacy.
+  const _handleRecargasIframeLoad = useCallback(() => {
     const token = getOnlineStoreToken();
     const u = getOnlineStoreUser();
     const win = recargasIframeRef.current?.contentWindow;
@@ -143,6 +145,8 @@ const OnlineStoreModal: React.FC<OnlineStoreModalProps> = ({ isOpen, onClose }) 
     }
     win.postMessage({ type: MARIAM_STORE_AUTH_MESSAGE, token, user: u }, targetOrigin);
   }, [recargasServiciosUrl]);
+  // Referencia intencional: el handler legacy se conserva pero aún no se monta el iframe.
+  void _handleRecargasIframeLoad;
 
   useEffect(() => {
     if (!isOpen) return;

@@ -3,6 +3,7 @@ import Header from '../components/Header';
 import Card from '../components/Card';
 import POSConfigModal from '../components/POSConfigModal';
 import OnlineStoreModal from '../components/OnlineStoreModal';
+import RechargesModal from '../components/RechargesModal';
 import type { POSPageConfig, POSModuleConfig } from '../types/posConfig';
 import { loadPOSConfig, savePOSConfig } from '../utils/posConfig';
 import '../styles/pages/pos/posPage.css';
@@ -45,6 +46,7 @@ const POSPage: React.FC<POSPageProps> = ({
   const [config, setConfig] = useState<POSPageConfig>(loadPOSConfig());
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showOnlineStoreModal, setShowOnlineStoreModal] = useState(false);
+  const [showRechargesModal, setShowRechargesModal] = useState(false);
 
   // Mapeo de funciones onClick
   const onClickHandlers = useMemo(() => ({
@@ -63,6 +65,7 @@ const POSPage: React.FC<POSPageProps> = ({
     onShiftHistoryClick,
     onCashMovementsHistoryClick,
     onOnlineStoreClick: () => setShowOnlineStoreModal(true),
+    onRechargesClick: () => setShowRechargesModal(true),
   }), [
     onSalesClick,
     onProductsClick,
@@ -149,7 +152,7 @@ const POSPage: React.FC<POSPageProps> = ({
     <div className="pos-page">
       <div className="pos-page-container">
         <Header
-          title="🏪 Menu Princupal"
+          title="🏪 Menú Principal"
           onBack={onBack}
           backText="← Volver al Inicio"
           className="pos-page-header"
@@ -179,6 +182,11 @@ const POSPage: React.FC<POSPageProps> = ({
       <OnlineStoreModal
         isOpen={showOnlineStoreModal}
         onClose={() => setShowOnlineStoreModal(false)}
+      />
+
+      <RechargesModal
+        isOpen={showRechargesModal}
+        onClose={() => setShowRechargesModal(false)}
       />
     </div>
   );

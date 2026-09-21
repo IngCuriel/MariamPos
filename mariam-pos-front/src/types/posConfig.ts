@@ -223,6 +223,16 @@ export const DEFAULT_POS_CONFIG: POSPageConfig = {
       order: 5,
       onClick: "onOnlineStoreClick",
     },
+    {
+      id: "recharges",
+      title: "Recargas y Pines",
+      icon: "📱",
+      description: "Venta de recargas, servicios y pines",
+      section: "operations",
+      visible: true,
+      order: 6,
+      onClick: "onRechargesClick",
+    },
   ],
 };
 

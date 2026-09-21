@@ -13,8 +13,8 @@ const formatPrice = (price: number) =>
   new Intl.NumberFormat('es-MX', {
     style: 'currency',
     currency: 'MXN',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(price ?? 0);
 
 const OnlineStorePreparationModal: React.FC<OnlineStorePreparationModalProps> = ({
@@ -38,6 +38,7 @@ const OnlineStorePreparationModal: React.FC<OnlineStorePreparationModalProps> = 
       const initial: Record<string | number, boolean> = {};
       (data.items || []).forEach((item: StoreOrderItem, index: number) => {
         const key = item.id ?? `item-${index}`;
+        // Only available items need to be checked (unavailable ones have no checkbox)
         initial[key] = false;
       });
       setPreparedItems(initial);
@@ -64,7 +65,7 @@ const OnlineStorePreparationModal: React.FC<OnlineStorePreparationModalProps> = 
   const getItemKey = (item: StoreOrderItem, index: number) => item.id ?? `item-${index}`;
   const items = order?.items || [];
   const allPrepared =
-    items.length > 0 && items.every((item, index) => preparedItems[getItemKey(item, index)]);
+    items.length > 0 && items.every((item, index) => item.isAvailable === false || preparedItems[getItemKey(item, index)]);
   const preparedCount = items.filter((item, index) => preparedItems[getItemKey(item, index)]).length;
   const deliveryCode = order?.deliveryType?.code;
   const isDelivery = deliveryCode === 'delivery';
@@ -104,8 +105,8 @@ const OnlineStorePreparationModal: React.FC<OnlineStorePreparationModalProps> = 
   const deliveryLabel = order?.deliveryType?.name || 'Entrega';
   const deliveryIcon = isDelivery ? '🚚' : '📍';
   const deliveryText = isDelivery
-    ? 'Marca cada producto al prepararlo y luego envía al cliente.'
-    : 'Marca cada producto al prepararlo; el cliente pasará por su pedido.';
+    ? 'Marca cada producto al embolsarlo para envío.'
+    : 'Marca cada producto al embolsarlo para entrega.';
 
   const handleOverlayKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') onClose?.();
@@ -122,9 +123,14 @@ const OnlineStorePreparationModal: React.FC<OnlineStorePreparationModalProps> = 
     >
       <div className="cajero-prep-modal">
         <header className="cajero-prep-modal-header">
-          <h2 id="cajero-prep-modal-title" className="cajero-prep-modal-title">
-            Preparar pedido
-          </h2>
+          <h2 id="cajero-prep-modal-title" className="cajero-prep-modal-title">Preparar</h2>
+          <div className="cajero-flow-steps-inline">
+            <span className="cajero-flow-dot cajero-flow-dot--done" title="Paso 1: Disponibilidad">✓</span>
+            <span className="cajero-flow-line cajero-flow-line--done" />
+            <span className="cajero-flow-dot cajero-flow-dot--active" title="Paso 2: Preparar">2</span>
+            <span className="cajero-flow-line" />
+            <span className="cajero-flow-dot cajero-flow-dot--pending" title="Paso 3: Entregar">3</span>
+          </div>
           <button type="button" className="cajero-prep-modal-close" onClick={onClose} aria-label="Cerrar">
             ×
           </button>
@@ -151,14 +157,10 @@ const OnlineStorePreparationModal: React.FC<OnlineStorePreparationModalProps> = 
           </div>
         ) : (
           <>
-            <div className="cajero-prep-modal-folio">Folio {order.id}</div>
-
-            <div className="cajero-prep-modal-delivery">
-              <span className="cajero-prep-modal-delivery-icon" aria-hidden>
-                {deliveryIcon}
-              </span>
-              <span className="cajero-prep-modal-delivery-label">{deliveryLabel}</span>
-              <p className="cajero-prep-modal-delivery-text">{deliveryText}</p>
+            <div className="cajero-prep-modal-topbar">
+              <span className="cajero-prep-modal-topbar-folio">#{order.id}</span>
+              <span className="cajero-prep-modal-topbar-badge">{deliveryIcon} {deliveryLabel}</span>
+              <span className="cajero-prep-modal-topbar-hint">{deliveryText}</span>
             </div>
 
             <div className="cajero-prep-modal-progress">
@@ -176,24 +178,53 @@ const OnlineStorePreparationModal: React.FC<OnlineStorePreparationModalProps> = 
             <div className="cajero-prep-modal-list">
               {items.map((item, index) => {
                 const key = getItemKey(item, index);
+                const isUnavailable = item.isAvailable === false;
                 return (
                   <label
                     key={String(key)}
-                    className={`cajero-prep-modal-item ${preparedItems[key] ? 'cajero-prep-modal-item--checked' : ''}`}
+                    className={`cajero-prep-modal-item ${preparedItems[key] ? 'cajero-prep-modal-item--checked' : ''} ${isUnavailable ? 'cajero-prep-modal-item--unavailable' : ''}`}
                   >
-                    <input
-                      type="checkbox"
-                      checked={preparedItems[key] || false}
-                      onChange={() => togglePrepared(key)}
-                      className="cajero-prep-modal-item-checkbox"
-                      aria-label={`Preparado: ${item.productName ?? 'Producto'}`}
-                    />
-                    <span className="cajero-prep-modal-item-checkbox-custom" aria-hidden />
+                    {!isUnavailable && (
+                      <>
+                        <input
+                          type="checkbox"
+                          checked={preparedItems[key] || false}
+                          onChange={() => togglePrepared(key)}
+                          className="cajero-prep-modal-item-checkbox"
+                          aria-label={`Preparado: ${item.productName ?? 'Producto'}`}
+                        />
+                        <span className="cajero-prep-modal-item-checkbox-custom" aria-hidden />
+                      </>
+                    )}
                     <div className="cajero-prep-modal-item-content">
-                      <span className="cajero-prep-modal-item-name">{item.productName ?? 'Producto'}</span>
-                      <span className="cajero-prep-modal-item-detail">
-                        {item.quantity} × {formatPrice(item.unitPrice)}
+                      <span className="cajero-prep-modal-item-name">
+                        {item.productName ?? 'Producto'}
+                        {isUnavailable && <span className="cajero-prep-modal-item-unavailable-badge">No disponible</span>}
                       </span>
+                      <div className="cajero-prep-modal-item-breakdown">
+                        <span className="cajero-prep-modal-item-breakdown-row">
+                          <span className="cajero-prep-modal-item-breakdown-label">Solicitado:</span>
+                          <span className="cajero-prep-modal-item-breakdown-value">{item.quantity}</span>
+                        </span>
+                        {item.confirmedQuantity != null && item.confirmedQuantity !== item.quantity && (
+                          <span className="cajero-prep-modal-item-breakdown-row">
+                            <span className="cajero-prep-modal-item-breakdown-label">Disponible:</span>
+                            <span className={`cajero-prep-modal-item-breakdown-value ${isUnavailable ? 'cajero-prep-modal-item-breakdown-value--red' : 'cajero-prep-modal-item-breakdown-value--warn'}`}>
+                              {item.confirmedQuantity}
+                            </span>
+                          </span>
+                        )}
+                        <span className="cajero-prep-modal-item-breakdown-row">
+                          <span className="cajero-prep-modal-item-breakdown-label">P.U:</span>
+                          <span className="cajero-prep-modal-item-breakdown-value">{formatPrice(item.unitPrice)}</span>
+                        </span>
+                        <span className="cajero-prep-modal-item-breakdown-row">
+                          <span className="cajero-prep-modal-item-breakdown-label">Total:</span>
+                          <span className="cajero-prep-modal-item-breakdown-value cajero-prep-modal-item-breakdown-value--total">
+                            {formatPrice((item.confirmedQuantity ?? item.quantity) * item.unitPrice)}
+                          </span>
+                        </span>
+                      </div>
                     </div>
                   </label>
                 );
