@@ -78,6 +78,9 @@ const OnlineStoreDeliveryModal: React.FC<OnlineStoreDeliveryModalProps> = ({
   const isInTransitDelivery =
     order?.status === ORDER_STATUS.IN_TRANSIT && order?.deliveryType?.code === 'delivery';
   const deliveryAddressText = (order?.deliveryAddress ?? '').trim();
+  // Coordenadas exactas guardadas en el pedido (snapshot al confirmar). Prioridad sobre el geocoding.
+  const orderLat = order?.deliveryLatitude;
+  const orderLng = order?.deliveryLongitude;
 
   useEffect(() => {
     if (!open || !isInTransitDelivery || !deliveryAddressText) {
@@ -85,6 +88,13 @@ const OnlineStoreDeliveryModal: React.FC<OnlineStoreDeliveryModalProps> = ({
       setDeliveryGeoLoading(false);
       return;
     }
+    // Si el pedido ya trae la ubicación exacta del cliente, la usamos directo (sin geocodificar).
+    if (typeof orderLat === 'number' && typeof orderLng === 'number') {
+      setDeliveryGeoPoint({ lat: orderLat, lng: orderLng });
+      setDeliveryGeoLoading(false);
+      return;
+    }
+    // Fallback: geocodificar el texto de la dirección (aproximado) solo si no hay coords.
     let cancelled = false;
     setDeliveryGeoLoading(true);
     setDeliveryGeoPoint(null);
@@ -96,7 +106,7 @@ const OnlineStoreDeliveryModal: React.FC<OnlineStoreDeliveryModalProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [open, isInTransitDelivery, deliveryAddressText]);
+  }, [open, isInTransitDelivery, deliveryAddressText, orderLat, orderLng]);
   const mapEmbedSrc =
     deliveryAddressText.length > 0 && !deliveryGeoLoading
       ? deliveryGeoPoint

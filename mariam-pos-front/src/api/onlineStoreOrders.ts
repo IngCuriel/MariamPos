@@ -80,6 +80,9 @@ export interface StoreOrder {
   deliveredAt?: string | null;
   /** Dirección de envío (envío a domicilio), viene del API al confirmar el cliente. */
   deliveryAddress?: string | null;
+  /** Ubicación exacta (snapshot) elegida por el cliente al confirmar. */
+  deliveryLatitude?: number | null;
+  deliveryLongitude?: number | null;
   deliveryCost?: number | null;
   items: StoreOrderItem[];
   branch?: { id: number; name: string } | null;
