@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import '../../styles/pages/client.css';
 import Header from '../../components/Header';
+import ClientActionsModal from './ClientActionsModal';
 import type {Client, ClientCredit} from '../../types/index'
-import { getClients, createClient, updateClient } from "../../api/clients";
+import { getClientsPaginated, createClient, updateClient } from "../../api/clients";
 import { getClientCredits, getClientCreditSummary, getAllPendingCredits } from "../../api/credits";
 import { getClientPendingDeposits, getAllPendingContainerDeposits, type ClientContainerDeposit } from "../../api/clientContainerDeposits";
 import { getActiveShift } from "../../api/cashRegister";
@@ -23,6 +24,11 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [clientToEdit, setClientToEdit] = useState<Client | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalClients, setTotalClients] = useState(0);
+  const [loadingClients, setLoadingClients] = useState(false);
+  const CLIENTS_PER_PAGE = 10;
   const [clientCredits, setClientCredits] = useState<Record<string, { totalPending: number; credits: ClientCredit[] }>>({});
   const [clientContainerDeposits, setClientContainerDeposits] = useState<Record<string, { totalContainers: number; totalAmount: number; summary: any[] }>>({});
   const [selectedCredit, setSelectedCredit] = useState<ClientCredit | null>(null);
@@ -31,6 +37,7 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
   const [selectedClientForHistory, setSelectedClientForHistory] = useState<Client | null>(null);
   const [showContainerDeposits, setShowContainerDeposits] = useState(false);
   const [selectedClientForDeposits, setSelectedClientForDeposits] = useState<Client | null>(null);
+  const [actionsClient, setActionsClient] = useState<Client | null>(null);
   const [_loadingCredits, setLoadingCredits] = useState(false);
   const [activeTab, setActiveTab] = useState<'clients' | 'credits' | 'containers'>('clients');
   const [allPendingCredits, setAllPendingCredits] = useState<ClientCredit[]>([]);
@@ -38,75 +45,59 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
   const [loadingAllCredits, setLoadingAllCredits] = useState(false);
   const [loadingAllDeposits, setLoadingAllDeposits] = useState(false);
   
-  // 🟢 Llamada al API cuando el hook se monta
-  useEffect(() => {
-    fetchClients();
-  }, []);
-
-  // Cargar créditos y depósitos pendientes cuando se cargan los clientes
-  useEffect(() => {
-    if (clients.length > 0) {
-      loadAllClientCredits();
-      loadAllClientContainerDeposits();
-    }
-  }, [clients]);
-
-  // Cargar todos los créditos y depósitos pendientes cuando se cambia de pestaña
-  useEffect(() => {
-    if (activeTab === 'credits') {
-      loadAllPendingCredits();
-    } else if (activeTab === 'containers') {
-      loadAllPendingDeposits();
-    }
-  }, [activeTab]);
-
-  const fetchClients = async () => {
+  // Carga la página de clientes desde el servidor (10 por página) y, para esos
+  // 10 clientes, sus créditos y depósitos pendientes (indicadores por fila).
+  const fetchClientsPage = async (page: number, search: string) => {
+    setLoadingClients(true);
     try {
-      const data = await getClients();
-      setClients(data);
+      const result = await getClientsPaginated(page, CLIENTS_PER_PAGE, search);
+      setClients(result.clients);
+      setTotalPages(result.pagination.totalPages);
+      setTotalClients(result.pagination.total);
+      // Sincroniza la página real devuelta por el servidor (puede ajustarse si estaba fuera de rango).
+      if (result.pagination.page !== page) {
+        setCurrentPage(result.pagination.page);
+      }
+      await loadCreditsAndDepositsFor(result.clients);
     } catch (err) {
       console.error(err);
+      setClients([]);
+      setTotalPages(1);
+      setTotalClients(0);
+    } finally {
+      setLoadingClients(false);
     }
   };
 
-  const loadAllClientCredits = async () => {
+  // Recarga la página actual (tras crear/editar/abonar).
+  const reloadCurrentPage = () => {
+    void fetchClientsPage(currentPage, searchTerm);
+  };
+
+  // Créditos + depósitos pendientes solo de los clientes visibles en la página.
+  const loadCreditsAndDepositsFor = async (pageClients: Client[]) => {
     setLoadingCredits(true);
     try {
       const creditsMap: Record<string, { totalPending: number; credits: ClientCredit[] }> = {};
-      
-      // Cargar créditos solo de clientes que tienen crédito habilitado
-      const clientsWithCredit = clients.filter(c => c.allowCredit);
-      
-      await Promise.all(
-        clientsWithCredit.map(async (client) => {
-          try {
-            const summary = await getClientCreditSummary(client.id);
-            if (summary.totalPending > 0) {
-              creditsMap[client.id] = {
-                totalPending: summary.totalPending,
-                credits: summary.credits,
-              };
-            }
-          } catch (error) {
-            console.error(`Error al cargar créditos de ${client.name}:`, error);
-          }
-        })
-      );
-      
-      setClientCredits(creditsMap);
-    } catch (error) {
-      console.error("Error al cargar créditos:", error);
-    } finally {
-      setLoadingCredits(false);
-    }
-  };
-
-  const loadAllClientContainerDeposits = async () => {
-    try {
       const depositsMap: Record<string, { totalContainers: number; totalAmount: number; summary: any[] }> = {};
-      
+
       await Promise.all(
-        clients.map(async (client) => {
+        pageClients.map(async (client) => {
+          // Créditos: solo si el cliente tiene crédito habilitado.
+          if (client.allowCredit) {
+            try {
+              const summary = await getClientCreditSummary(client.id);
+              if (summary.totalPending > 0) {
+                creditsMap[client.id] = {
+                  totalPending: summary.totalPending,
+                  credits: summary.credits,
+                };
+              }
+            } catch (error) {
+              console.error(`Error al cargar créditos de ${client.name}:`, error);
+            }
+          }
+          // Depósitos de envases pendientes.
           try {
             const depositsData = await getClientPendingDeposits(client.id);
             if (depositsData.totalContainers > 0) {
@@ -121,17 +112,46 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
           }
         })
       );
-      
+
+      setClientCredits(creditsMap);
       setClientContainerDeposits(depositsMap);
     } catch (error) {
-      console.error("Error al cargar depósitos de envases:", error);
+      console.error("Error al cargar créditos/depósitos:", error);
+    } finally {
+      setLoadingCredits(false);
     }
   };
 
+  // Carga inicial + cada vez que cambia la página.
+  useEffect(() => {
+    void fetchClientsPage(currentPage, searchTerm);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
+
+  // Búsqueda con debounce: al escribir, vuelve a página 1 y consulta al servidor.
+  useEffect(() => {
+    const id = setTimeout(() => {
+      if (currentPage !== 1) {
+        setCurrentPage(1); // el efecto de [currentPage] hará el fetch
+      } else {
+        void fetchClientsPage(1, searchTerm);
+      }
+    }, 350);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm]);
+
+  // Cargar todos los créditos y depósitos pendientes cuando se cambia de pestaña
+  useEffect(() => {
+    if (activeTab === 'credits') {
+      loadAllPendingCredits();
+    } else if (activeTab === 'containers') {
+      loadAllPendingDeposits();
+    }
+  }, [activeTab]);
+
   const handlePaymentSuccess = () => {
-    loadAllClientCredits();
-    loadAllClientContainerDeposits();
-    fetchClients(); // Recargar clientes por si cambió algo
+    reloadCurrentPage(); // Recargar la página actual (clientes + créditos/depósitos)
   };
 
   const handleOpenPaymentModal = async (clientId: string) => {
@@ -228,11 +248,25 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
     setClientToEdit(null);
   };
 
-  const filteredClients = clients.filter(client =>
-    client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (client.alias && client.alias.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (client.phone && client.phone.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // La lista ya viene paginada y filtrada del servidor.
+  const safePage = Math.min(currentPage, totalPages);
+  const pageStartIndex = (safePage - 1) * CLIENTS_PER_PAGE;
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.min(Math.max(1, page), totalPages));
+  };
+
+  // Ventana de hasta 5 números de página centrada en la página actual.
+  const getPageNumbers = (): number[] => {
+    const maxButtons = 5;
+    if (totalPages <= maxButtons) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    let start = Math.max(1, safePage - 2);
+    const end = Math.min(totalPages, start + maxButtons - 1);
+    start = Math.max(1, end - maxButtons + 1);
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  };
 
   const handleSave = async (client: Omit<Client, "id">) => {
     if (clientToEdit) {
@@ -242,7 +276,7 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
       // Modo creación
       await createClient(client);
     }
-    fetchClients();
+    reloadCurrentPage();
     setClientToEdit(null);
   };
 
@@ -399,63 +433,34 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
               </Button>
             </div>
           </Card>
-            {/* Alerta de clientes con créditos pendientes */}
-            {Object.keys(clientCredits).length > 0 && (
-              <div style={{ 
-                marginBottom: "16px", 
-                backgroundColor: "#fef3c7", 
-                border: "1px solid #f59e0b",
-                borderRadius: "8px",
-                padding: "16px"
-              }}>
-                <Card className="search-card">
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ fontSize: "1.2rem" }}>⚠️</span>
-                  <strong style={{ color: "#92400e" }}>
-                    {Object.keys(clientCredits).length} cliente(s) con créditos pendientes
-                  </strong>
-                </div>
-                </Card>
-              </div>
-            )}
-
-            {/* Alerta de clientes con depósitos de envases pendientes */}
-            {Object.keys(clientContainerDeposits).length > 0 && (
-              <div style={{ 
-                marginBottom: "16px", 
-                backgroundColor: "#ecfdf5", 
-                border: "1px solid #059669",
-                borderRadius: "8px",
-                padding: "16px"
-              }}>
-                <Card className="search-card">
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ fontSize: "1.2rem" }}>🍺</span>
-                  <strong style={{ color: "#065f46" }}>
-                    {Object.keys(clientContainerDeposits).length} cliente(s) con depósitos de envases pendientes
-                  </strong>
-                </div>
-                </Card>
-              </div>
-            )}
 
             {/* Tabla de clientes */}
             <table className="client-table">
               <thead>
                 <tr>
-                  <th>*id</th>
                   <th>Nombre</th>
                   <th>Alias</th>
                   <th>Celular</th>
                   <th>Crédito</th>
                   <th>Límite</th>
-                  <th>Pendiente</th>
+                  <th>Saldo pendiente</th>
                   <th>Envases</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredClients.map(client => {
+                {loadingClients ? (
+                  <tr>
+                    <td colSpan={8} className="client-table-state">Cargando clientes...</td>
+                  </tr>
+                ) : clients.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="client-table-state">
+                      {searchTerm ? 'No se encontraron clientes' : 'No hay clientes registrados'}
+                    </td>
+                  </tr>
+                ) : (
+                clients.map(client => {
                   const credits = clientCredits[client.id];
                   const hasPending = credits && credits.totalPending > 0;
                   const deposits = clientContainerDeposits[client.id];
@@ -472,19 +477,15 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
                           : {}
                       }
                     >
-                      <td>{client.id}</td>
                       <td>
-                        {client.name}
-                        {hasPending && (
-                          <span style={{ 
-                            marginLeft: "8px", 
-                            color: "#dc2626", 
-                            fontWeight: "600",
-                            fontSize: "0.85rem"
-                          }}>
-                            ⚠️ Debe
-                          </span>
-                        )}
+                        <span className="client-name-cell">
+                          {client.name}
+                          {hasPending && (
+                            <span className="client-badge client-badge--debt">
+                              ⚠️ Con saldo pendiente
+                            </span>
+                          )}
+                        </span>
                       </td>
                       <td>{client.alias || '-'}</td>
                       <td>{client.phone || '-'}</td>
@@ -507,65 +508,84 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
                       </td>
                       <td>
                         {hasDeposits ? (
-                          <div 
-                            style={{ 
-                              display: "flex", 
-                              flexDirection: "column", 
-                              gap: "2px",
-                              cursor: "pointer",
-                            }}
-                            onClick={() => {
-                              setSelectedClientForDeposits(client);
-                              setShowContainerDeposits(true);
-                            }}
-                            title="Click para ver detalle de envases"
-                          >
-                            <strong style={{ color: "#059669", fontSize: "0.9rem" }}>
-                              {deposits.totalContainers} envase{deposits.totalContainers !== 1 ? 's' : ''}
-                            </strong>
-                            <span style={{ color: "#059669", fontSize: "0.85rem" }}>
-                              ${deposits.totalAmount.toFixed(2)}
-                            </span>
-                            <span style={{ color: "#059669", fontSize: "0.75rem", fontStyle: "italic" }}>
-                              (Click para ver detalle)
-                            </span>
-                          </div>
+                          <span className="client-badge client-badge--containers">
+                            🍺 {deposits.totalContainers} · ${deposits.totalAmount.toFixed(2)}
+                          </span>
                         ) : '-'}
                       </td>
                       <td>
-                        <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
-                          <Button
-                            variant="secondary"
-                            onClick={() => handleEdit(client)}
-                            className="button-small"
-                          >
-                            ✏️ Editar
-                          </Button>
-                          {client.allowCredit && (
-                            <Button
-                              variant="info"
-                              onClick={() => handleViewCreditHistory(client)}
-                              className="button-small"
-                            >
-                              📋 Historial
-                            </Button>
-                          )}
-                          {hasPending && (
-                            <Button
-                              variant="success"
-                              onClick={() => handleOpenPaymentModal(client.id)}
-                              className="button-small"
-                            >
-                              💳 Abonar
-                            </Button>
-                          )}
-                        </div>
+                        <button
+                          type="button"
+                          className="client-actions-trigger"
+                          onClick={() => setActionsClient(client)}
+                        >
+                          Acciones ▾
+                        </button>
                       </td>
                     </tr>
                   );
-                })}
+                })
+                )}
               </tbody>
             </table>
+
+            {/* Controles de paginación */}
+            {totalClients > 0 && (
+              <div className="client-pagination">
+                <span className="client-pagination-info">
+                  Mostrando {pageStartIndex + 1}–{Math.min(pageStartIndex + CLIENTS_PER_PAGE, totalClients)} de {totalClients}
+                </span>
+                <div className="client-pagination-controls">
+                  <button
+                    type="button"
+                    className="client-pagination-btn"
+                    onClick={() => goToPage(1)}
+                    disabled={safePage === 1}
+                    aria-label="Primera página"
+                  >
+                    ⏮
+                  </button>
+                  <button
+                    type="button"
+                    className="client-pagination-btn"
+                    onClick={() => goToPage(safePage - 1)}
+                    disabled={safePage === 1}
+                    aria-label="Página anterior"
+                  >
+                    ‹
+                  </button>
+                  {getPageNumbers().map((page) => (
+                    <button
+                      type="button"
+                      key={page}
+                      className={`client-pagination-btn client-pagination-page ${page === safePage ? 'client-pagination-page--active' : ''}`}
+                      onClick={() => goToPage(page)}
+                      aria-current={page === safePage ? 'page' : undefined}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="client-pagination-btn"
+                    onClick={() => goToPage(safePage + 1)}
+                    disabled={safePage === totalPages}
+                    aria-label="Página siguiente"
+                  >
+                    ›
+                  </button>
+                  <button
+                    type="button"
+                    className="client-pagination-btn"
+                    onClick={() => goToPage(totalPages)}
+                    disabled={safePage === totalPages}
+                    aria-label="Última página"
+                  >
+                    ⏭
+                  </button>
+                </div>
+              </div>
+            )}
             </>
           )}
 
@@ -880,8 +900,33 @@ const ClientPage: React.FC<ClientPageProps> = ({ onBack }) => {
               setSelectedClientForDeposits(null);
             }}
             onReturnSuccess={() => {
-              // Recargar depósitos cuando se regresa el importe
-              loadAllClientContainerDeposits();
+              // Recargar la página actual cuando se regresa el importe
+              reloadCurrentPage();
+            }}
+          />
+
+         {/* Modal de acciones por cliente */}
+         <ClientActionsModal
+            isOpen={actionsClient !== null}
+            client={actionsClient}
+            pendingAmount={actionsClient ? (clientCredits[actionsClient.id]?.totalPending ?? 0) : 0}
+            containersCount={actionsClient ? (clientContainerDeposits[actionsClient.id]?.totalContainers ?? 0) : 0}
+            containersAmount={actionsClient ? (clientContainerDeposits[actionsClient.id]?.totalAmount ?? 0) : 0}
+            onClose={() => setActionsClient(null)}
+            onEdit={() => {
+              if (actionsClient) handleEdit(actionsClient);
+            }}
+            onViewHistory={() => {
+              if (actionsClient) handleViewCreditHistory(actionsClient);
+            }}
+            onPay={() => {
+              if (actionsClient) handleOpenPaymentModal(actionsClient.id);
+            }}
+            onReturnContainers={() => {
+              if (actionsClient) {
+                setSelectedClientForDeposits(actionsClient);
+                setShowContainerDeposits(true);
+              }
             }}
           />
       </div>

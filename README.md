@@ -89,3 +89,5 @@ npm run dist
       modified:   mariam-pos-backend/src/controllers/cashRegisterController.js        
       modified:   mariam-pos-backend/src/controllers/salesController.js
   
+# Release septiembre 206
+  mariam-pos-backend\src\controllers\clientsController.js

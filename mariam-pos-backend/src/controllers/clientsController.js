@@ -2,25 +2,57 @@ import prisma from "../utils/prisma.js";
 
 export const getClients = async (req, res) => {
   try {
-    const { search } = req.query;
-    
-    // Obtener todos los clientes
-    let clients = await prisma.client.findMany({
-      orderBy: { name: "asc" },
-    });
-    
-    // Filtrar por búsqueda si se proporciona (SQLite no soporta case-insensitive directamente)
-    if (search) {
-      const searchLower = search.toLowerCase();
-      clients = clients.filter(
-        (client) =>
-          client.name.toLowerCase().includes(searchLower) ||
-          (client.alias && client.alias.toLowerCase().includes(searchLower)) ||
-          (client.phone && client.phone.toLowerCase().includes(searchLower))
-      );
+    const { search, page, limit } = req.query;
+
+    // Filtro de búsqueda en la query (name/alias/phone).
+    // Nota: SQLite usa LIKE (case-insensitive para ASCII, sensible a acentos).
+    const trimmedSearch = typeof search === "string" ? search.trim() : "";
+    const where = trimmedSearch
+      ? {
+          OR: [
+            { name: { contains: trimmedSearch } },
+            { alias: { contains: trimmedSearch } },
+            { phone: { contains: trimmedSearch } },
+          ],
+        }
+      : {};
+
+    // Modo retrocompatible: sin `page`, devolver el array plano (como antes).
+    if (page === undefined) {
+      const clients = await prisma.client.findMany({
+        where,
+        orderBy: { name: "asc" },
+      });
+      return res.json(clients);
     }
-    
-    res.json(clients);
+
+    // Modo paginado: skip/take + count en la base de datos.
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, parseInt(limit, 10) || 10);
+
+    const total = await prisma.client.count({ where });
+    const totalPages = Math.max(1, Math.ceil(total / limitNum));
+    const safePage = Math.min(pageNum, totalPages);
+    const skip = (safePage - 1) * limitNum;
+
+    const clients = await prisma.client.findMany({
+      where,
+      orderBy: { name: "asc" },
+      skip,
+      take: limitNum,
+    });
+
+    res.json({
+      clients,
+      pagination: {
+        page: safePage,
+        limit: limitNum,
+        total,
+        totalPages,
+        hasNext: safePage < totalPages,
+        hasPrev: safePage > 1,
+      },
+    });
   } catch (error) {
     console.error("Error al obtener clientes:", error);
     res.status(500).json({ error: "Error al obtener clientes" });

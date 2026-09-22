@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Button from '../../components/Button';
-import Card from '../../components/Card';
 import type { Client} from '../../types';
+import '../../styles/pages/client/clientModal.css';
 interface ClientModalProps {
   isOpen: boolean; 
   onClose: () => void;
@@ -83,15 +83,17 @@ const ClientModal:React.FC<ClientModalProps> = ({isOpen, onClose, onSave, client
    if(!isOpen) return null;
    return (
      <div className="modal-overlay">
-      <div className="modal-container">
-        <Card className="modal-card">
-          <div className="modal-header">
+      <div className="modal-container client-form-modal">
+        <div className="client-form-panel">
+          <div className="client-form-header">
              <h1>{clientToEdit ? 'Editar Cliente' : 'Nuevo Cliente'}</h1>
-             <button className="close-btn" onClick={onClose}>×</button>
+             <button className="client-form-close" onClick={onClose}>×</button>
            </div>
-            <form onSubmit={handleSubmit} className="category-form">
-                <div className="form-group">
-                    <label htmlFor="name">Nombre completo*</label>
+            <form onSubmit={handleSubmit} className="client-form">
+                <div className="client-form-group client-form-group--row">
+                    <label htmlFor="name">
+                      Nombre completo <span className="client-form-required">*</span>
+                    </label>
                     <input
                         type="text"
                         id="name"
@@ -101,9 +103,9 @@ const ClientModal:React.FC<ClientModalProps> = ({isOpen, onClose, onSave, client
                         className={errors.name ? 'error' : ''}
                         placeholder="Ej: Eleazar Curiel Monjaraz"
                     />
-                    {errors.name && <span className="error-message">{errors.name}</span>}
+                    {errors.name && <span className="client-form-error client-form-error--row">{errors.name}</span>}
                 </div>
-                <div className="form-group">
+                <div className="client-form-group client-form-group--row">
                     <label htmlFor="alias">Alias (Opcional)</label>
                     <input
                         type="text"
@@ -113,11 +115,8 @@ const ClientModal:React.FC<ClientModalProps> = ({isOpen, onClose, onSave, client
                         onChange={handleInputChange}
                         placeholder="Ej: Eleazar, Don Eleazar, etc."
                     />
-                    <small style={{ display: "block", marginTop: "4px", fontSize: "0.8rem", color: "#6b7280" }}>
-                        El alias ayuda a identificar mejor al cliente si hay nombres repetidos
-                    </small>
                 </div>
-                <div className="form-group">
+                <div className="client-form-group client-form-group--row">
                     <label htmlFor="phone">Número de Celular (Opcional)</label>
                     <input
                         type="tel"
@@ -127,29 +126,27 @@ const ClientModal:React.FC<ClientModalProps> = ({isOpen, onClose, onSave, client
                         onChange={handleInputChange}
                         placeholder="Ej: 521234567890"
                     />
-                    <small style={{ display: "block", marginTop: "4px", fontSize: "0.8rem", color: "#6b7280" }}>
-                        Número de celular o teléfono del cliente (con código de país)
-                    </small>
                 </div>
-                <div className="form-group">
-                    <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+                <div className="client-form-group">
+                    <label className="client-form-check">
                         <input
                             type="checkbox"
                             id="allowCredit"
                             name="allowCredit"
                             checked={formData.allowCredit}
                             onChange={handleInputChange}
-                            style={{ width: "18px", height: "18px", cursor: "pointer" }}
                         />
                         <span>Permitir compras a crédito</span>
                     </label>
-                    <small style={{ display: "block", marginTop: "4px", fontSize: "0.8rem", color: "#6b7280", marginLeft: "26px" }}>
+                    <small className="client-form-hint client-form-check-hint">
                         Si está habilitado, el cliente podrá finalizar ventas con faltante registrándolo como crédito
                     </small>
                 </div>
                 {formData.allowCredit && (
-                    <div className="form-group">
-                        <label htmlFor="creditLimit">Límite de crédito*</label>
+                    <div className="client-form-group">
+                        <label htmlFor="creditLimit">
+                          Límite de crédito <span className="client-form-required">*</span>
+                        </label>
                         <input
                             type="number"
                             id="creditLimit"
@@ -161,12 +158,12 @@ const ClientModal:React.FC<ClientModalProps> = ({isOpen, onClose, onSave, client
                             placeholder="Ej: 100.00"
                             required={formData.allowCredit}
                         />
-                        <small style={{ display: "block", marginTop: "4px", fontSize: "0.8rem", color: "#6b7280" }}>
+                        <small className="client-form-hint">
                             Monto máximo que el cliente puede deber en créditos pendientes
                         </small>
                     </div>
                 )}
-                <div className="form-actions">
+                <div className="client-form-actions">
                     <Button
                         type="button"
                         variant="secondary"
@@ -183,7 +180,7 @@ const ClientModal:React.FC<ClientModalProps> = ({isOpen, onClose, onSave, client
                     </Button>
                 </div>
             </form>
-        </Card>
+        </div>
       </div>
     </div>
    )

@@ -1,0 +1,377 @@
+/* Modal de selección de cliente — optimizado para pantalla táctil.
+   Criterio touch: áreas tocables >= 44px (mín. recomendado para el dedo).
+   "Compacto" reduce espacio muerto (paddings/margins), no los targets. */
+
+.client-modal {
+  max-width: 900px;
+  width: 96%;
+  max-height: 92vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 24px;
+  box-sizing: border-box;
+}
+
+.client-modal-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin: 0 0 4px;
+  text-align: center;
+  color: #0f172a;
+}
+
+.client-modal-subtitle {
+  margin: 0 0 16px;
+  font-size: 0.9rem;
+  color: #6b7280;
+  text-align: center;
+}
+
+/* ── Búsqueda ────────────────────────────────────────────── */
+/* Fila única: icono + input de búsqueda + botón crear cliente */
+.client-modal-searchbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.client-modal-searchbar-icon {
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.client-modal-searchbar-input {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .client-modal-searchbar {
+    flex-wrap: wrap;
+  }
+
+  .client-modal-searchbar-input {
+    flex: 1 1 100%;
+    order: 1;
+  }
+}
+
+.client-modal-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #374151;
+}
+
+.client-modal-label-required {
+  color: #dc2626;
+}
+
+.client-modal-input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 52px;
+  padding: 12px 14px;
+  font-size: 1.05rem;
+  border: 2px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  color: #0f172a;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.client-modal-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.client-modal-hint {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+/* ── Lista de clientes (área grande) ─────────────────────── */
+.client-modal-list {
+  flex: 1;
+  min-height: 320px;
+  max-height: 58vh;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  margin-bottom: 14px;
+  background: #fafafa;
+  padding: 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.client-modal-list-state {
+  padding: 40px 20px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.client-modal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 14px;
+  margin: 6px 4px;
+  border-radius: 10px;
+  cursor: pointer;
+  background: #fff;
+  border: 2px solid #e5e7eb;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: background 0.15s, border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.client-modal-row:hover {
+  background: #f0f9ff;
+  border-color: #3b82f6;
+  transform: translateX(4px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.client-modal-row:active {
+  background: #e0f2fe;
+}
+
+.client-modal-row-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.client-modal-row-name {
+  margin: 0;
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: #1f2937;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.client-modal-row-alias {
+  flex-shrink: 0;
+  display: inline-block;
+  padding: 2px 8px;
+  background: #dbeafe;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: #1e40af;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.client-modal-row-arrow {
+  font-size: 1.4rem;
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+/* ── Botón crear (dashed) ────────────────────────────────── */
+.client-modal-create-trigger {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px;
+  background: #f3f4f6;
+  border: 2px dashed #d1d5db;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #374151;
+  transition: background 0.15s, border-color 0.15s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  margin-bottom: 12px;
+}
+
+.client-modal-create-trigger:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+/* Variante en línea (dentro de la barra de búsqueda): ancho automático, sin margen inferior. */
+.client-modal-create-trigger--inline {
+  width: auto;
+  flex-shrink: 0;
+  margin-bottom: 0;
+  white-space: nowrap;
+  padding: 10px 18px;
+}
+
+@media (max-width: 640px) {
+  .client-modal-create-trigger--inline {
+    flex: 1 1 100%;
+    order: 2;
+  }
+}
+
+/* ── Cliente actual ──────────────────────────────────────── */
+.client-modal-current {
+  padding: 10px 12px;
+  background: #dbeafe;
+  border: 1px solid #3b82f6;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.client-modal-current-text {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #1e40af;
+  font-weight: 600;
+}
+
+/* ── Sección de formulario ───────────────────────────────── */
+.client-modal-field {
+  margin-bottom: 14px;
+}
+
+/* ── Acciones (footer botones compactos pero táctiles) ───── */
+.client-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.client-modal-btn {
+  min-height: 48px;
+  padding: 10px 22px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.client-modal-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.client-modal-btn--secondary {
+  color: #334155;
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+.client-modal-btn--secondary:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.client-modal-btn--primary {
+  color: #fff;
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.client-modal-btn--primary:hover:not(:disabled) {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+@media (max-width: 640px) {
+  .client-modal {
+    width: 100%;
+    max-height: 96vh;
+    padding: 16px;
+  }
+
+  .client-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .client-modal-btn {
+    width: 100%;
+  }
+}
+
+/* ── Paginación del modal (táctil) ───────────────────────── */
+.client-modal-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.client-modal-pagination-info {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+
+.client-modal-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.client-modal-pagination-btn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #334155;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.client-modal-pagination-btn:hover:not(:disabled) {
+  background: #f0f9ff;
+  border-color: #3b82f6;
+}
+
+.client-modal-pagination-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.client-modal-pagination-btn--active {
+  color: #fff;
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.client-modal-pagination-btn--active:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+@media (max-width: 640px) {
+  .client-modal-pagination {
+    justify-content: center;
+  }
+}

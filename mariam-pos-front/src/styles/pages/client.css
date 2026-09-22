@@ -3,66 +3,224 @@
   min-height: 100vh;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 10px;
 }
 
 .client-container{
   background: var(--background-light);
-  border-radius: 20px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  padding: 40px;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  padding: 16px 20px;
   max-width: 100%;
   width: 100%;
-  backdrop-filter: blur(10px);
 }
 
 .client-content {
   text-align: left;
 }
 
+/* ── Barra de búsqueda: label + input + botón en una sola fila ──
+   Scopeado a .app-client para no afectar las clases search-* globales
+   que comparten otras páginas. */
+.app-client .search-card {
+  margin-bottom: 14px;
+}
 
+.app-client .search-section {
+  align-items: center;
+  gap: 14px;
+}
+
+.app-client .search-group {
+  flex: 1;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-client .search-group label {
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.app-client .search-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+}
+
+.app-client .search-section .add-category-btn {
+  flex-shrink: 0;
+  min-height: 48px;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .app-client .search-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .app-client .search-group {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .app-client .search-section .add-category-btn {
+    width: 100%;
+  }
+}
+
+/* ── Tabla de clientes: profesional, compacta y táctil ───── */
 .client-table {
   width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 12px;
+  font-size: 0.95rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
-.client-table th,
-.client-table td {
-  border: 1px solid #ccc;
-  padding: 8px 12px;
+.client-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f8fafc;
+  color: #334155;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
   text-align: left;
+  padding: 12px 14px;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
 }
 
-.client-table th {
-  background-color: #f5f5f5;
+.client-table td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+  vertical-align: middle;
 }
-  
+
+.client-table tbody tr {
+  min-height: 48px;
+  transition: background 0.12s;
+}
+
+.client-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.client-table tbody tr:hover {
+  background: #f0f9ff;
+}
+
+/* Columnas numéricas: alineadas y con cifras tabulares */
+.client-table td:nth-child(5),
+.client-table td:nth-child(6) {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .client-table button:hover {
   opacity: 0.8;
+}
+
+.client-table-state {
+  padding: 32px 16px !important;
+  text-align: center !important;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+/* ── Badges de fila (saldo pendiente / envases) ──────────── */
+.client-name-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.client-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.client-badge--debt {
+  color: #b91c1c;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+}
+
+.client-badge--containers {
+  color: #047857;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Botón único de acciones por fila ────────────────────── */
+.client-actions-trigger {
+  min-height: 40px;
+  padding: 6px 16px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #334155;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.client-actions-trigger:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+.client-actions-trigger:active {
+  background: #cbd5e1;
 }
 
 /* Sistema de pestañas */
 .tabs-container {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 12px;
   border-bottom: 2px solid #e5e7eb;
   padding-bottom: 0;
 }
 
 .tab-button {
-  padding: 0.75rem 1.5rem;
+  min-height: 44px;
+  padding: 0.5rem 1.25rem;
   background: transparent;
   border: none;
   border-bottom: 3px solid transparent;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: #6b7280;
   transition: all 0.2s ease;
   position: relative;
   bottom: -2px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .tab-button:hover {
@@ -151,5 +309,74 @@
   .tab-button.active {
     border-left-color: #059669;
     border-bottom-color: #e5e7eb;
+  }
+}
+
+/* ── Paginación de la lista de clientes (táctil) ─────────── */
+.client-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.client-pagination-info {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+
+.client-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.client-pagination-btn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #334155;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.client-pagination-btn:hover:not(:disabled) {
+  background: #f0f9ff;
+  border-color: #3b82f6;
+}
+
+.client-pagination-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.client-pagination-page--active {
+  color: #fff;
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.client-pagination-page--active:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+@media (max-width: 640px) {
+  .client-pagination {
+    justify-content: center;
   }
 }

@@ -1,0 +1,212 @@
+/* Modal de acciones por cliente — centrado, chico y táctil.
+   Opciones grandes (>=56px) para el dedo. */
+
+.client-actions-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1100;
+}
+
+.client-actions-modal {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
+  overflow: hidden;
+}
+
+.client-actions-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.client-actions-header-info {
+  min-width: 0;
+}
+
+.client-actions-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.client-actions-alias {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: #1e40af;
+  background: #dbeafe;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.client-actions-close {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.client-actions-close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Resumen de contexto (saldo / envases) */
+.client-actions-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.client-actions-summary-item {
+  flex: 1;
+  min-width: 130px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.client-actions-summary-item--debt {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.client-actions-summary-item--containers {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.client-actions-summary-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #64748b;
+}
+
+.client-actions-summary-value {
+  font-size: 1.05rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
+}
+
+.client-actions-summary-item--debt .client-actions-summary-value {
+  color: #dc2626;
+}
+
+.client-actions-summary-item--containers .client-actions-summary-value {
+  color: #059669;
+}
+
+/* Lista de opciones */
+.client-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px 20px;
+}
+
+.client-actions-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 56px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s, border-color 0.12s, transform 0.12s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.client-actions-option:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.client-actions-option:active {
+  transform: scale(0.99);
+}
+
+.client-actions-option svg {
+  flex-shrink: 0;
+}
+
+.client-actions-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.client-actions-option-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.client-actions-option-desc {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* Acentos por acción */
+.client-actions-option--edit svg {
+  color: #475569;
+}
+.client-actions-option--history svg {
+  color: #1d4ed8;
+}
+.client-actions-option--pay {
+  border-color: #a7f3d0;
+  background: #f0fdf4;
+}
+.client-actions-option--pay svg {
+  color: #047857;
+}
+.client-actions-option--pay:hover {
+  background: #dcfce7;
+  border-color: #6ee7b7;
+}
+.client-actions-option--return svg {
+  color: #059669;
+}
+
+@media (max-width: 480px) {
+  .client-actions-summary {
+    flex-direction: column;
+  }
+}

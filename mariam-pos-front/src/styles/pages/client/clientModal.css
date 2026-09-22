@@ -1,0 +1,218 @@
+/* Modal crear/editar cliente — compacto, profesional y táctil.
+   Clases propias para no afectar los modales que comparten .category-form/.form-group globales.
+   Áreas tocables >= 44px. */
+
+.client-form-modal {
+  max-width: 560px;
+  width: 96%;
+  max-height: 92vh;
+  /* Anula fondo/sombra/borde que otras hojas globales (sales.css, containers.css)
+     aplican a .modal-container y provocaban el efecto "card dentro de card".
+     El único contenedor con superficie es .client-form-panel. */
+  background: transparent;
+  box-shadow: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+/* Superficie única y limpia (reemplaza el doble Card/modal-card anidado) */
+.client-form-panel {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+  overflow: hidden;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.client-form-panel .client-form {
+  overflow-y: auto;
+}
+
+.client-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.client-form-header h1 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.client-form-close {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  line-height: 1;
+  color: #64748b;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: background 0.15s, color 0.15s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.client-form-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Formulario compacto (menos padding/gap que el global .category-form 30px) */
+.client-form {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.client-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.client-form-group label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* Variante fila: label a la izquierda, input a la derecha (nombre, alias, celular) */
+.client-form-group--row {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.client-form-group--row label {
+  flex: 0 0 160px;
+}
+
+.client-form-group--row input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Error del campo nombre en modo fila: cae debajo, alineado bajo el input */
+.client-form-error--row {
+  flex: 1 1 100%;
+  margin-left: 174px; /* 160px del label + 14px del gap */
+}
+
+@media (max-width: 640px) {
+  .client-form-error--row {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .client-form-group--row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+  }
+
+  .client-form-group--row label {
+    flex: none;
+  }
+}
+
+.client-form-required {
+  color: #dc2626;
+}
+
+.client-form-group input[type="text"],
+.client-form-group input[type="tel"],
+.client-form-group input[type="number"] {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 48px;
+  padding: 10px 14px;
+  font-size: 1.05rem;
+  border: 2px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  color: #0f172a;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.client-form-group input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.client-form-group input.error {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+.client-form-error {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #dc2626;
+}
+
+.client-form-hint {
+  display: block;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+/* Checkbox de crédito: fila táctil */
+.client-form-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.client-form-check input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.client-form-check-hint {
+  margin-left: 30px;
+}
+
+/* Acciones */
+.client-form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+.client-form-actions .btn,
+.client-form-actions button {
+  min-height: 48px;
+}
+
+@media (max-width: 640px) {
+  .client-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .client-form-actions button {
+    width: 100%;
+  }
+}

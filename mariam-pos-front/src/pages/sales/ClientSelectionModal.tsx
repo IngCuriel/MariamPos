@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { IoCloseCircleOutline, IoAddCircleOutline, IoSearchOutline } from "react-icons/io5";
-import { getClients, createClient } from "../../api/clients";
+import { getClientsPaginated, createClient } from "../../api/clients";
 import type { Client } from "../../types/index";
 import Swal from "sweetalert2";
 import "../../styles/pages/sales/paymentModal.css";
+import "../../styles/pages/sales/clientSelectionModal.css";
 
 interface ClientSelectionModalProps {
   isOpen: boolean;
@@ -11,6 +12,8 @@ interface ClientSelectionModalProps {
   onClose: () => void;
   onSelect: (clientName: string, client?: Client) => void; // Ahora también devuelve el objeto Client
 }
+
+const CLIENTS_PER_PAGE = 8;
 
 const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
   isOpen,
@@ -20,8 +23,10 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [clients, setClients] = useState<Client[]>([]);
-  const [filteredClients, setFilteredClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalClients, setTotalClients] = useState(0);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newClientName, setNewClientName] = useState("");
   const [newClientAlias, setNewClientAlias] = useState("");
@@ -29,49 +34,16 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      loadClients();
-      setSearchTerm("");
-      setShowCreateForm(false);
-      setNewClientName("");
-      setNewClientAlias("");
-      setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 100);
-    }
-  }, [isOpen]);
-
-  // Enfocar el input de nombre completo cuando se muestra el formulario de creación
-  useEffect(() => {
-    if (showCreateForm) {
-      setTimeout(() => {
-        nameInputRef.current?.focus();
-      }, 100); // Pequeño delay para asegurar que el modal esté renderizado
-    }
-  }, [showCreateForm]);
-
-  useEffect(() => {
-    if (searchTerm.trim() === "") {
-      setFilteredClients(clients);
-    } else {
-      const search = searchTerm.toLowerCase();
-      setFilteredClients(
-        clients.filter(
-          (client) =>
-            client.name.toLowerCase().includes(search) ||
-            client.alias?.toLowerCase().includes(search)
-        )
-      );
-    }
-  }, [searchTerm, clients]);
-
-  const loadClients = async () => {
+  const loadClients = useCallback(async (page: number, search: string) => {
     try {
       setLoading(true);
-      const data = await getClients();
-      setClients(data);
-      setFilteredClients(data);
+      const result = await getClientsPaginated(page, CLIENTS_PER_PAGE, search);
+      setClients(result.clients);
+      setTotalPages(result.pagination.totalPages);
+      setTotalClients(result.pagination.total);
+      if (result.pagination.page !== page) {
+        setCurrentPage(result.pagination.page);
+      }
     } catch (error) {
       console.error("Error al cargar clientes:", error);
       Swal.fire({
@@ -79,14 +51,77 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
         title: "Error",
         text: "No se pudieron cargar los clientes",
       });
+      setClients([]);
+      setTotalPages(1);
+      setTotalClients(0);
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  // Al abrir el modal: reset y carga inicial.
+  useEffect(() => {
+    if (isOpen) {
+      setSearchTerm("");
+      setShowCreateForm(false);
+      setNewClientName("");
+      setNewClientAlias("");
+      setCurrentPage(1);
+      void loadClients(1, "");
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen, loadClients]);
+
+  // Enfocar el input de nombre completo cuando se muestra el formulario de creación
+  useEffect(() => {
+    if (showCreateForm) {
+      setTimeout(() => {
+        nameInputRef.current?.focus();
+      }, 100);
+    }
+  }, [showCreateForm]);
+
+  // Búsqueda con debounce (server-side): al escribir, vuelve a página 1.
+  useEffect(() => {
+    if (!isOpen) return;
+    const id = setTimeout(() => {
+      if (currentPage !== 1) {
+        setCurrentPage(1);
+      } else {
+        void loadClients(1, searchTerm);
+      }
+    }, 350);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm]);
+
+  // Cambio de página (no dispara en el mismo tick que la búsqueda gracias al guard).
+  useEffect(() => {
+    if (!isOpen) return;
+    void loadClients(currentPage, searchTerm);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.min(Math.max(1, page), totalPages));
+  };
+
+  const getPageNumbers = (): number[] => {
+    const maxButtons = 5;
+    if (totalPages <= maxButtons) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    let start = Math.max(1, currentPage - 2);
+    const end = Math.min(totalPages, start + maxButtons - 1);
+    start = Math.max(1, end - maxButtons + 1);
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   };
 
   const handleSelectClient = (client: Client) => {
     const displayName = client.alias ? `${client.name} (${client.alias})` : client.name;
-    onSelect(displayName, client); // Pasar también el objeto Client completo
+    onSelect(displayName, client);
     onClose();
   };
 
@@ -108,17 +143,17 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
         alias: newClientAlias.trim() || undefined,
       });
 
-      // Seleccionar el cliente recién creado
       const displayName = newClient.alias
         ? `${newClient.name} (${newClient.alias})`
         : newClient.name;
-      onSelect(displayName, newClient); // Pasar el objeto Client completo
+      onSelect(displayName, newClient);
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "No se pudo crear el cliente";
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: error.message || "No se pudo crear el cliente",
+        text: message,
       });
     } finally {
       setCreating(false);
@@ -135,208 +170,144 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
 
   if (!isOpen) return null;
 
+  const pageStartIndex = (currentPage - 1) * CLIENTS_PER_PAGE;
+
   return (
     <div className="modal-overlay" onKeyDown={handleKeyDown}>
-      <div
-        className="modal-container"
-        style={{
-          maxWidth: "650px",
-          width: "95%",
-          maxHeight: "90vh",
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
+      <div className="modal-container client-modal">
         <button className="close-btn" onClick={onClose}>
           <IoCloseCircleOutline size={32} />
         </button>
 
-        <h2 className="modal-title" style={{ fontSize: "1.6rem", marginBottom: "10px", marginTop: "0" }}>
-          👤 Seleccionar Cliente
-        </h2>
-        <p style={{ margin: "0 0 20px 0", fontSize: "0.9rem", color: "#6b7280", textAlign: "center" }}>
-          Busca un cliente existente o crea uno nuevo
-        </p>
+        <h2 className="modal-title client-modal-title">👤 Seleccionar Cliente</h2>
+        <p className="client-modal-subtitle">Busca un cliente existente o crea uno nuevo</p>
 
         {!showCreateForm ? (
           <>
-            {/* Barra de búsqueda */}
-            <div className="input-section" style={{ marginBottom: "20px" }}>
-              <label style={{ fontSize: "0.95rem", fontWeight: "600", marginBottom: "8px" }}>
-                Buscar Cliente:
-              </label>
-              <div className="input-wrapper" style={{ position: "relative" }}>
-                <IoSearchOutline
-                  size={20}
-                  style={{
-                    position: "absolute",
-                    left: "12px",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: "#9ca3af",
-                  }}
-                />
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  placeholder="Buscar por nombre o alias..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && filteredClients.length === 1) {
-                      handleSelectClient(filteredClients[0]);
-                    }
-                  }}
-                  style={{
-                    width: "100%",
-                    padding: "10px 10px 10px 40px",
-                    fontSize: "1rem",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "6px",
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Lista de clientes */}
-            <div
-              style={{
-                flex: 1,
-                minHeight: "200px",
-                maxHeight: "400px",
-                overflowY: "auto",
-                border: "1px solid #e5e7eb",
-                borderRadius: "8px",
-                marginBottom: "20px",
-                backgroundColor: "#fafafa",
-              }}
-            >
-              {loading ? (
-                <div style={{ padding: "40px", textAlign: "center", color: "#6b7280" }}>
-                  Cargando clientes...
-                </div>
-              ) : filteredClients.length === 0 ? (
-                <div style={{ padding: "40px", textAlign: "center", color: "#6b7280" }}>
-                  {searchTerm ? "No se encontraron clientes" : "No hay clientes registrados"}
-                </div>
-              ) : (
-                <div style={{ padding: "8px" }}>
-                  {filteredClients.map((client) => (
-                    <div
-                      key={client.id}
-                      onClick={() => handleSelectClient(client)}
-                      style={{
-                        padding: "14px 16px",
-                        margin: "6px 8px",
-                        borderRadius: "8px",
-                        cursor: "pointer",
-                        transition: "all 0.2s",
-                        backgroundColor: "#fff",
-                        border: "2px solid #e5e7eb",
-                        boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = "#f0f9ff";
-                        e.currentTarget.style.borderColor = "#3b82f6";
-                        e.currentTarget.style.transform = "translateX(4px)";
-                        e.currentTarget.style.boxShadow = "0 4px 6px rgba(0, 0, 0, 0.1)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "#fff";
-                        e.currentTarget.style.borderColor = "#e5e7eb";
-                        e.currentTarget.style.transform = "translateX(0)";
-                        e.currentTarget.style.boxShadow = "0 1px 2px rgba(0, 0, 0, 0.05)";
-                      }}
-                    >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div style={{ flex: 1 }}>
-                          <p style={{ margin: "0", fontWeight: "600", fontSize: "1rem", color: "#1f2937" }}>
-                            {client.name}
-                          </p>
-                          {client.alias && (
-                            <div
-                              style={{
-                                marginTop: "6px",
-                                display: "inline-block",
-                                padding: "2px 8px",
-                                backgroundColor: "#dbeafe",
-                                borderRadius: "4px",
-                              }}
-                            >
-                              <span
-                                style={{
-                                  fontSize: "0.8rem",
-                                  color: "#1e40af",
-                                  fontWeight: "500",
-                                }}
-                              >
-                                📌 {client.alias}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <span style={{ fontSize: "1.3rem", color: "#3b82f6", marginLeft: "12px" }}>→</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Botón para crear nuevo cliente */}
-            <div style={{ marginBottom: "15px" }}>
+            {/* Barra de búsqueda + crear cliente, en una sola fila */}
+            <div className="client-modal-searchbar">
+              <IoSearchOutline size={22} className="client-modal-searchbar-icon" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Buscar por nombre o alias..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && clients.length === 1) {
+                    handleSelectClient(clients[0]);
+                  }
+                }}
+                className="client-modal-input client-modal-searchbar-input"
+              />
               <button
+                type="button"
+                className="client-modal-create-trigger client-modal-create-trigger--inline"
                 onClick={() => setShowCreateForm(true)}
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  backgroundColor: "#f3f4f6",
-                  border: "2px dashed #d1d5db",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "8px",
-                  fontSize: "0.95rem",
-                  fontWeight: "600",
-                  color: "#374151",
-                  transition: "all 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "#e5e7eb";
-                  e.currentTarget.style.borderColor = "#9ca3af";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "#f3f4f6";
-                  e.currentTarget.style.borderColor = "#d1d5db";
-                }}
               >
                 <IoAddCircleOutline size={20} />
                 Crear Nuevo Cliente
               </button>
             </div>
 
-            {/* Cliente actual */}
-            {currentClient && currentClient !== "Publico en General" && (
-              <div
-                style={{
-                  padding: "12px",
-                  backgroundColor: "#dbeafe",
-                  border: "1px solid #3b82f6",
-                  borderRadius: "8px",
-                  marginBottom: "15px",
-                }}
-              >
-                <p style={{ margin: "0", fontSize: "0.85rem", color: "#1e40af", fontWeight: "600" }}>
-                  Cliente actual: {currentClient}
-                </p>
+            {/* Lista de clientes */}
+            <div className="client-modal-list">
+              {loading ? (
+                <div className="client-modal-list-state">Cargando clientes...</div>
+              ) : clients.length === 0 ? (
+                <div className="client-modal-list-state">
+                  {searchTerm ? "No se encontraron clientes" : "No hay clientes registrados"}
+                </div>
+              ) : (
+                clients.map((client) => (
+                  <div
+                    key={client.id}
+                    className="client-modal-row"
+                    onClick={() => handleSelectClient(client)}
+                  >
+                    <div className="client-modal-row-info">
+                      <p className="client-modal-row-name">{client.name}</p>
+                      {client.alias && (
+                        <span className="client-modal-row-alias">📌 {client.alias}</span>
+                      )}
+                    </div>
+                    <span className="client-modal-row-arrow">→</span>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Paginación */}
+            {totalClients > 0 && (
+              <div className="client-modal-pagination">
+                <span className="client-modal-pagination-info">
+                  {pageStartIndex + 1}–{Math.min(pageStartIndex + CLIENTS_PER_PAGE, totalClients)} de {totalClients}
+                </span>
+                <div className="client-modal-pagination-controls">
+                  <button
+                    type="button"
+                    className="client-modal-pagination-btn"
+                    onClick={() => goToPage(1)}
+                    disabled={currentPage === 1 || loading}
+                    aria-label="Primera página"
+                  >
+                    ⏮
+                  </button>
+                  <button
+                    type="button"
+                    className="client-modal-pagination-btn"
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1 || loading}
+                    aria-label="Página anterior"
+                  >
+                    ‹
+                  </button>
+                  {getPageNumbers().map((page) => (
+                    <button
+                      type="button"
+                      key={page}
+                      className={`client-modal-pagination-btn ${page === currentPage ? 'client-modal-pagination-btn--active' : ''}`}
+                      onClick={() => goToPage(page)}
+                      disabled={loading}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="client-modal-pagination-btn"
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages || loading}
+                    aria-label="Página siguiente"
+                  >
+                    ›
+                  </button>
+                  <button
+                    type="button"
+                    className="client-modal-pagination-btn"
+                    onClick={() => goToPage(totalPages)}
+                    disabled={currentPage === totalPages || loading}
+                    aria-label="Última página"
+                  >
+                    ⏭
+                  </button>
+                </div>
               </div>
             )}
 
-            <div className="payment-modal-actions">
-              <button className="cancel-btn-payment" onClick={onClose}>
+            {/* Cliente actual */}
+            {currentClient && currentClient !== "Publico en General" && (
+              <div className="client-modal-current">
+                <p className="client-modal-current-text">Cliente actual: {currentClient}</p>
+              </div>
+            )}
+
+            <div className="payment-modal-actions client-modal-actions">
+              <button
+                type="button"
+                className="client-modal-btn client-modal-btn--secondary"
+                onClick={onClose}
+              >
                 Cancelar (ESC)
               </button>
             </div>
@@ -344,9 +315,9 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
         ) : (
           <>
             {/* Formulario para crear cliente */}
-            <div className="input-section" style={{ marginBottom: "15px" }}>
-              <label style={{ fontSize: "0.95rem", fontWeight: "600", marginBottom: "8px" }}>
-                Nombre Completo <span style={{ color: "#dc2626" }}>*</span>
+            <div className="input-section client-modal-field">
+              <label className="client-modal-label">
+                Nombre Completo <span className="client-modal-label-required">*</span>
               </label>
               <div className="input-wrapper">
                 <input
@@ -366,15 +337,13 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
                       }
                     }
                   }}
-                  style={{ fontSize: "1rem", padding: "10px" }}
+                  className="client-modal-input"
                 />
               </div>
             </div>
 
-            <div className="input-section" style={{ marginBottom: "20px" }}>
-              <label style={{ fontSize: "0.95rem", fontWeight: "600", marginBottom: "8px" }}>
-                Alias (Opcional)
-              </label>
+            <div className="input-section client-modal-field">
+              <label className="client-modal-label">Alias (Opcional)</label>
               <div className="input-wrapper">
                 <input
                   id="alias-input"
@@ -388,17 +357,18 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
                       handleCreateClient();
                     }
                   }}
-                  style={{ fontSize: "1rem", padding: "10px" }}
+                  className="client-modal-input"
                 />
               </div>
-              <p style={{ marginTop: "5px", fontSize: "0.8rem", color: "#6b7280" }}>
+              <p className="client-modal-hint">
                 El alias ayuda a identificar mejor al cliente si hay nombres repetidos
               </p>
             </div>
 
-            <div className="payment-modal-actions">
+            <div className="payment-modal-actions client-modal-actions">
               <button
-                className="cancel-btn-payment"
+                type="button"
+                className="client-modal-btn client-modal-btn--secondary"
                 onClick={() => {
                   setShowCreateForm(false);
                   setNewClientName("");
@@ -412,7 +382,8 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
                 Volver
               </button>
               <button
-                className="confirm-btn"
+                type="button"
+                className="client-modal-btn client-modal-btn--primary"
                 onClick={handleCreateClient}
                 disabled={creating || !newClientName.trim()}
               >
@@ -427,4 +398,3 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
 };
 
 export default ClientSelectionModal;
-
