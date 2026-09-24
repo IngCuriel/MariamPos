@@ -672,25 +672,44 @@ export const getShiftSummary = async (req, res) => {
     // Calcular total de créditos generados
     const totalCreditsGenerated = creditsGenerated.reduce((sum, credit) => sum + credit.originalAmount, 0);
 
-    // Obtener abonos recibidos durante el turno
-    const creditIds = creditsGenerated.map(credit => credit.id);
-    const creditPayments = await prisma.creditPayment.findMany({
-      where: {
-        creditId: { in: creditIds },
-        createdAt: {
-          gte: shift.startTime,
-          lte: shift.endTime || new Date(),
+    // Obtener abonos recibidos DURANTE el turno.
+    // Fuente principal: abonos con shiftId = este turno (dato explícito y exacto,
+    // funciona aunque el crédito se haya generado en otro turno / otra caja).
+    // Fallback (datos históricos sin shiftId): abonos a créditos generados en
+    // este turno dentro de su ventana de fechas.
+    const creditIds = creditsGenerated.map((credit) => credit.id);
+    const paymentInclude = {
+      credit: {
+        include: {
+          sale: true,
+          client: true,
         },
       },
-      include: {
-        credit: {
-          include: {
-            sale: true,
-            client: true,
-          },
-        },
-      },
+    };
+
+    const paymentsByShift = await prisma.creditPayment.findMany({
+      where: { shiftId: shift.id },
+      include: paymentInclude,
     });
+
+    const legacyPayments = creditIds.length
+      ? await prisma.creditPayment.findMany({
+          where: {
+            shiftId: null,
+            creditId: { in: creditIds },
+            createdAt: {
+              gte: shift.startTime,
+              lte: shift.endTime || new Date(),
+            },
+          },
+          include: paymentInclude,
+        })
+      : [];
+
+    // Unir sin duplicar por id.
+    const paymentsById = new Map();
+    [...paymentsByShift, ...legacyPayments].forEach((p) => paymentsById.set(p.id, p));
+    const creditPayments = Array.from(paymentsById.values());
 
     // Calcular abonos en efectivo, tarjeta y otros
     let totalCreditPaymentsCash = 0;

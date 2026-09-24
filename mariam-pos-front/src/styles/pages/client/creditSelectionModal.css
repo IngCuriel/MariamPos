@@ -1,0 +1,221 @@
+/* Modal de selección de crédito — profesional y táctil.
+   Reemplaza el <select> nativo del Swal (que desbordaba en touch).
+   Tarjetas seleccionables grandes (>=64px). */
+
+.credit-sel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1200;
+}
+
+.credit-sel-modal {
+  width: 100%;
+  max-width: 480px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
+  overflow: hidden;
+}
+
+.credit-sel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+
+.credit-sel-header-info {
+  min-width: 0;
+}
+
+.credit-sel-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.credit-sel-subtitle {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+.credit-sel-close {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.credit-sel-close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Lista de créditos (scroll interno si son muchos) */
+.credit-sel-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.credit-sel-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s, border-color 0.12s, transform 0.12s, box-shadow 0.12s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.credit-sel-card:hover {
+  background: #f0f9ff;
+  border-color: #3b82f6;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.credit-sel-card:active {
+  transform: scale(0.99);
+}
+
+.credit-sel-card-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.credit-sel-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.credit-sel-card-folio {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.credit-sel-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.credit-sel-badge--pending {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.credit-sel-badge--partial {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.credit-sel-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.credit-sel-card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.credit-sel-card-amount-label {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.credit-sel-card-amount {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #dc2626;
+  font-variant-numeric: tabular-nums;
+}
+
+.credit-sel-card-chevron {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.credit-sel-footer {
+  padding: 12px 18px 16px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.credit-sel-cancel {
+  min-height: 48px;
+  padding: 10px 24px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #334155;
+  background: #f1f5f9;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.12s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.credit-sel-cancel:hover {
+  background: #e2e8f0;
+}
+
+@media (max-width: 480px) {
+  .credit-sel-cancel {
+    width: 100%;
+  }
+}

@@ -35,7 +35,7 @@ export const getSalesById = async (req, res) => {
 
 export const createSales = async (req, res) => {
   try {
-    const { folio, status, total, branch, cashRegister, paymentMethod, clientName, details } =
+    const { folio, status, total, branch, cashRegister, paymentMethod, clientName, createdBy, amountReceived, paymentReference, details } =
       req.body;
 
     if (!details || details.length === 0) {
@@ -68,6 +68,9 @@ export const createSales = async (req, res) => {
         cashRegister,
         paymentMethod,
         clientName,
+        createdBy: createdBy?.trim() || null, // Cajero que registró la venta
+        amountReceived: amountReceived != null ? Number(amountReceived) : null, // Monto recibido (efectivo)
+        paymentReference: paymentReference?.trim() || null, // Folio/ref comprobante (tarjeta)
         shiftId, // Asociar venta al turno activo si existe
         details: {
           create: details.map((d) => ({

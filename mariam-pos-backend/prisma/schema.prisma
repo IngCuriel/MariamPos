@@ -142,6 +142,15 @@ model Sale {
   //Caja de cobro
   cashRegister String? @default("Caja 1")
 
+  // Cajero que registró la venta (auditoría)
+  createdBy String?
+
+  // Monto recibido en efectivo (para arqueo/cambio)
+  amountReceived Float?
+
+  // Folio/referencia del comprobante (pago con tarjeta)
+  paymentReference String?
+
   // Nuevo campo de sincronización
   syncStatus String @default("pendiente") // pendiente, enviado
 
@@ -292,6 +301,9 @@ model CashRegisterShift {
   // Relación con depósitos de envases de clientes
   clientContainerDeposits ClientContainerDeposit[]
 
+  // Relación con abonos a créditos recibidos en el turno
+  creditPayments CreditPayment[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -407,6 +419,9 @@ model ClientCredit {
   // Notas
   notes String?
 
+  // Cajero que registró el crédito (la venta que lo generó)
+  createdBy String?
+
   // Relación con pagos/abonos
   payments CreditPayment[]
 
@@ -438,11 +453,17 @@ model CreditPayment {
   // Usuario que registró el pago
   createdBy String?
 
+  // Turno de caja en el que se recibió el abono (para arqueo/corte).
+  // Se resuelve en el backend a partir del turno activo de la caja.
+  shiftId Int?
+  shift   CashRegisterShift? @relation(fields: [shiftId], references: [id])
+
   // Fecha
   createdAt DateTime @default(now())
 
   @@index([creditId])
   @@index([createdAt])
+  @@index([shiftId])
 }
 
 // ------------------------------------------------------------
@@ -585,6 +606,10 @@ model ClientContainerDeposit {
 
   // Notas
   notes String?
+
+  // Auditoría de cajeros
+  createdBy  String? // Cajero que registró/dio el envase
+  returnedBy String? // Cajero que regresó el importe
 
   // Fechas
   createdAt  DateTime  @default(now())

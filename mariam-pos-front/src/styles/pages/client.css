@@ -171,15 +171,15 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ── Botón único de acciones por fila ────────────────────── */
-.client-actions-trigger {
+/* ── Botón Editar directo por fila ───────────────────────── */
+.client-edit-btn {
   min-height: 40px;
   padding: 6px 16px;
   font-size: 0.9rem;
   font-weight: 700;
-  color: #334155;
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
   border-radius: 10px;
   cursor: pointer;
   white-space: nowrap;
@@ -188,13 +188,13 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.client-actions-trigger:hover {
-  background: #e2e8f0;
-  border-color: #94a3b8;
+.client-edit-btn:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
 }
 
-.client-actions-trigger:active {
-  background: #cbd5e1;
+.client-edit-btn:active {
+  background: #bfdbfe;
 }
 
 /* Sistema de pestañas */

@@ -9,16 +9,19 @@ import {
   getCashMovementsByShift,
 } from "../../api/cashRegister";
 import { useCashier } from "../../contexts/CashierContext";
+import ShiftSummaryModal from "./ShiftSummaryModal";
 import type {
   CashRegisterShift,
   OpenShiftInput,
   CloseShiftInput,
   CashMovement,
+  ShiftSummary,
 } from "../../types/index";
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import TouchCalculator from '../../components/TouchCalculator';
 import "../../styles/pages/sales/paymentModal.css";
+import "../../styles/pages/sales/shiftCloseSummary.css";
 
 interface ShiftModalProps {
   branch: string;
@@ -79,6 +82,8 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
   const [cashMovements, setCashMovements] = useState<CashMovement[]>([]);
   const [isMobile, setIsMobile] = useState(false);
   const [creditsInfo, setCreditsInfo] = useState<any>(null);
+  const [summaryData, setSummaryData] = useState<ShiftSummary | null>(null);
+  const [showSummary, setShowSummary] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Detectar si es móvil
@@ -233,7 +238,7 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
       Swal.fire({
         icon: "success",
         title: "✅ Turno abierto",
-        text: `Turno ${shift.shiftNumber} iniciado correctamente`,
+        text: `Turno #${shift.id} iniciado correctamente`,
         timer: 2000,
         showConfirmButton: false,
       });
@@ -279,7 +284,7 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
         icon: "success",
         title: "✅ Turno cerrado",
         html: `
-          <p>Turno ${shift.shiftNumber} cerrado correctamente</p>
+          <p>Turno #${shift.id} cerrado correctamente</p>
           <p style="margin-top: 10px; font-size: 0.9rem;">
             Diferencia: <strong style="color: ${shift.difference === 0 ? '#059669' : shift.difference! > 0 ? '#dc2626' : '#3b82f6'}">
               ${shift.difference! >= 0 ? '+' : ''}${shift.difference?.toFixed(2)}
@@ -309,405 +314,30 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
     if (!activeShift) return;
 
     try {
-      console.log('activeShift.id', activeShift.id);
       const summary = await getShiftSummary(activeShift.id);
-      console.log('summary resumen de turno', summary);
-      // Calcular efectivo esperado correctamente
-      // Fondo inicial + Ventas en efectivo + Neto de movimientos + Abonos en efectivo - Créditos generados
-      // Los créditos se restan porque representan dinero que NO se recibió en efectivo
-      // Siempre calcular localmente para asegurar precisión
-      // Ahora todas las claves están normalizadas en minúsculas
-      const ventasEfectivo = summary.paymentMethods?.efectivo?.total || summary.totals?.totalCash || 0;
-      const ventasTarjeta = summary.paymentMethods?.tarjeta?.total || summary.totals?.totalCard || 0;
+
+      // Calcular efectivo esperado y persistirlo en el summary para que el
+      // modal React lo muestre sin recalcular:
+      // Fondo inicial + Ventas en efectivo + Neto de movimientos
+      //   + Abonos en efectivo - Créditos generados.
+      // Los créditos se restan porque representan dinero que NO se recibió en efectivo.
+      const ventasEfectivo =
+        summary.paymentMethods?.efectivo?.total || summary.totals?.totalCash || 0;
       const netoMovimientos = summary.cashMovementsSummary?.neto || 0;
       const abonosEfectivo = summary.creditsInfo?.totalCreditPaymentsCash || 0;
       const creditosGenerados = summary.creditsInfo?.totalCreditsGenerated || 0;
-      const expectedCash = summary.shift.initialCash + ventasEfectivo + netoMovimientos + abonosEfectivo - creditosGenerados;
-      
-      // Construir HTML de movimientos si existen
-      let movementsHtml = "";
-      if (summary.cashMovements && summary.cashMovements.length > 0) {
-        movementsHtml = `
-          <hr style="margin: 15px 0;">
-          <p style="font-weight: 600; margin-bottom: 8px;">Movimientos de Efectivo:</p>
-          <div style="max-height: 200px; overflow-y: auto; font-size: 0.85rem;">
-            ${summary.cashMovements.map((m: any) => `
-              <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #e5e7eb;">
-                <div>
-                  <span style="color: ${m.type === 'ENTRADA' ? '#059669' : '#dc2626'}; font-weight: 600;">
-                    ${m.type === 'ENTRADA' ? '💰 +' : '💸 -'}$${m.amount.toFixed(2)}
-                  </span>
-                  <span style="color: #6b7280; margin-left: 8px;">${m.reason || 'Sin razón'}</span>
-                </div>
-                <span style="color: #9ca3af; font-size: 0.8rem;">
-                  ${new Date(m.createdAt).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
-            `).join('')}
-          </div>
-          ${summary.cashMovementsSummary ? `
-            <div style="margin-top: 10px; padding-top: 10px; border-top: 2px solid #d1d5db;">
-              <p style="font-size: 0.85rem;">
-                <strong>Total Entradas:</strong> <span style="color: #059669;">+$${summary.cashMovementsSummary.totalEntradas.toFixed(2)}</span>
-              </p>
-              <p style="font-size: 0.85rem;">
-                <strong>Total Salidas:</strong> <span style="color: #dc2626;">-$${summary.cashMovementsSummary.totalSalidas.toFixed(2)}</span>
-              </p>
-              <p style="font-size: 0.85rem; font-weight: 600;">
-                <strong>Neto Movimientos:</strong> 
-                <span style="color: ${summary.cashMovementsSummary.neto >= 0 ? '#059669' : '#dc2626'};">
-                  ${summary.cashMovementsSummary.neto >= 0 ? '+' : ''}$${summary.cashMovementsSummary.neto.toFixed(2)}
-                </span>
-              </p>
-            </div>
-          ` : ''}
-        `;
-      }
+      const expectedCash =
+        summary.shift.initialCash +
+        ventasEfectivo +
+        netoMovimientos +
+        abonosEfectivo -
+        creditosGenerados;
 
-      Swal.fire({
-        title: "📊 Resumen Completo del Turno",
-        html: `
-          <div style="text-align: left; margin-top: 15px; font-size: 1.05rem; max-width: 100%;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-              <div>
-                <div style="margin-bottom: 12px;">
-                  <span style="color: #6b7280; font-size: 0.95rem;">Fondo Inicial:</span>
-                  <p style="margin: 4px 0; font-size: 1.2rem; font-weight: 700; color: #1f2937;">
-                    $${summary.shift.initialCash.toFixed(2)}
-                  </p>
-                </div>
-                <div style="margin-bottom: 12px;">
-                  <span style="color: #6b7280; font-size: 0.95rem;">Ventas en Efectivo:</span>
-                  <p style="margin: 4px 0; font-size: 1.2rem; font-weight: 700; color: #059669;">
-                    $${ventasEfectivo.toFixed(2)}
-                  </p>
-                </div>
-                ${summary.cashMovementsSummary ? `
-                  <div style="margin-bottom: 12px; padding: 10px; background: #f3f4f6; border-radius: 8px;">
-                    <p style="margin: 4px 0; color: #059669; font-weight: 600; font-size: 1rem;">
-                      <strong>💰 Entradas:</strong> +$${summary.cashMovementsSummary.totalEntradas.toFixed(2)}
-                    </p>
-                    <p style="margin: 4px 0; color: #dc2626; font-weight: 600; font-size: 1rem;">
-                      <strong>💸 Salidas:</strong> -$${summary.cashMovementsSummary.totalSalidas.toFixed(2)}
-                    </p>
-                    <p style="margin: 4px 0; font-weight: 600; font-size: 1rem;">
-                      <strong>Neto:</strong> 
-                      <span style="color: ${summary.cashMovementsSummary.neto >= 0 ? '#059669' : '#dc2626'};">
-                        ${summary.cashMovementsSummary.neto >= 0 ? '+' : ''}$${summary.cashMovementsSummary.neto.toFixed(2)}
-                      </span>
-                    </p>
-                  </div>
-                ` : ''}
-              </div>
-              <div>
-                <div style="margin-bottom: 12px;">
-                  <span style="color: #6b7280; font-size: 0.95rem;">Ventas en Tarjeta:</span>
-                  <p style="margin: 4px 0; font-size: 1.1rem; font-weight: 600; color: #3b82f6;">
-                    $${ventasTarjeta.toFixed(2)}
-                  </p>
-                </div>
-                <div style="margin-bottom: 12px;">
-                  <span style="color: #6b7280; font-size: 0.95rem;">Ventas en Transferencia:</span>
-                  <p style="margin: 4px 0; font-size: 1.1rem; font-weight: 600; color: #8b5cf6;">
-                    $${summary.totals.totalTransfer.toFixed(2)}
-                  </p>
-                </div>
-                ${summary.paymentMethods?.regalo ? `
-                <div style="margin-bottom: 12px;">
-                  <span style="color: #6b7280; font-size: 0.95rem;">Regalo:</span>
-                  <p style="margin: 4px 0; font-size: 1.1rem; font-weight: 600; color: #f59e0b;">
-                    $${summary.paymentMethods.regalo.total.toFixed(2)}
-                  </p>
-                </div>
-                ` : ''}
-                ${(summary.totals.totalOther - (summary.paymentMethods?.regalo?.total || 0)) > 0 ? `
-                <div style="margin-bottom: 12px;">
-                  <span style="color: #6b7280; font-size: 0.95rem;">Otros:</span>
-                  <p style="margin: 4px 0; font-size: 1.1rem; font-weight: 600; color: #6b7280;">
-                    $${(summary.totals.totalOther - (summary.paymentMethods?.Regalo?.total || 0)).toFixed(2)}
-                  </p>
-                </div>
-                ` : ''}
-              </div>
-            </div>
-            <hr style="margin: 15px 0; border-color: #d1d5db;">
-            <div style="padding: 15px; background: #dbeafe; border-radius: 8px; border: 2px solid #3b82f6; margin-bottom: 15px;">
-              <span style="color: #1e40af; font-size: 1rem; font-weight: 600;">
-                Total Esperado en Efectivo:
-              </span>
-              <p style="margin: 8px 0 0 0; font-size: 1.5rem; font-weight: 700; color: #1e40af;">
-                $${expectedCash.toFixed(2)}
-              </p>
-              <p style="margin: 8px 0 0 0; font-size: 0.9rem; color: #6b7280;">
-                (Fondo: $${summary.shift.initialCash.toFixed(2)} + Ventas: $${ventasEfectivo.toFixed(2)} ${netoMovimientos !== 0 ? `+ Movimientos: ${netoMovimientos >= 0 ? '+' : ''}$${netoMovimientos.toFixed(2)}` : ''}${abonosEfectivo > 0 ? ` + Abonos: +$${abonosEfectivo.toFixed(2)}` : ''}${creditosGenerados > 0 ? ` - Créditos: -$${creditosGenerados.toFixed(2)}` : ''})
-              </p>
-            </div>
-            ${summary.creditsInfo && summary.creditsInfo.creditsCount > 0 ? `
-            <div style="padding: 15px; background: #fef3c7; border-radius: 8px; border: 2px solid #f59e0b; margin-bottom: 15px;">
-              <span style="color: #92400e; font-size: 1rem; font-weight: 600;">
-                💳 Créditos y Abonos:
-              </span>
-              <div style="margin-top: 10px; font-size: 0.9rem;">
-                <p style="margin: 4px 0; color: #92400e;">
-                  <strong>Créditos Generados:</strong> ${summary.creditsInfo.creditsCount} crédito(s) - <span style="color: #dc2626;">$${summary.creditsInfo.totalCreditsGenerated.toFixed(2)}</span>
-                </p>
-                ${summary.creditsInfo.paymentsCount > 0 ? `
-                  <p style="margin: 4px 0; color: #92400e;">
-                    <strong>Abonos Recibidos:</strong> ${summary.creditsInfo.paymentsCount} abono(s)
-                  </p>
-                  <p style="margin: 4px 0; color: #92400e;">
-                    - En Efectivo: <span style="color: #059669; font-weight: 600;">+$${summary.creditsInfo.totalCreditPaymentsCash.toFixed(2)}</span>
-                  </p>
-                  ${summary.creditsInfo.totalCreditPaymentsCard > 0 ? `
-                    <p style="margin: 4px 0; color: #92400e;">
-                      - En Tarjeta: <span style="color: #3b82f6; font-weight: 600;">$${summary.creditsInfo.totalCreditPaymentsCard.toFixed(2)}</span>
-                    </p>
-                  ` : ''}
-                  ${summary.creditsInfo.totalCreditPaymentsOther > 0 ? `
-                    <p style="margin: 4px 0; color: #92400e;">
-                      - Otros: <span style="font-weight: 600;">$${summary.creditsInfo.totalCreditPaymentsOther.toFixed(2)}</span>
-                    </p>
-                  ` : ''}
-                ` : '<p style="margin: 4px 0; color: #92400e; font-style: italic;">Sin abonos registrados</p>'}
-              </div>
-            </div>
-            ` : ''}
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-              <div>
-                <span style="color: #6b7280; font-size: 0.95rem;">Total de Ventas:</span>
-                <p style="margin: 4px 0; font-size: 1.1rem; font-weight: 600; color: #1f2937;">
-                  $${summary.statistics.totalAmount.toFixed(2)}
-                </p>
-              </div>
-              <div>
-                <span style="color: #6b7280; font-size: 0.95rem;">Número de Ventas:</span>
-                <p style="margin: 4px 0; font-size: 1.1rem; font-weight: 600; color: #1f2937;">
-                  ${summary.statistics.totalSales}
-                </p>
-              </div>
-            </div>
-            <div style="margin-bottom: 15px;">
-              <span style="color: #6b7280; font-size: 0.95rem;">Ticket Promedio:</span>
-              <p style="margin: 4px 0; font-size: 1.1rem; font-weight: 600; color: #1f2937;">
-                $${summary.statistics.averageTicket.toFixed(2)}
-              </p>
-            </div>
-            ${movementsHtml}
-            ${summary.sales && summary.sales.length > 0 ? `
-            <hr style="margin: 20px 0; border-color: #d1d5db;">
-            <div style="margin-bottom: 15px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <p style="font-weight: 600; font-size: 1rem; color: #1f2937; margin: 0;">
-                  📋 Folios del Turno (${summary.sales.length} ${summary.sales.length === 1 ? 'venta' : 'ventas'})
-                </p>
-                <button 
-                  id="toggle-folios-table" 
-                  onclick="
-                    const table = document.getElementById('folios-table-container');
-                    const btn = document.getElementById('toggle-folios-table');
-                    if (table.style.display === 'none') {
-                      table.style.display = 'block';
-                      btn.innerHTML = '👁️ Ocultar Tabla';
-                      btn.style.backgroundColor = '#dc2626';
-                    } else {
-                      table.style.display = 'none';
-                      btn.innerHTML = '👁️ Mostrar Tabla';
-                      btn.style.backgroundColor = '#3b82f6';
-                    }
-                  "
-                  style="
-                    padding: 8px 16px;
-                    background-color: #3b82f6;
-                    color: white;
-                    border: none;
-                    border-radius: 6px;
-                    font-size: 0.875rem;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: background-color 0.2s;
-                  "
-                  onmouseover="this.style.opacity='0.9'"
-                  onmouseout="this.style.opacity='1'"
-                >
-                  👁️ Mostrar Tabla
-                </button>
-              </div>
-              <div id="folios-table-container" style="display: none;">
-                <div style="max-height: 400px; overflow-y: auto; overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb;">
-                  <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
-                    <thead style="position: sticky; top: 0; background: #f3f4f6; z-index: 10;">
-                      <tr style="border-bottom: 2px solid #d1d5db;">
-                        <th style="padding: 12px 8px; text-align: left; font-weight: 600; color: #374151; white-space: nowrap;">Folio</th>
-                        <th style="padding: 12px 8px; text-align: left; font-weight: 600; color: #374151; white-space: nowrap;">Fecha/Hora</th>
-                        <th style="padding: 12px 8px; text-align: left; font-weight: 600; color: #374151; white-space: nowrap;">Cliente</th>
-                        <th style="padding: 12px 8px; text-align: left; font-weight: 600; color: #374151; white-space: nowrap;">Método Pago</th>
-                        <th style="padding: 12px 8px; text-align: right; font-weight: 600; color: #374151; white-space: nowrap;">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${summary.sales
-                        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                        .map((sale: any) => {
-                          const saleDate = new Date(sale.createdAt);
-                          const dateStr = saleDate.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                          const timeStr = saleDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-                          const paymentMethod = sale.paymentMethod || 'No especificado';
-                          const methodLower = paymentMethod.toLowerCase();
-                          const clientName = sale.clientName || 'Cliente General';
-                          const folio = sale.folio || sale.id.toString();
-                          
-                          // Determinar método de pago y color
-                          let methodDisplay = '';
-                          let methodColor = '#6b7280';
-                          
-                          if (methodLower.includes('mixto')) {
-                            const cashMatch = paymentMethod.match(/efectivo[:\s]*\$?([\d.]+)/i);
-                            const cardMatch = paymentMethod.match(/tarjeta[:\s]*\$?([\d.]+)/i);
-                            const cashAmount = cashMatch ? parseFloat(cashMatch[1]) : 0;
-                            const cardAmount = cardMatch ? parseFloat(cardMatch[1]) : 0;
-                            methodDisplay = '💵 Efectivo: $' + cashAmount.toFixed(2) + '<br>💳 Tarjeta: $' + cardAmount.toFixed(2);
-                            methodColor = '#8b5cf6';
-                          } else if (methodLower.includes('efectivo') || methodLower === 'cash') {
-                            methodDisplay = '💵 Efectivo';
-                            methodColor = '#059669';
-                          } else if (methodLower.includes('tarjeta') || methodLower.includes('card')) {
-                            methodDisplay = '💳 Tarjeta';
-                            methodColor = '#3b82f6';
-                          } else if (methodLower.includes('transferencia') || methodLower.includes('transfer')) {
-                            methodDisplay = '🏦 Transferencia';
-                            methodColor = '#8b5cf6';
-                          } else if (methodLower.includes('regalo')) {
-                            methodDisplay = '🎁 Regalo';
-                            methodColor = '#f59e0b';
-                          } else {
-                            const shortMethod = paymentMethod.length > 25 ? paymentMethod.substring(0, 25) + '...' : paymentMethod;
-                            methodDisplay = '📝 ' + shortMethod;
-                          }
-                          
-                          return `
-                            <tr style="border-bottom: 1px solid #e5e7eb; transition: background-color 0.2s;" 
-                                onmouseover="this.style.backgroundColor='#f3f4f6'" 
-                                onmouseout="this.style.backgroundColor='transparent'">
-                              <td style="padding: 10px 8px; color: #1f2937; font-weight: 600;">${folio}</td>
-                              <td style="padding: 10px 8px; color: #6b7280; white-space: nowrap;">
-                                <div style="font-size: 0.85rem;">${dateStr}</div>
-                                <div style="font-size: 0.8rem; color: #9ca3af;">${timeStr}</div>
-                              </td>
-                              <td style="padding: 10px 8px; color: #374151; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${clientName}">${clientName}</td>
-                              <td style="padding: 10px 8px; color: ${methodColor}; font-size: 0.85rem; font-weight: 500; line-height: 1.4;">
-                                ${methodDisplay}
-                              </td>
-                              <td style="padding: 10px 8px; text-align: right; color: #059669; font-weight: 600; white-space: nowrap;">
-                                $${sale.total.toFixed(2)}
-                              </td>
-                            </tr>
-                          `;
-                        }).join('')}
-                    </tbody>
-                    <tfoot style="background: #f3f4f6; border-top: 2px solid #d1d5db;">
-                      <tr>
-                        <td colspan="4" style="padding: 12px 8px; text-align: right; font-weight: 700; color: #1f2937;">
-                          Total General:
-                        </td>
-                        <td style="padding: 12px 8px; text-align: right; font-weight: 700; color: #059669; font-size: 1rem;">
-                          $${summary.statistics.totalAmount.toFixed(2)}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-                <!-- Resumen por método de pago -->
-                <div style="margin-top: 15px; padding: 15px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;">
-                  <p style="font-weight: 600; margin-bottom: 12px; font-size: 0.95rem; color: #1f2937;">
-                    💰 Resumen por Método de Pago:
-                  </p>
-                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; font-size: 0.9rem;">
-                    ${summary.paymentMethods?.efectivo ? `
-                      <div style="padding: 10px; background: #ecfdf5; border-left: 4px solid #059669; border-radius: 4px;">
-                        <div style="font-weight: 600; color: #059669; margin-bottom: 4px;">💵 Efectivo</div>
-                        <div style="font-size: 1.1rem; font-weight: 700; color: #047857;">
-                          $${summary.paymentMethods.efectivo.total.toFixed(2)}
-                        </div>
-                        <div style="font-size: 0.8rem; color: #6b7280; margin-top: 2px;">
-                          ${summary.paymentMethods.efectivo.count} ${summary.paymentMethods.efectivo.count === 1 ? 'venta' : 'ventas'}
-                        </div>
-                      </div>
-                    ` : ''}
-                    ${summary.paymentMethods?.tarjeta ? `
-                      <div style="padding: 10px; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 4px;">
-                        <div style="font-weight: 600; color: #3b82f6; margin-bottom: 4px;">💳 Tarjeta</div>
-                        <div style="font-size: 1.1rem; font-weight: 700; color: #1e40af;">
-                          $${summary.paymentMethods.tarjeta.total.toFixed(2)}
-                        </div>
-                        <div style="font-size: 0.8rem; color: #6b7280; margin-top: 2px;">
-                          ${summary.paymentMethods.tarjeta.count} ${summary.paymentMethods.tarjeta.count === 1 ? 'venta' : 'ventas'}
-                        </div>
-                      </div>
-                    ` : ''}
-                    ${summary.paymentMethods?.transferencia ? `
-                      <div style="padding: 10px; background: #f5f3ff; border-left: 4px solid #8b5cf6; border-radius: 4px;">
-                        <div style="font-weight: 600; color: #8b5cf6; margin-bottom: 4px;">🏦 Transferencia</div>
-                        <div style="font-size: 1.1rem; font-weight: 700; color: #6d28d9;">
-                          $${summary.paymentMethods.transferencia.total.toFixed(2)}
-                        </div>
-                        <div style="font-size: 0.8rem; color: #6b7280; margin-top: 2px;">
-                          ${summary.paymentMethods.transferencia.count} ${summary.paymentMethods.transferencia.count === 1 ? 'venta' : 'ventas'}
-                        </div>
-                      </div>
-                    ` : ''}
-                    ${summary.paymentMethods?.regalo ? `
-                      <div style="padding: 10px; background: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 4px;">
-                        <div style="font-weight: 600; color: #f59e0b; margin-bottom: 4px;">🎁 Regalo</div>
-                        <div style="font-size: 1.1rem; font-weight: 700; color: #d97706;">
-                          $${summary.paymentMethods.regalo.total.toFixed(2)}
-                        </div>
-                        <div style="font-size: 0.8rem; color: #6b7280; margin-top: 2px;">
-                          ${summary.paymentMethods.regalo.count} ${summary.paymentMethods.regalo.count === 1 ? 'venta' : 'ventas'}
-                        </div>
-                      </div>
-                    ` : ''}
-                    ${summary.paymentMethods?.otros ? `
-                      <div style="padding: 10px; background: #f9fafb; border-left: 4px solid #6b7280; border-radius: 4px;">
-                        <div style="font-weight: 600; color: #6b7280; margin-bottom: 4px;">📝 Otros</div>
-                        <div style="font-size: 1.1rem; font-weight: 700; color: #374151;">
-                          $${summary.paymentMethods.otros.total.toFixed(2)}
-                        </div>
-                        <div style="font-size: 0.8rem; color: #6b7280; margin-top: 2px;">
-                          ${summary.paymentMethods.otros.count} ${summary.paymentMethods.otros.count === 1 ? 'venta' : 'ventas'}
-                        </div>
-                      </div>
-                    ` : ''}
-                  </div>
-                </div>
-                <style>
-                  /* Scrollbar personalizado para la tabla */
-                  div[style*="max-height: 400px"]::-webkit-scrollbar {
-                    width: 8px;
-                    height: 8px;
-                  }
-                  div[style*="max-height: 400px"]::-webkit-scrollbar-track {
-                    background: #f1f1f1;
-                    border-radius: 4px;
-                  }
-                  div[style*="max-height: 400px"]::-webkit-scrollbar-thumb {
-                    background: #888;
-                    border-radius: 4px;
-                  }
-                  div[style*="max-height: 400px"]::-webkit-scrollbar-thumb:hover {
-                    background: #555;
-                  }
-                </style>
-              </div>
-            </div>
-            ` : ''}
-          </div>
-        `,
-        width: isMobile ? "95%" : "900px",
-        showConfirmButton: false,
-        showCloseButton: true, // Botón X nativo simple
-        allowOutsideClick: true,
-        allowEscapeKey: true,
+      setSummaryData({
+        ...summary,
+        shift: { ...summary.shift, expectedCash },
       });
+      setShowSummary(true);
     } catch (error) {
       console.error("Error al cargar resumen:", error);
     }
@@ -865,14 +495,46 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
   );
   const abonosEfectivo = creditsInfo?.totalCreditPaymentsCash || 0;
   const creditosGenerados = creditsInfo?.totalCreditsGenerated || 0;
-  const expectedCash = activeShift.expectedCash ?? 
-    (activeShift.initialCash + activeShift.totalCash + totalCashMovements + abonosEfectivo - creditosGenerados);
+  // Calcular SIEMPRE localmente con los datos frescos de creditsInfo/movimientos.
+  // No usar activeShift.expectedCash: es un valor precalculado por el backend que
+  // puede no incluir abonos aplicados durante el turno (quedaría desfasado).
+  const expectedCash =
+    activeShift.initialCash +
+    activeShift.totalCash +
+    totalCashMovements +
+    abonosEfectivo -
+    creditosGenerados;
   const difference =
     finalCash && parseFloat(finalCash) >= 0
       ? parseFloat(finalCash) - expectedCash
       : null;
 
+  // Entradas / salidas de efectivo (para el bloque de movimientos)
+  const totalEntradas = cashMovements
+    .filter((m) => m.type === "ENTRADA")
+    .reduce((sum, m) => sum + m.amount, 0);
+  const totalSalidas = cashMovements
+    .filter((m) => m.type === "SALIDA")
+    .reduce((sum, m) => sum + m.amount, 0);
+
+  // Separar "Regalo" de "Otros" dentro de totalOther, usando las ventas del turno.
+  let totalRegalo = 0;
+  if (activeShift.sales && Array.isArray(activeShift.sales)) {
+    totalRegalo = activeShift.sales
+      .filter(
+        (sale: any) =>
+          sale.paymentMethod &&
+          sale.paymentMethod.toLowerCase().includes("regalo")
+      )
+      .reduce((sum: number, sale: any) => sum + (sale.total || 0), 0);
+  }
+  const totalOtros = activeShift.totalOther - totalRegalo;
+
+  // Formateador de moneda unificado (2 decimales, sin redondeo).
+  const money = (n: number) => `$${(n || 0).toFixed(2)}`;
+
   return (
+    <>
     <div className="modal-overlay">
       <div className="modal-container" style={{ 
         maxWidth: "1000px", 
@@ -891,10 +553,7 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
 
         <div style={{ marginBottom: "15px", textAlign: "center" }}>
           <p style={{ fontSize: "0.95rem", color: "#6b7280", fontWeight: "600", margin: "2px 0" }}>
-            {activeShift.shiftNumber}
-          </p>
-          <p style={{ fontSize: "0.9rem", color: "#6b7280", margin: "2px 0" }}>
-            {branch} - {cashRegister}
+            Turno #{activeShift.id}
           </p>
         </div>
 
@@ -905,171 +564,117 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
           gap: "15px",
           marginBottom: "15px"
         }}>
-          {/* Columna izquierda - Resumen */}
-          <div
-            style={{
-              backgroundColor: "#f3f4f6",
-              padding: "15px",
-              borderRadius: "10px",
-            }}
-          >
-            <h3 style={{ 
-              marginTop: 0, 
-              marginBottom: "10px",
-              fontSize: "1.1rem",
-              fontWeight: "700",
-              color: "#1f2937"
-            }}>
-              Resumen del Turno
-            </h3>
-            <div style={{ 
-              display: "grid", 
-              gridTemplateColumns: "1fr 1fr", 
-              gap: "8px",
-              fontSize: "0.9rem"
-            }}>
-              <div>
-                <span style={{ color: "#6b7280", fontSize: "0.85rem", display: "block" }}>Fondo Inicial:</span>
-                <p style={{ margin: "2px 0", fontSize: "1rem", fontWeight: "700", color: "#1f2937" }}>
-                  ${activeShift.initialCash.toFixed(2)}
-                </p>
-              </div>
-              
-              <div>
-                <span style={{ color: "#6b7280", fontSize: "0.85rem", display: "block" }}>Ventas Efectivo:</span>
-                <p style={{ margin: "2px 0", fontSize: "1rem", fontWeight: "700", color: "#059669" }}>
-                  ${activeShift.totalCash.toFixed(2)}
-                </p>
-              </div>
+          {/* Columna izquierda - Resumen del turno (reorganizado) */}
+          <div className="shsi-card">
+            <h3 className="shsi-title">Resumen del Turno</h3>
 
-              {cashMovements.length > 0 && (
-                <>
-                  <div style={{ gridColumn: "1 / -1", padding: "8px", backgroundColor: "#ffffff", borderRadius: "6px", border: "1px solid #e5e7eb" }}>
-                    <span style={{ color: "#6b7280", fontSize: "0.85rem", display: "block", marginBottom: "4px" }}>Movimientos:</span>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem" }}>
-                      <span style={{ color: "#059669", fontWeight: "600" }}>
-                        💰 +${cashMovements.filter((m) => m.type === "ENTRADA").reduce((sum, m) => sum + m.amount, 0).toFixed(2)}
-                      </span>
-                      <span style={{ color: "#dc2626", fontWeight: "600" }}>
-                        💸 -${cashMovements.filter((m) => m.type === "SALIDA").reduce((sum, m) => sum + m.amount, 0).toFixed(2)}
+            {/* 1) Fondo inicial */}
+            <div className="shsi-section">
+              <span className="shsi-section-label">Fondo inicial</span>
+              <div className="shsi-row shsi-row--strong">
+                <span>💵 Fondo con el que abrió la caja</span>
+                <span>{money(activeShift.initialCash)}</span>
+              </div>
+            </div>
+
+            {/* 2) Tipos de cobro */}
+            <div className="shsi-section">
+              <span className="shsi-section-label">Cobros del turno</span>
+              <div className="shsi-row">
+                <span>💵 Efectivo</span>
+                <span className="shsi-amount shsi-amount--cash">{money(activeShift.totalCash)}</span>
+              </div>
+              <div className="shsi-row">
+                <span>💳 Tarjeta</span>
+                <span className="shsi-amount shsi-amount--card">{money(activeShift.totalCard)}</span>
+              </div>
+              <div className="shsi-row">
+                <span>🏦 Transferencia</span>
+                <span className="shsi-amount shsi-amount--transfer">{money(activeShift.totalTransfer)}</span>
+              </div>
+              {totalRegalo > 0 && (
+                <div className="shsi-row">
+                  <span>🎁 Regalo</span>
+                  <span className="shsi-amount shsi-amount--gift">{money(totalRegalo)}</span>
+                </div>
+              )}
+              {totalOtros > 0 && (
+                <div className="shsi-row">
+                  <span>📋 Otros</span>
+                  <span className="shsi-amount shsi-amount--other">{money(totalOtros)}</span>
+                </div>
+              )}
+            </div>
+
+            {/* 3) Créditos y abonos (en línea) */}
+            {creditsInfo && (creditsInfo.creditsCount > 0 || creditsInfo.paymentsCount > 0) && (
+              <div className="shsi-section shsi-section--credits shsi-section--inline">
+                <span className="shsi-section-label">Créditos y abonos</span>
+                <div className="shsi-inline">
+                  {creditsInfo.creditsCount > 0 && (
+                    <div className="shsi-cell">
+                      <span className="shsi-cell-label">Fiado generado ({creditsInfo.creditsCount})</span>
+                      <span className="shsi-cell-value shsi-amount--due">
+                        {money(creditsInfo.totalCreditsGenerated)}
                       </span>
                     </div>
-                    <p style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "4px", textAlign: "center" }}>
-                      ({cashMovements.length} movimiento{cashMovements.length !== 1 ? "s" : ""})
-                    </p>
-                  </div>
-                </>
-              )}
-
-              <div>
-                <span style={{ color: "#6b7280", fontSize: "0.85rem", display: "block" }}>Tarjeta:</span>
-                <p style={{ margin: "2px 0", fontSize: "0.95rem", fontWeight: "600", color: "#3b82f6" }}>
-                  ${activeShift.totalCard.toFixed(2)}
-                </p>
-              </div>
-
-              <div>
-                <span style={{ color: "#6b7280", fontSize: "0.85rem", display: "block" }}>Transferencia:</span>
-                <p style={{ margin: "2px 0", fontSize: "0.95rem", fontWeight: "600", color: "#8b5cf6" }}>
-                  ${activeShift.totalTransfer.toFixed(2)}
-                </p>
-              </div>
-
-              {(() => {
-                // Calcular regalos desde las ventas si están disponibles
-                let totalRegalo = 0;
-                if (activeShift.sales && Array.isArray(activeShift.sales)) {
-                  totalRegalo = activeShift.sales
-                    .filter((sale: any) => sale.paymentMethod && sale.paymentMethod.toLowerCase().includes("regalo"))
-                    .reduce((sum: number, sale: any) => sum + (sale.total || 0), 0);
-                }
-                const totalOtros = activeShift.totalOther - totalRegalo;
-                
-                return (
-                  <>
-                    {totalRegalo > 0 && (
-                      <div>
-                        <span style={{ color: "#6b7280", fontSize: "0.85rem", display: "block" }}>Regalo:</span>
-                        <p style={{ margin: "2px 0", fontSize: "0.95rem", fontWeight: "600", color: "#f59e0b" }}>
-                          {totalRegalo.toFixed(2)}
-                        </p>
-                      </div>
-                    )}
-                    {totalOtros > 0 && (
-                      <div>
-                        <span style={{ color: "#6b7280", fontSize: "0.85rem", display: "block" }}>Otros:</span>
-                        <p style={{ margin: "2px 0", fontSize: "0.95rem", fontWeight: "600", color: "#6b7280" }}>
-                          {totalOtros.toFixed(2)}
-                        </p>
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
-
-            <hr style={{ margin: "10px 0", borderColor: "#d1d5db" }} />
-            
-            <div style={{ 
-              padding: "12px",
-              backgroundColor: "#dbeafe",
-              borderRadius: "8px",
-              border: "2px solid #3b82f6"
-            }}>
-              <span style={{ color: "#1e40af", fontSize: "0.9rem", fontWeight: "600", display: "block" }}>
-                Total Esperado en Efectivo:
-              </span>
-              <p style={{ 
-                margin: "4px 0 0 0", 
-                fontSize: "1.3rem", 
-                fontWeight: "700", 
-                color: "#1e40af"
-              }}>
-                ${expectedCash.toFixed(2)}
-              </p>
-              <p style={{ margin: "4px 0 0 0", fontSize: "0.75rem", color: "#6b7280" }}>
-                (Fondo: ${activeShift.initialCash.toFixed(2)} + Ventas: ${activeShift.totalCash.toFixed(2)} ${totalCashMovements !== 0 ? `+ Mov: ${totalCashMovements >= 0 ? '+' : ''}${totalCashMovements.toFixed(2)}` : ''}${abonosEfectivo > 0 ? ` + Abonos: +${abonosEfectivo.toFixed(2)}` : ''}${creditosGenerados > 0 ? ` - Créditos: -${creditosGenerados.toFixed(2)}` : ''})
-              </p>
-            </div>
-            {creditsInfo && creditsInfo.creditsCount > 0 && (
-              <div style={{ 
-                padding: "12px", 
-                background: "#fef3c7", 
-                borderRadius: "8px", 
-                border: "2px solid #f59e0b", 
-                marginTop: "10px" 
-              }}>
-                <span style={{ color: "#92400e", fontSize: "0.9rem", fontWeight: "600" }}>
-                  💳 Créditos y Abonos:
-                </span>
-                <div style={{ marginTop: "6px", fontSize: "0.85rem", color: "#92400e" }}>
-                  <p style={{ margin: "2px 0" }}>
-                    <strong>Créditos:</strong> {creditsInfo.creditsCount} - <span style={{ color: "#dc2626" }}>${creditsInfo.totalCreditsGenerated.toFixed(2)}</span>
-                  </p>
-                  {creditsInfo.paymentsCount > 0 && (
-                    <>
-                      <p style={{ margin: "2px 0" }}>
-                        <strong>Abonos:</strong> {creditsInfo.paymentsCount} abono(s)
-                      </p>
-                      {creditsInfo.totalCreditPaymentsCash > 0 && (
-                        <p style={{ margin: "2px 0", color: "#059669" }}>
-                          - Efectivo: +${creditsInfo.totalCreditPaymentsCash.toFixed(2)}
-                        </p>
-                      )}
-                      {creditsInfo.totalCreditPaymentsCard > 0 && (
-                        <p style={{ margin: "2px 0", color: "#3b82f6" }}>
-                          - Tarjeta: ${creditsInfo.totalCreditPaymentsCard.toFixed(2)}
-                        </p>
-                      )}
-                    </>
+                  )}
+                  {creditsInfo.totalCreditPaymentsCash > 0 && (
+                    <div className="shsi-cell">
+                      <span className="shsi-cell-label">Abonos efectivo ({creditsInfo.paymentsCount})</span>
+                      <span className="shsi-cell-value shsi-amount--cash">
+                        +{money(creditsInfo.totalCreditPaymentsCash)}
+                      </span>
+                    </div>
+                  )}
+                  {creditsInfo.totalCreditPaymentsCard > 0 && (
+                    <div className="shsi-cell">
+                      <span className="shsi-cell-label">Abonos tarjeta</span>
+                      <span className="shsi-cell-value shsi-amount--card">
+                        {money(creditsInfo.totalCreditPaymentsCard)}
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
             )}
+
+            {/* 4) Movimientos de efectivo (en línea) */}
+            {cashMovements.length > 0 && (
+              <div className="shsi-section shsi-section--inline">
+                <span className="shsi-section-label">
+                  Movimientos de efectivo ({cashMovements.length})
+                </span>
+                <div className="shsi-inline">
+                  <div className="shsi-cell">
+                    <span className="shsi-cell-label">💰 Entradas</span>
+                    <span className="shsi-cell-value shsi-amount--cash">+{money(totalEntradas)}</span>
+                  </div>
+                  <div className="shsi-cell">
+                    <span className="shsi-cell-label">💸 Salidas</span>
+                    <span className="shsi-cell-value shsi-amount--due">−{money(totalSalidas)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
           </div>
 
           {/* Columna derecha - Inputs */}
           <div>
+            {/* Referencia: total que el cajero debería contar */}
+            <div className="shsi-expected shsi-expected--sidebar">
+              <span className="shsi-expected-label">Total esperado en caja</span>
+              <span className="shsi-expected-value">{money(expectedCash)}</span>
+              <span className="shsi-expected-formula">
+                Fondo {money(activeShift.initialCash)} + Ventas efectivo {money(activeShift.totalCash)}
+                {totalCashMovements !== 0 &&
+                  ` ${totalCashMovements >= 0 ? "+" : "−"} Movimientos ${money(Math.abs(totalCashMovements))}`}
+                {abonosEfectivo > 0 && ` + Abonos ${money(abonosEfectivo)}`}
+                {creditosGenerados > 0 && ` − Créditos ${money(creditosGenerados)}`}
+              </span>
+            </div>
+
             <div className="input-section" style={{ marginBottom: "12px" }}>
               <label style={{ fontSize: "0.95rem", fontWeight: "600", marginBottom: "6px", display: "block" }}>
                 <span style={{ marginRight: "0.5rem" }}>💰</span>
@@ -1224,6 +829,13 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
         </div>
       </div>
     </div>
+
+    <ShiftSummaryModal
+      isOpen={showSummary}
+      summary={summaryData}
+      onClose={() => setShowSummary(false)}
+    />
+    </>
   );
 };
 

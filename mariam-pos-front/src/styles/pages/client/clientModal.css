@@ -216,3 +216,53 @@
     width: 100%;
   }
 }
+
+/* Resumen de crédito utilizado (solo en edición con crédito activo) */
+.client-credit-usage {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.client-credit-usage-loading {
+  font-size: 0.85rem;
+  color: #92400e;
+}
+
+.client-credit-usage-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.9rem;
+  color: #78350f;
+  font-variant-numeric: tabular-nums;
+}
+
+.client-credit-usage-row--strong {
+  padding-top: 6px;
+  margin-top: 2px;
+  border-top: 1px solid #fde68a;
+  font-weight: 700;
+}
+
+.client-credit-usage-label {
+  font-weight: 600;
+}
+
+.client-credit-usage-value {
+  font-weight: 700;
+}
+
+.client-credit-usage-value--used {
+  color: #dc2626;
+}
+
+.client-credit-usage-value--available {
+  color: #059669;
+}

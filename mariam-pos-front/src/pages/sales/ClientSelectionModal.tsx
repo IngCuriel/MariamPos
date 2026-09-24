@@ -59,7 +59,7 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
     }
   }, []);
 
-  // Al abrir el modal: reset y carga inicial.
+  // Al abrir el modal: reset de estado (sin cargar aquí; el efecto de datos lo hace).
   useEffect(() => {
     if (isOpen) {
       setSearchTerm("");
@@ -67,12 +67,11 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
       setNewClientName("");
       setNewClientAlias("");
       setCurrentPage(1);
-      void loadClients(1, "");
       setTimeout(() => {
         searchInputRef.current?.focus();
       }, 100);
     }
-  }, [isOpen, loadClients]);
+  }, [isOpen]);
 
   // Enfocar el input de nombre completo cuando se muestra el formulario de creación
   useEffect(() => {
@@ -83,26 +82,15 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
     }
   }, [showCreateForm]);
 
-  // Búsqueda con debounce (server-side): al escribir, vuelve a página 1.
+  // ÚNICA fuente de carga: reacciona a página + búsqueda, con debounce.
+  // Un solo efecto evita las llamadas duplicadas de tener varios compitiendo.
   useEffect(() => {
     if (!isOpen) return;
     const id = setTimeout(() => {
-      if (currentPage !== 1) {
-        setCurrentPage(1);
-      } else {
-        void loadClients(1, searchTerm);
-      }
-    }, 350);
+      void loadClients(currentPage, searchTerm);
+    }, 300);
     return () => clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm]);
-
-  // Cambio de página (no dispara en el mismo tick que la búsqueda gracias al guard).
-  useEffect(() => {
-    if (!isOpen) return;
-    void loadClients(currentPage, searchTerm);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage]);
+  }, [isOpen, currentPage, searchTerm, loadClients]);
 
   const goToPage = (page: number) => {
     setCurrentPage(Math.min(Math.max(1, page), totalPages));
@@ -179,8 +167,7 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
           <IoCloseCircleOutline size={32} />
         </button>
 
-        <h2 className="modal-title client-modal-title">👤 Seleccionar Cliente</h2>
-        <p className="client-modal-subtitle">Busca un cliente existente o crea uno nuevo</p>
+        <h2 className="modal-title client-modal-title client-modal-title--sm">👤 Seleccionar Cliente</h2>
 
         {!showCreateForm ? (
           <>
@@ -192,7 +179,10 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
                 type="text"
                 placeholder="Buscar por nombre o alias..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1); // al buscar, volver a la primera página
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && clients.length === 1) {
                     handleSelectClient(clients[0]);
@@ -237,64 +227,6 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
               )}
             </div>
 
-            {/* Paginación */}
-            {totalClients > 0 && (
-              <div className="client-modal-pagination">
-                <span className="client-modal-pagination-info">
-                  {pageStartIndex + 1}–{Math.min(pageStartIndex + CLIENTS_PER_PAGE, totalClients)} de {totalClients}
-                </span>
-                <div className="client-modal-pagination-controls">
-                  <button
-                    type="button"
-                    className="client-modal-pagination-btn"
-                    onClick={() => goToPage(1)}
-                    disabled={currentPage === 1 || loading}
-                    aria-label="Primera página"
-                  >
-                    ⏮
-                  </button>
-                  <button
-                    type="button"
-                    className="client-modal-pagination-btn"
-                    onClick={() => goToPage(currentPage - 1)}
-                    disabled={currentPage === 1 || loading}
-                    aria-label="Página anterior"
-                  >
-                    ‹
-                  </button>
-                  {getPageNumbers().map((page) => (
-                    <button
-                      type="button"
-                      key={page}
-                      className={`client-modal-pagination-btn ${page === currentPage ? 'client-modal-pagination-btn--active' : ''}`}
-                      onClick={() => goToPage(page)}
-                      disabled={loading}
-                    >
-                      {page}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    className="client-modal-pagination-btn"
-                    onClick={() => goToPage(currentPage + 1)}
-                    disabled={currentPage === totalPages || loading}
-                    aria-label="Página siguiente"
-                  >
-                    ›
-                  </button>
-                  <button
-                    type="button"
-                    className="client-modal-pagination-btn"
-                    onClick={() => goToPage(totalPages)}
-                    disabled={currentPage === totalPages || loading}
-                    aria-label="Última página"
-                  >
-                    ⏭
-                  </button>
-                </div>
-              </div>
-            )}
-
             {/* Cliente actual */}
             {currentClient && currentClient !== "Publico en General" && (
               <div className="client-modal-current">
@@ -302,10 +234,67 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
               </div>
             )}
 
-            <div className="payment-modal-actions client-modal-actions">
+            {/* Footer: paginación + cancelar en una sola fila */}
+            <div className="client-modal-footer-row">
+              {totalClients > 0 && (
+                <div className="client-modal-pagination">
+                  <span className="client-modal-pagination-info">
+                    {pageStartIndex + 1}–{Math.min(pageStartIndex + CLIENTS_PER_PAGE, totalClients)} de {totalClients}
+                  </span>
+                  <div className="client-modal-pagination-controls">
+                    <button
+                      type="button"
+                      className="client-modal-pagination-btn"
+                      onClick={() => goToPage(1)}
+                      disabled={currentPage === 1 || loading}
+                      aria-label="Primera página"
+                    >
+                      ⏮
+                    </button>
+                    <button
+                      type="button"
+                      className="client-modal-pagination-btn"
+                      onClick={() => goToPage(currentPage - 1)}
+                      disabled={currentPage === 1 || loading}
+                      aria-label="Página anterior"
+                    >
+                      ‹
+                    </button>
+                    {getPageNumbers().map((page) => (
+                      <button
+                        type="button"
+                        key={page}
+                        className={`client-modal-pagination-btn ${page === currentPage ? 'client-modal-pagination-btn--active' : ''}`}
+                        onClick={() => goToPage(page)}
+                        disabled={loading}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className="client-modal-pagination-btn"
+                      onClick={() => goToPage(currentPage + 1)}
+                      disabled={currentPage === totalPages || loading}
+                      aria-label="Página siguiente"
+                    >
+                      ›
+                    </button>
+                    <button
+                      type="button"
+                      className="client-modal-pagination-btn"
+                      onClick={() => goToPage(totalPages)}
+                      disabled={currentPage === totalPages || loading}
+                      aria-label="Última página"
+                    >
+                      ⏭
+                    </button>
+                  </div>
+                </div>
+              )}
               <button
                 type="button"
-                className="client-modal-btn client-modal-btn--secondary"
+                className="client-modal-btn client-modal-btn--secondary client-modal-footer-cancel"
                 onClick={onClose}
               >
                 Cancelar (ESC)

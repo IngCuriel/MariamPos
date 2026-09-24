@@ -1,0 +1,261 @@
+/* Modal de registrar abono — profesional y táctil.
+   Campos/targets >= 48px para el dedo. */
+
+.abono-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1200;
+}
+
+.abono-modal {
+  width: 100%;
+  max-width: 460px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
+  overflow: hidden;
+}
+
+.abono-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+
+.abono-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.abono-close {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.abono-close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.abono-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Resumen del crédito */
+.abono-info {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.abono-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+}
+
+.abono-info-row:not(:last-child) {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.abono-info-label {
+  color: #64748b;
+}
+
+.abono-info-value {
+  font-weight: 700;
+  color: #1e293b;
+  text-align: right;
+}
+
+/* Folio del crédito en el header */
+.abono-header-folio {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 700;
+}
+
+/* Nota aclaratoria: de qué venta salió el crédito */
+.abono-info-note {
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #475569;
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.abono-info-note strong {
+  color: #0f172a;
+}
+
+/* Bloque de montos: Total / Pagado / Pendiente */
+.abono-info-amounts {
+  display: flex;
+  gap: 8px;
+  padding: 12px 14px;
+  background: #f8fafc;
+}
+
+.abono-amount {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.abono-amount-label {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.abono-amount-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+.abono-amount-value--paid {
+  color: #059669;
+}
+
+.abono-amount-value--due {
+  color: #dc2626;
+}
+
+/* Campos del formulario */
+.abono-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.abono-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #374151;
+}
+
+.abono-required {
+  color: #dc2626;
+}
+
+.abono-input,
+.abono-select {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 52px;
+  padding: 12px 14px;
+  font-size: 1.1rem;
+  border: 2px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  color: #0f172a;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.abono-input {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.abono-input:focus,
+.abono-select:focus {
+  outline: none;
+  border-color: #059669;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.18);
+}
+
+.abono-hint {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+/* Footer */
+.abono-footer {
+  display: flex;
+  gap: 12px;
+  padding: 14px 18px;
+  border-top: 1px solid #f1f5f9;
+  flex-shrink: 0;
+}
+
+.abono-btn {
+  flex: 1;
+  min-height: 52px;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, opacity 0.12s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.abono-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.abono-btn--cancel {
+  color: #334155;
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+.abono-btn--cancel:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.abono-btn--confirm {
+  color: #fff;
+  background: #059669;
+  border-color: #059669;
+}
+
+.abono-btn--confirm:hover:not(:disabled) {
+  background: #047857;
+  border-color: #047857;
+}

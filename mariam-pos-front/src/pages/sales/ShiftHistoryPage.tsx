@@ -175,7 +175,7 @@ export default function ShiftHistoryPage({
     const isMobile = window.innerWidth < 768;
 
     Swal.fire({
-      title: `📋 Folios del Turno ${shift.shiftNumber}`,
+      title: `📋 Folios del Turno #${shift.id}`,
       html: `
         <div style="text-align: left; margin-top: 15px; font-size: 1.05rem; max-width: 100%;">
           <p style="font-weight: 600; margin-bottom: 12px; font-size: 1rem; color: #1f2937;">
@@ -390,7 +390,7 @@ export default function ShiftHistoryPage({
                 <table className="shifts-table">
                   <thead>
                     <tr>
-                      {/*<th>Folio</th>*/}
+                      <th>Turno</th>
                       <th>Fecha Inicio</th>
                       <th>Caja</th>
                       <th>Cajero</th>
@@ -405,7 +405,7 @@ export default function ShiftHistoryPage({
                         className={selectedShift?.id === shift.id ? "selected" : ""}
                         onClick={() => handleSelectShift(shift)}
                       >
-                        {/*<td className="folio-cell">{shift.shiftNumber}</td>*/}
+                        <td className="folio-cell">#{shift.id}</td>
                         <td className="date-cell">{formatDate(shift.startTime)}</td>
                         <td className="cash-register-cell">{shift.cashRegister}</td>
                         <td className="cashier-cell">{shift.cashierName || "Anónimo"}</td>
@@ -443,8 +443,8 @@ export default function ShiftHistoryPage({
                 <h3 className="card-title">Información General</h3>
                 <div className="info-grid">
                   <div className="info-item">
-                    <span className="info-label">Folio:</span>
-                    <span className="info-value">{selectedShift.shiftNumber}</span>
+                    <span className="info-label">Turno:</span>
+                    <span className="info-value">#{selectedShift.id}</span>
                   </div>
                   <div className="info-item">
                     <span className="info-label">Estado:</span>

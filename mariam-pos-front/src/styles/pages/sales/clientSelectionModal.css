@@ -5,11 +5,12 @@
 .client-modal {
   max-width: 900px;
   width: 96%;
-  max-height: 92vh;
+  height: 95vh;
+  max-height: 95vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding: 20px 24px;
+  padding: 10px 24px;
   box-sizing: border-box;
 }
 
@@ -21,11 +22,10 @@
   color: #0f172a;
 }
 
-.client-modal-subtitle {
-  margin: 0 0 16px;
-  font-size: 0.9rem;
-  color: #6b7280;
-  text-align: center;
+/* Título más pequeño (vista de selección) */
+.client-modal-title--sm {
+  font-size: 1.15rem;
+  margin: 0 0 14px;
 }
 
 /* ── Búsqueda ────────────────────────────────────────────── */
@@ -35,6 +35,7 @@
   align-items: center;
   gap: 12px;
   margin-bottom: 14px;
+  flex-shrink: 0;
 }
 
 .client-modal-searchbar-icon {
@@ -98,15 +99,17 @@
 
 /* ── Lista de clientes (área grande) ─────────────────────── */
 .client-modal-list {
-  flex: 1;
-  min-height: 320px;
-  max-height: 58vh;
+  /* Ocupa el espacio disponible entre el buscador y el footer.
+     flex-basis apunta a las 8 filas (8 × 68px + 16px padding = 560px),
+     pero puede encogerse (min-height bajo) para que el footer nunca se corte. */
+  flex: 1 1 560px;
+  min-height: 180px;
   overflow-y: auto;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   margin-bottom: 14px;
   background: #fafafa;
-  padding: 8px;
+  padding: 6px;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -123,8 +126,8 @@
   justify-content: space-between;
   gap: 12px;
   min-height: 56px;
-  padding: 10px 14px;
-  margin: 6px 4px;
+  padding: 5px 14px;
+  margin: 1px 4px;
   border-radius: 10px;
   cursor: pointer;
   background: #fff;
@@ -305,6 +308,26 @@
   .client-modal-btn {
     width: 100%;
   }
+}
+
+/* Footer: paginación + cancelar en una sola fila (siempre visible) */
+.client-modal-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.client-modal-footer-row .client-modal-pagination {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.client-modal-footer-cancel {
+  flex-shrink: 0;
 }
 
 /* ── Paginación del modal (táctil) ───────────────────────── */

@@ -1,0 +1,174 @@
+/* Resumen del turno inline (columna izquierda del modal Cerrar Turno).
+   Prefijo shsi- para no colisionar con estilos globales de paymentModal. */
+
+.shsi-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.shsi-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #1f2937;
+  text-align: center;
+}
+
+/* Cada grupo de conceptos */
+.shsi-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: #fff;
+  border: 1px solid #eef2f7;
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+
+/* Bloques con celdas en línea (créditos, movimientos): más compactos */
+.shsi-section--inline {
+  padding: 6px 10px;
+}
+
+.shsi-section--inline .shsi-section-label {
+  margin-bottom: 2px;
+}
+
+.shsi-section--credits {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.shsi-section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.shsi-section--credits .shsi-section-label {
+  color: #92400e;
+}
+
+/* Fila concepto -> monto */
+.shsi-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 0;
+  font-size: 0.9rem;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+  font-variant-numeric: tabular-nums;
+}
+
+.shsi-row:last-child {
+  border-bottom: none;
+}
+
+.shsi-row--strong {
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.shsi-amount {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.shsi-amount--cash { color: #059669; }
+.shsi-amount--card { color: #3b82f6; }
+.shsi-amount--transfer { color: #8b5cf6; }
+.shsi-amount--gift { color: #f59e0b; }
+.shsi-amount--other { color: #6b7280; }
+.shsi-amount--due { color: #dc2626; }
+
+/* Grupo de celdas en la misma fila (créditos, movimientos) */
+.shsi-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.shsi-cell {
+  flex: 1;
+  min-width: 90px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.shsi-section--credits .shsi-cell {
+  background: #fff;
+  border-color: #fde68a;
+}
+
+.shsi-cell-label {
+  font-size: 0.68rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.shsi-cell-value {
+  font-size: 0.92rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Total esperado destacado */
+.shsi-expected {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #eff6ff;
+  border: 2px solid #3b82f6;
+  text-align: center;
+}
+
+.shsi-expected-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1e40af;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.shsi-expected-value {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #1e40af;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.shsi-expected-formula {
+  font-size: 0.72rem;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+/* Variante en la columna derecha (referencia sobre el input) */
+.shsi-expected--sidebar {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+}
+
+.shsi-expected--sidebar .shsi-expected-value {
+  font-size: 1.35rem;
+}

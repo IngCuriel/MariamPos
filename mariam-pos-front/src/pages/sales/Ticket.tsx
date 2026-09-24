@@ -4,9 +4,13 @@ import type {Sale} from '../../types/index'
 
 interface TicketProps { 
     sale:Sale
+    /** Monto que quedó a crédito en esta venta (si aplica). */
+    creditAmount?: number
+    /** Importe de depósito de envases generado en esta venta (si aplica). */
+    containerAmount?: number
 }
 
-const Ticket: React.FC<TicketProps> = ({sale}) => {
+const Ticket: React.FC<TicketProps> = ({sale, creditAmount = 0, containerAmount = 0}) => {
   console.log('sale ticker', sale)
   const dateFormat = (date: Date)=> {
     const fecha = new Date(date);
@@ -36,31 +40,29 @@ const Ticket: React.FC<TicketProps> = ({sale}) => {
         fontSize: "12px",
         background: "white",
         color: "black",
+        boxSizing: "border-box",
+        minHeight: "100%",
         display: "flex",
         flexDirection: "column",
-        height: "100%",
       }}
     >
-      {/* Header fijo */}
-      <div style={{ flexShrink: 0 }}>
+      {/* Encabezado */}
+      <div>
         <h3 style={{ textAlign: "center", margin: 0 }}>{sale.branch}</h3>
         <p style={{ textAlign: "center", margin: "4px 0" }}>Cliente: {sale.clientName}</p>
         {/*<p style={{ textAlign: "center", margin: "4px 0" }}>Progreso 10, entro, Yutanduchi de Guerrero, Oax.</p>*/}
         <hr />
-        <p style={{ textAlign: "left" }}>Folio: {sale.id}</p>
-        {sale.shift?.shiftNumber && (
-          <p style={{ textAlign: "left" }}>Turno: {sale.shift.shiftNumber}</p>
-        )}
-        <p style={{ textAlign: "left" }}>Fecha: {dateFormat(sale.createdAt)}</p>
+        <p style={{ display: "flex", justifyContent: "space-between", gap: "12px", margin: "4px 0" }}>
+          <span>Folio: {sale.id}</span>
+          <span>Fecha: {dateFormat(sale.createdAt)}</span>
+        </p>
         <hr />
       </div>
 
-      {/* Lista de productos con scroll */}
+      {/* Lista de productos (crece para empujar el pie abajo; el scroll es del contenedor) */}
       <div style={{ 
-        flex: 1, 
-        overflowY: "auto", 
+        flex: 1,
         overflowX: "hidden",
-        minHeight: 0,
         margin: "8px 0",
       }}>
         <div style={{ 
@@ -100,8 +102,8 @@ const Ticket: React.FC<TicketProps> = ({sale}) => {
         </div>
       </div>
 
-      {/* Footer fijo */}
-      <div style={{ flexShrink: 0, marginTop: "8px" }}>
+      {/* Pie del ticket */}
+      <div style={{ marginTop: "8px" }}>
         <hr />
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
           <span style={{ fontWeight: "600" }}>Total de productos:</span>
@@ -110,11 +112,53 @@ const Ticket: React.FC<TicketProps> = ({sale}) => {
         <p style={{ textAlign: "right", fontWeight: "bold", marginTop: "8px" }}>
           Total: ${sale.total.toFixed(2)}
         </p>
+        {creditAmount > 0 && (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>Pagado:</span>
+              <span>${Math.max(sale.total - creditAmount, 0).toFixed(2)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold" }}>
+              <span>A crédito:</span>
+              <span>${creditAmount.toFixed(2)}</span>
+            </div>
+          </>
+        )}
+        {containerAmount > 0 && (
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span>🍺 Depósito de envases:</span>
+            <span>${containerAmount.toFixed(2)}</span>
+          </div>
+        )}
         <p style={{ textAlign: "right", fontWeight: "bold" }}>
           {sale.paymentMethod}
         </p>
+        {sale.amountReceived != null && (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>Recibido:</span>
+              <span>${sale.amountReceived.toFixed(2)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>Cambio:</span>
+              <span>${Math.max(sale.amountReceived - sale.total - containerAmount, 0).toFixed(2)}</span>
+            </div>
+          </>
+        )}
+        {sale.paymentReference && (
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span>Ref. comprobante:</span>
+            <span>{sale.paymentReference}</span>
+          </div>
+        )}
         <hr />
+        {sale.shift?.shiftNumber && (
+          <p style={{ textAlign: "center", margin: "4px 0" }}>Turno: {sale.shift.shiftNumber}</p>
+        )}
         <p style={{ textAlign: "center" }}>¡Gracias por su compra!</p>
+        {sale.createdBy && (
+          <p style={{ textAlign: "center", margin: "4px 0" }}>Te atendió: {sale.createdBy}</p>
+        )}
         <p style={{ textAlign: "center" }}>Vuelva pronto</p>
       </div>
     </div>

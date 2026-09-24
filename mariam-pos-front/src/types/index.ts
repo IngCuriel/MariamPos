@@ -70,6 +70,10 @@ export interface Sale {
   branch:string, // sucursal
   cashRegister: string,  //Caja de cobro
   clientName?: string;
+  createdBy?: string; // Cajero que registró la venta
+  amountReceived?: number; // Monto recibido en efectivo
+  paymentReference?: string; // Folio/referencia del comprobante (tarjeta)
+  shiftId?: number; // Turno de caja en el que se registró la venta
   details: SaleDetail[];
   shift?: {
     id: number;
@@ -95,6 +99,7 @@ export interface ConfirmPaymentData {
    change: number; // Cambio (solo aplica a efectivo)
    cashAmount?: number; // Monto en efectivo (solo para mixto)
    cardAmount?: number; // Monto en tarjeta (solo para mixto)
+   paymentReference?: string; // Folio/referencia del comprobante (tarjeta/mixto)
    creditAmount?: number; // Monto a crédito (si hay faltante y se permite crédito)
    containersDepositInfo?: {
      total: number;
@@ -354,6 +359,7 @@ export interface ClientCredit {
   updatedAt: Date;
   paidAt?: Date;
   notes?: string;
+  createdBy?: string; // Cajero que registró el crédito
   payments?: CreditPayment[];
 }
 
@@ -366,6 +372,7 @@ export interface CreditPayment {
   paymentMethod?: string;
   notes?: string;
   createdBy?: string;
+  shiftId?: number; // Turno de caja en el que se recibió el abono
   createdAt: Date;
 }
 
@@ -375,6 +382,7 @@ export interface CreateCreditInput {
   saleId: number;
   amount: number;
   notes?: string;
+  createdBy?: string; // Cajero que registra el crédito
 }
 
 // DTO para registrar un abono
@@ -384,6 +392,10 @@ export interface CreateCreditPaymentInput {
   paymentMethod?: string;
   notes?: string;
   createdBy?: string;
+  // Sucursal y caja donde se cobra el abono. El backend resuelve el turno
+  // activo con estos datos para asociar el abono al corte correcto.
+  branch?: string;
+  cashRegister?: string;
 }
 
 // ============================================================

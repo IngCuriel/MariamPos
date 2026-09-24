@@ -26,6 +26,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
   const [amountReceived, setAmountReceived] = useState<string>("");
   const [cashAmount, setCashAmount] = useState<string>("");
   const [cardAmount, setCardAmount] = useState<string>("");
+  const [paymentReference, setPaymentReference] = useState<string>(""); // Folio/ref comprobante tarjeta
   const inputRef = useRef<HTMLInputElement>(null);
   const cashInputRef = useRef<HTMLInputElement>(null);
   const cardInputRef = useRef<HTMLInputElement>(null);
@@ -126,6 +127,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
     } else {
       setCashAmount("");
       setCardAmount("");
+    }
+    // La referencia de comprobante solo aplica a tarjeta/mixto; limpiar en los demás.
+    if (paymentType === "efectivo" || paymentType === "regalo") {
+      setPaymentReference("");
     }
   }, [paymentType, containersDepositInfo]);
 
@@ -313,6 +318,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
         change: 0,
         cashAmount: cashForProductsFinal, // Solo efectivo para productos (sin envases)
         cardAmount: cardReceived,
+        paymentReference: paymentReference.trim() || undefined,
         containersDepositInfo: containersDepositInfo || null,
       });
       return;
@@ -467,9 +473,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
       paymentType,
       amountReceived: finalAmount,
       change,
+      paymentReference: paymentType === "tarjeta" ? paymentReference.trim() || undefined : undefined,
       containersDepositInfo: containersDepositInfo || null,
     });
-  }, [paymentType, amountReceived, totalNumber, received, change, onConfirm, cashReceived, cardReceived, totalMixed, client]);
+  }, [paymentType, amountReceived, totalNumber, received, change, onConfirm, cashReceived, cardReceived, totalMixed, client, paymentReference]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1071,6 +1078,21 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
                 Regalo
               </button>
             </div>
+
+            {paymentType === "tarjeta" && (
+              <div className="input-section">
+                <label>Folio / referencia del comprobante (opcional):</label>
+                <div className="input-wrapper">
+                  <input
+                    type="text"
+                    placeholder="Ej: 004521, últimos 4 dígitos, autorización..."
+                    value={paymentReference}
+                    onChange={(e) => setPaymentReference(e.target.value)}
+                    maxLength={60}
+                  />
+                </div>
+              </div>
+            )}
 
             {paymentType === "efectivo" && (
               <div className="input-section">

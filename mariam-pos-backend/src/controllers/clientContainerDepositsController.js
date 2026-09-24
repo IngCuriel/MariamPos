@@ -15,6 +15,7 @@ export const createClientContainerDeposit = async (req, res) => {
       shiftId,
       cashMovementId,
       notes,
+      createdBy,
     } = req.body;
 
     console.log("📦 Datos recibidos para crear depósito de envase:", {
@@ -79,6 +80,7 @@ export const createClientContainerDeposit = async (req, res) => {
         shiftId: shiftId ? parseInt(shiftId) : null,
         cashMovementId: cashMovementId ? parseInt(cashMovementId) : null,
         notes,
+        createdBy: createdBy?.trim() || null,
         status: "PENDING",
       },
       include: {
@@ -222,7 +224,7 @@ export const returnAllClientContainerDeposits = async (req, res) => {
 export const returnClientContainerDeposit = async (req, res) => {
   try {
     const { id } = req.params;
-    const { quantity } = req.body; // Cantidad a devolver (opcional, si no se especifica devuelve todo)
+    const { quantity, returnedBy } = req.body; // Cantidad a devolver (opcional); cajero que regresa
 
     const deposit = await prisma.clientContainerDeposit.findUnique({
       where: { id: parseInt(id) },
@@ -244,12 +246,15 @@ export const returnClientContainerDeposit = async (req, res) => {
 
     // Si se devuelve todo, marcar como devuelto
     // Si se devuelve parcial, crear un nuevo registro con la cantidad restante
+    const returnedByValue = returnedBy?.trim() || null;
+
     if (quantityToReturn === deposit.quantity) {
       await prisma.clientContainerDeposit.update({
         where: { id: parseInt(id) },
         data: {
           status: "RETURNED",
           returnedAt: new Date(),
+          returnedBy: returnedByValue,
         },
       });
     } else {
@@ -264,10 +269,11 @@ export const returnClientContainerDeposit = async (req, res) => {
           importAmount: deposit.unitPrice * quantityToReturn,
           status: "RETURNED",
           returnedAt: new Date(),
+          returnedBy: returnedByValue,
         },
       });
 
-      // Crear nuevo depósito con la cantidad restante
+      // Crear nuevo depósito con la cantidad restante (conserva el cajero original)
       await prisma.clientContainerDeposit.create({
         data: {
           clientId: deposit.clientId,
@@ -278,6 +284,7 @@ export const returnClientContainerDeposit = async (req, res) => {
           unitPrice: deposit.unitPrice,
           shiftId: deposit.shiftId,
           notes: deposit.notes,
+          createdBy: deposit.createdBy,
           status: "PENDING",
         },
       });

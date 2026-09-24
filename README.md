@@ -91,3 +91,10 @@ npm run dist
   
 # Release septiembre 206
   mariam-pos-backend\src\controllers\clientsController.js
+  mariam-pos-backend\src\controllers\creditsController.js
+  campos nuevo en sales 
+                  createdBy 
+                  paymentReference?: string; // Folio/referencia del comprobante (tarjeta)
+
+                  ClientCredit
+                    createdBy 

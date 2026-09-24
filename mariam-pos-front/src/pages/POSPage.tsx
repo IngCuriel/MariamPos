@@ -4,6 +4,8 @@ import Card from '../components/Card';
 import POSConfigModal from '../components/POSConfigModal';
 import OnlineStoreModal from '../components/OnlineStoreModal';
 import RechargesModal from '../components/RechargesModal';
+import AccountsReceivableModal from '../components/AccountsReceivableModal';
+import RecoverContainersModal from '../components/RecoverContainersModal';
 import type { POSPageConfig, POSModuleConfig } from '../types/posConfig';
 import { loadPOSConfig, savePOSConfig } from '../utils/posConfig';
 import '../styles/pages/pos/posPage.css';
@@ -47,6 +49,8 @@ const POSPage: React.FC<POSPageProps> = ({
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showOnlineStoreModal, setShowOnlineStoreModal] = useState(false);
   const [showRechargesModal, setShowRechargesModal] = useState(false);
+  const [showReceivablesModal, setShowReceivablesModal] = useState(false);
+  const [showRecoverContainersModal, setShowRecoverContainersModal] = useState(false);
 
   // Mapeo de funciones onClick
   const onClickHandlers = useMemo(() => ({
@@ -66,6 +70,8 @@ const POSPage: React.FC<POSPageProps> = ({
     onCashMovementsHistoryClick,
     onOnlineStoreClick: () => setShowOnlineStoreModal(true),
     onRechargesClick: () => setShowRechargesModal(true),
+    onReceivablesClick: () => setShowReceivablesModal(true),
+    onRecoverContainersClick: () => setShowRecoverContainersModal(true),
   }), [
     onSalesClick,
     onProductsClick,
@@ -157,13 +163,24 @@ const POSPage: React.FC<POSPageProps> = ({
           backText="← Volver al Inicio"
           className="pos-page-header"
           actions={
-            <button
-              className="pos-config-button"
-              onClick={() => setShowConfigModal(true)}
-              title="Configurar módulos"
-            >
-              ⚙️
-            </button>
+            <>
+              {onUsersClick && (
+                <button
+                  className="pos-config-button"
+                  onClick={onUsersClick}
+                  title="Cajeros"
+                >
+                  👤
+                </button>
+              )}
+              <button
+                className="pos-config-button"
+                onClick={() => setShowConfigModal(true)}
+                title="Configurar módulos"
+              >
+                ⚙️
+              </button>
+            </>
           }
         />
         
@@ -187,6 +204,16 @@ const POSPage: React.FC<POSPageProps> = ({
       <RechargesModal
         isOpen={showRechargesModal}
         onClose={() => setShowRechargesModal(false)}
+      />
+
+      <AccountsReceivableModal
+        isOpen={showReceivablesModal}
+        onClose={() => setShowReceivablesModal(false)}
+      />
+
+      <RecoverContainersModal
+        isOpen={showRecoverContainersModal}
+        onClose={() => setShowRecoverContainersModal(false)}
       />
     </div>
   );

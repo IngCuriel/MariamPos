@@ -1,0 +1,390 @@
+/* Resumen del turno — modal profesional y táctil (cierre de caja). */
+
+.shs-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1300;
+}
+
+.shs-modal {
+  width: 100%;
+  max-width: 860px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
+  overflow: hidden;
+}
+
+.shs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.shs-header .shs-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.shs-header .shs-subtitle {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.82rem;
+  color: #cbd5e1;
+}
+
+.shs-close {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.shs-close:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.shs-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── ZONA 1: bloque de efectivo (highlight + desglose como unidad) ── */
+.shs-cash-block {
+  display: block;
+  flex-shrink: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #a7f3d0;
+  box-shadow: 0 6px 16px rgba(5, 150, 105, 0.18);
+}
+
+/* Destacado: el número protagonista */
+.shs-highlight {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, #059669, #047857);
+  color: #fff;
+  text-align: center;
+}
+
+.shs-highlight-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.92;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.shs-highlight-value {
+  font-size: 2.4rem;
+  font-weight: 900;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.shs-highlight-hint {
+  font-size: 0.78rem;
+  opacity: 0.85;
+  font-weight: 500;
+}
+
+/* Desglose que explica el número, dentro del mismo bloque */
+.shs-breakdown {
+  background: #fff;
+  padding: 12px 16px 14px;
+}
+
+.shs-breakdown-title {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Estadísticas de la operación (ex mini-stats del highlight) */
+.shs-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.shs-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  padding: 12px 10px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+.shs-stat-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.shs-stat-value {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Secciones */
+.shs-section {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.shs-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.shs-section-title {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.shs-section-head .shs-section-title {
+  margin: 0;
+}
+
+.shs-toggle {
+  min-height: 36px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.shs-toggle:hover {
+  background: #dbeafe;
+}
+
+/* Filas de desglose */
+.shs-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.shs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 4px;
+  font-size: 0.9rem;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+  font-variant-numeric: tabular-nums;
+}
+
+.shs-row:last-child {
+  border-bottom: none;
+}
+
+.shs-row--strong {
+  font-weight: 800;
+  color: #0f172a;
+  border-top: 2px solid #e2e8f0;
+  margin-top: 4px;
+  padding-top: 10px;
+}
+
+.shs-paid {
+  color: #059669;
+  font-weight: 700;
+}
+
+.shs-due {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+/* Tarjetas de método de pago */
+.shs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.shs-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.shs-card-icon {
+  font-size: 1.3rem;
+}
+
+.shs-card-label {
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.shs-card-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+.shs-card--cash { background: #ecfdf5; border-color: #a7f3d0; }
+.shs-card--cash .shs-card-value { color: #047857; }
+.shs-card--card { background: #eff6ff; border-color: #bfdbfe; }
+.shs-card--card .shs-card-value { color: #1d4ed8; }
+.shs-card--transfer { background: #f5f3ff; border-color: #ddd6fe; }
+.shs-card--transfer .shs-card-value { color: #6d28d9; }
+.shs-card--other { background: #fefce8; border-color: #fde68a; }
+.shs-card--other .shs-card-value { color: #a16207; }
+
+/* Subtítulo de listas de detalle dentro de una sección */
+.shs-list-title {
+  display: block;
+  margin: 12px 0 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+/* Tabla de folios */
+.shs-table-wrap {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: auto;
+  max-height: 320px;
+}
+
+.shs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.shs-table thead th {
+  position: sticky;
+  top: 0;
+  background: #f1f5f9;
+  color: #334155;
+  font-weight: 700;
+  text-align: left;
+  padding: 8px 10px;
+  white-space: nowrap;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.shs-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+}
+
+.shs-th-right { text-align: right; }
+.shs-td-folio { font-weight: 700; }
+.shs-td-client {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.shs-td-method { font-size: 0.8rem; color: #64748b; }
+.shs-td-total { font-weight: 700; color: #059669; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.shs-table tfoot td {
+  background: #f8fafc;
+  font-weight: 800;
+  color: #0f172a;
+  border-top: 2px solid #e2e8f0;
+}
+
+.shs-footer {
+  padding: 14px 20px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  background: #fff;
+}
+
+.shs-btn-close {
+  min-height: 48px;
+  padding: 10px 28px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  background: #0f172a;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.shs-btn-close:hover { background: #1e293b; }
+
+@media (max-width: 560px) {
+  .shs-highlight-value { font-size: 2rem; }
+  .shs-stat-value { font-size: 1.15rem; }
+  .shs-btn-close { width: 100%; }
+}

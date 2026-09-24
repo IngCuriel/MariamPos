@@ -4,6 +4,7 @@ import type {Sale, ClientCredit, CreditPayment, CashMovement} from '../../types/
 import { getSalesByDateRange} from '../../api/sales'
 import { getCreditsByDateRange, getCreditPaymentsByDateRange } from '../../api/credits'
 import { getCashMovementsByDateRange } from '../../api/cashRegister'
+import { getContainerDepositsByDateRange, type ClientContainerDeposit } from '../../api/clientContainerDeposits'
 import DatePicker, { registerLocale } from "react-datepicker";
 import {es} from "date-fns/locale/es";
 
@@ -12,6 +13,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import Ticket from "./Ticket";
+import CorteGeneralModal from "./CorteGeneralModal";
 import Swal from "sweetalert2";
 
 registerLocale("es", es); // ✅ registra el idioma español
@@ -28,10 +30,12 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
   const [credits, setCredits] = useState<ClientCredit[]>([])
   const [creditPayments, setCreditPayments] = useState<CreditPayment[]>([])
   const [cashMovements, setCashMovements] = useState<CashMovement[]>([])
+  const [containerDeposits, setContainerDeposits] = useState<ClientContainerDeposit[]>([])
   const [selectedCashRegister, setSelectedCashRegister] = useState<string>(() => {
     return localStorage.getItem('caja') || 'all';
   });
   const [availableCashRegisters, setAvailableCashRegisters] = useState<string[]>([]);
+  const [showCorte, setShowCorte] = useState(false);
 
   const loadCashRegisters = async (startDate: string, endDate: string) => {
     try {
@@ -66,6 +70,7 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
       const end = localDate;
       fetchSalesByDateRange(start, end);
       fetchCreditsByDateRange(start, end);
+      fetchContainerDepositsByDateRange(start, end);
       fetchCreditPaymentsByDateRange(start, end);
       fetchCashMovementsByDateRange(start, end);
       loadCashRegisters(start, end);
@@ -161,12 +166,31 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
     movementsCount: cashMovements.length,
   };
 
+  // Ventas que generaron un crédito (para marcarlas con badge en la tabla).
+  const saleIdsConCredito = new Set(
+    credits.map((c) => c.saleId).filter((id): id is number => id != null)
+  );
+
+  // Ventas que generaron depósito de envases (para marcarlas con badge).
+  const saleIdsConEnvase = new Set(
+    containerDeposits.map((d) => d.saleId).filter((id): id is number => id != null)
+  );
+
   const fetchCreditsByDateRange = async(startDate:string, endDate:string ) =>{
      try {
         const fetchCredits = await getCreditsByDateRange(startDate, endDate)
         setCredits(fetchCredits);
      } catch (error) {
       console.log('Error al obtener créditos:', error);
+     }
+  }
+
+  const fetchContainerDepositsByDateRange = async(startDate:string, endDate:string ) =>{
+     try {
+        const fetchDeposits = await getContainerDepositsByDateRange(startDate, endDate)
+        setContainerDeposits(fetchDeposits);
+     } catch (error) {
+      console.log('Error al obtener depósitos de envases:', error);
      }
   }
 
@@ -240,8 +264,7 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
         const tempContainer = document.createElement("div");
         tempContainer.style.width = "210mm"; // Ancho carta
         tempContainer.style.height = "auto"; // Altura automática para que crezca con el contenido
-        tempContainer.style.minHeight = "279mm"; // Alto mínimo carta
-        tempContainer.style.padding = "20mm";
+        tempContainer.style.padding = "12mm 14mm";
         tempContainer.style.fontFamily = "Arial, sans-serif";
         tempContainer.style.background = "white";
         tempContainer.style.color = "#000";
@@ -277,60 +300,101 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
         const totalProducts = sale?.details?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
         const totalItems = sale?.details?.length || 0;
 
+        const currency = (n: number) =>
+          n.toLocaleString("es-MX", { style: "currency", currency: "MXN" });
+        const hasReceived = sale.amountReceived != null;
+        // Monto que quedó a crédito en esta venta (cruzando los créditos del día).
+        const creditAmount = credits
+          .filter((c) => c.saleId === sale.id)
+          .reduce((sum, c) => sum + (c.originalAmount || 0), 0);
+        // Importe de depósito de envases generado en esta venta.
+        const containerAmount = containerDeposits
+          .filter((d) => d.saleId === sale.id)
+          .reduce((sum, d) => sum + (d.importAmount || 0), 0);
+        // El cliente paga productos + envases; el cambio descuenta ambos.
+        const changeAmount = hasReceived
+          ? Math.max((sale.amountReceived as number) - sale.total - containerAmount, 0)
+          : 0;
+
         tempContainer.innerHTML = `
-          <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 20px;">
-            <h1 style="margin: 0; font-size: 28px; font-weight: bold;">${escapeHtml(sale.branch || "Sucursal")}</h1>
-            <p style="margin: 10px 0 0 0; font-size: 14px; color: #666;">NOTA DE VENTA</p>
-          </div>
-          
-          <div style="margin-bottom: 25px;">
-            <p style="margin: 5px 0; font-size: 14px;"><strong>Cliente:</strong> ${escapeHtml(sale.clientName || "Cliente General")}</p>
-            <p style="margin: 5px 0; font-size: 14px;"><strong>Folio:</strong> ${sale.id}</p>
-            <p style="margin: 5px 0; font-size: 14px;"><strong>Fecha:</strong> ${dateFormat(sale.createdAt)}</p>
+          <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2px solid #000; padding-bottom:10px; margin-bottom:14px;">
+            <div>
+              <h1 style="margin:0; font-size:20px; font-weight:800;">${escapeHtml(sale.branch || "Sucursal")}</h1>
+              <p style="margin:2px 0 0; font-size:11px; letter-spacing:1px; color:#666;">NOTA DE VENTA</p>
+            </div>
+            <div style="text-align:right; font-size:12px; color:#111;">
+              <div><strong>Folio:</strong> ${sale.id}</div>
+              <div style="color:#666;">${dateFormat(sale.createdAt)}</div>
+            </div>
           </div>
 
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px;">
+          <div style="display:flex; flex-wrap:wrap; gap:2px 24px; font-size:12px; margin-bottom:14px;">
+            <div><strong>Cliente:</strong> ${escapeHtml(sale.clientName || "Cliente General")}</div>
+            ${sale.createdBy ? `<div><strong>Cajero:</strong> ${escapeHtml(sale.createdBy)}</div>` : ""}
+          </div>
+
+          <table style="width:100%; border-collapse:collapse; margin-bottom:14px;">
             <thead>
-              <tr style="background-color: #f3f4f6; border-bottom: 2px solid #000;">
-                <th style="padding: 12px; text-align: left; font-size: 14px; font-weight: bold;">Producto</th>
-                <th style="padding: 12px; text-align: center; font-size: 14px; font-weight: bold;">Cantidad</th>
-                <th style="padding: 12px; text-align: right; font-size: 14px; font-weight: bold;">Precio Unit.</th>
-                <th style="padding: 12px; text-align: right; font-size: 14px; font-weight: bold;">Subtotal</th>
+              <tr style="background-color:#f3f4f6; border-bottom:1.5px solid #000;">
+                <th style="padding:6px 8px; text-align:left; font-size:11px; font-weight:700;">Producto</th>
+                <th style="padding:6px 8px; text-align:center; font-size:11px; font-weight:700;">Cant.</th>
+                <th style="padding:6px 8px; text-align:right; font-size:11px; font-weight:700;">P. Unit.</th>
+                <th style="padding:6px 8px; text-align:right; font-size:11px; font-weight:700;">Subtotal</th>
               </tr>
             </thead>
             <tbody>
               ${sale.details?.map((item) => `
-                <tr style="border-bottom: 1px solid #e5e7eb;">
-                  <td style="padding: 10px; font-size: 13px;">${escapeHtml(item.productName || "Producto")}</td>
-                  <td style="padding: 10px; text-align: center; font-size: 13px;">${item.quantity}</td>
-                  <td style="padding: 10px; text-align: right; font-size: 13px;">$${item.price.toFixed(2)}</td>
-                  <td style="padding: 10px; text-align: right; font-size: 13px;">$${(item.price * item.quantity).toFixed(2)}</td>
+                <tr style="border-bottom:1px solid #e5e7eb;">
+                  <td style="padding:5px 8px; font-size:12px;">${escapeHtml(item.productName || "Producto")}</td>
+                  <td style="padding:5px 8px; text-align:center; font-size:12px;">${item.quantity}</td>
+                  <td style="padding:5px 8px; text-align:right; font-size:12px;">$${item.price.toFixed(2)}</td>
+                  <td style="padding:5px 8px; text-align:right; font-size:12px;">$${(item.price * item.quantity).toFixed(2)}</td>
                 </tr>
               `).join("") || ""}
             </tbody>
           </table>
 
-          <div style="margin-top: 30px; border-top: 2px solid #000; padding-top: 20px;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-              <span style="font-size: 14px; font-weight: 600;">Total de productos:</span>
-              <span style="font-size: 14px; font-weight: 600;">${totalProducts} (${totalItems} ${totalItems === 1 ? 'artículo' : 'artículos'})</span>
+          <div style="border-top:2px solid #000; padding-top:10px;">
+            <div style="display:flex; justify-content:space-between; font-size:12px; color:#444; margin-bottom:6px;">
+              <span>Total de productos</span>
+              <span>${totalProducts} (${totalItems} ${totalItems === 1 ? 'artículo' : 'artículos'})</span>
             </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px; margin-top: 10px;">
-              <span style="font-size: 16px; font-weight: bold;">Total:</span>
-              <span style="font-size: 18px; font-weight: bold;">${sale.total.toLocaleString("es-MX", {
-                style: "currency",
-                currency: "MXN",
-              })}</span>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="font-size:15px; font-weight:800;">TOTAL</span>
+              <span style="font-size:18px; font-weight:800;">${currency(sale.total)}</span>
             </div>
-            <div style="margin-top: 15px;">
-              <p style="margin: 5px 0; font-size: 14px;"><strong>Método de Pago:</strong> ${escapeHtml(sale.paymentMethod || "No especificado")}</p>
-              <p style="margin: 5px 0; font-size: 14px;"><strong>Estado:</strong> ${escapeHtml(sale.status || "Pagado")}</p>
+            ${creditAmount > 0 ? `
+            <div style="display:flex; justify-content:space-between; font-size:12px;">
+              <span>Pagado</span><span>${currency(Math.max(sale.total - creditAmount, 0))}</span>
             </div>
+            <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700; color:#b45309; margin-bottom:3px;">
+              <span>A crédito</span><span>${currency(creditAmount)}</span>
+            </div>` : ""}
+            ${containerAmount > 0 ? `
+            <div style="display:flex; justify-content:space-between; font-size:12px; color:#047857; margin-bottom:3px;">
+              <span>🍺 Depósito de envases</span><span>${currency(containerAmount)}</span>
+            </div>` : ""}
+            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:3px;">
+              <span><strong>Método de pago:</strong> ${escapeHtml(sale.paymentMethod || "No especificado")}</span>
+              <span><strong>Estado:</strong> ${escapeHtml(sale.status || "Pagado")}</span>
+            </div>
+            ${hasReceived ? `
+            <div style="display:flex; justify-content:space-between; font-size:12px;">
+              <span>Recibido</span><span>${currency(sale.amountReceived as number)}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:12px;">
+              <span>Cambio</span><span>${currency(changeAmount)}</span>
+            </div>` : ""}
+            ${sale.paymentReference ? `
+            <div style="display:flex; justify-content:space-between; font-size:12px;">
+              <span>Ref. comprobante</span><span>${escapeHtml(sale.paymentReference)}</span>
+            </div>` : ""}
           </div>
 
-          <div style="margin-top: 40px; text-align: center; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-            <p style="margin: 5px 0; font-size: 12px; color: #666;">¡Gracias por su compra!</p>
-            <p style="margin: 5px 0; font-size: 12px; color: #666;">Vuelva pronto</p>
+          <div style="margin-top:18px; text-align:center; padding-top:10px; border-top:1px solid #e5e7eb;">
+            <p style="margin:2px 0; font-size:12px; color:#444;">¡Gracias por su compra!</p>
+            ${sale.createdBy ? `<p style="margin:2px 0; font-size:11px; color:#666;">Te atendió: ${escapeHtml(sale.createdBy)}</p>` : ""}
+            <p style="margin:2px 0; font-size:11px; color:#666;">Vuelva pronto</p>
           </div>
         `;
 
@@ -797,7 +861,19 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
                               className={selectedSale?.id === sale.id ? "selected" : ""}
                               onClick={() => setSelectedSale(sale)}
                             >
-                              <td className="folio-cell">{sale.id}</td>
+                              <td className="folio-cell">
+                                <span className="folio-id">{sale.id}</span>
+                                {saleIdsConCredito.has(sale.id) && (
+                                  <span className="sale-tag sale-tag--credit" title="Esta venta generó un crédito">
+                                    💳 Crédito
+                                  </span>
+                                )}
+                                {saleIdsConEnvase.has(sale.id) && (
+                                  <span className="sale-tag sale-tag--container" title="Esta venta generó depósito de envases">
+                                    🍺 Envase
+                                  </span>
+                                )}
+                              </td>
                               <td className="total-cell">
                                 {sale.total.toLocaleString("es-MX", {
                                   style: "currency",
@@ -830,7 +906,15 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
                 <div className="sale-details-wrapper">
                   {selectedSale!==null ? 
                     <div className="sale-details">
-                      <Ticket sale={selectedSale}/>
+                      <Ticket
+                        sale={selectedSale}
+                        creditAmount={credits
+                          .filter((c) => c.saleId === selectedSale.id)
+                          .reduce((sum, c) => sum + (c.originalAmount || 0), 0)}
+                        containerAmount={containerDeposits
+                          .filter((d) => d.saleId === selectedSale.id)
+                          .reduce((sum, d) => sum + (d.importAmount || 0), 0)}
+                      />
                     </div>  
                     : (
                       <div className="no-selection-container">
@@ -846,6 +930,14 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
             <div className="modal-footer">
               <button className="btn touch-btn close-btn-day-sales" onClick={closeModal}>
                 ↩️ Regresar
+              </button>
+              <button
+                type="button"
+                className="corte-general-trigger"
+                onClick={() => setShowCorte(true)}
+                title="Ver corte general del día"
+              >
+                📊 Corte general
               </button>
               <div className="footer-actions-group">
                 {/*<button
@@ -874,6 +966,17 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
                 </button>
               </div>
             </div>
+
+            <CorteGeneralModal
+              isOpen={showCorte}
+              onClose={() => setShowCorte(false)}
+              fecha={dateToday.toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" })}
+              caja={selectedCashRegister}
+              salesCount={sales.length}
+              resumen={resumen}
+              resumenCreditos={resumenCreditos}
+              resumenMovimientos={resumenMovimientos}
+            />
           </div>
         </div>
       )}

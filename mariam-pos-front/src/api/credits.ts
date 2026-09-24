@@ -91,3 +91,54 @@ export const getCreditPaymentsByDateRange = async (
   return data;
 };
 
+
+// Respuesta paginada genérica del backend.
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  // Solo para créditos: cantidad por cobrar (pendientes + parciales) del rango.
+  pendingCount?: number;
+}
+
+// Créditos por rango de fechas con paginación server-side.
+// Filtros opcionales: status (PENDING | PARTIALLY_PAID | PAID) y clientId.
+export const getCreditsByDateRangePaginated = async (
+  startDate: string,
+  endDate: string,
+  page: number,
+  limit: number,
+  opts?: { status?: string; clientId?: string }
+): Promise<PaginatedResponse<ClientCredit>> => {
+  const clientAxios = await getAxiosClient();
+  const params: Record<string, string | number> = {
+    startDate,
+    endDate,
+    page,
+    limit,
+  };
+  if (opts?.status && opts.status !== "ALL") params.status = opts.status;
+  if (opts?.clientId) params.clientId = opts.clientId;
+
+  const { data } = await clientAxios.get<PaginatedResponse<ClientCredit>>(
+    `/credits/by-date-range`,
+    { params }
+  );
+  return data;
+};
+
+// Abonos por rango de fechas con paginación server-side.
+export const getCreditPaymentsByDateRangePaginated = async (
+  startDate: string,
+  endDate: string,
+  page: number,
+  limit: number
+): Promise<PaginatedResponse<CreditPayment>> => {
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.get<PaginatedResponse<CreditPayment>>(
+    `/credits/payments/by-date-range`,
+    { params: { startDate, endDate, page, limit } }
+  );
+  return data;
+};

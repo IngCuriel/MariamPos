@@ -12,6 +12,8 @@ export interface ClientContainerDeposit {
   shiftId?: number;
   cashMovementId?: number;
   notes?: string;
+  createdBy?: string; // Cajero que dio el envase
+  returnedBy?: string; // Cajero que regresó el importe
   createdAt: Date;
   updatedAt: Date;
   returnedAt?: Date;
@@ -41,6 +43,7 @@ export interface CreateClientContainerDepositInput {
   shiftId?: number;
   cashMovementId?: number;
   notes?: string;
+  createdBy?: string; // Cajero que da el envase
 }
 
 export interface ClientContainerDepositsResponse {
@@ -79,12 +82,13 @@ export const getClientPendingDeposits = async (
 
 export const returnClientContainerDeposit = async (
   depositId: number,
-  quantity?: number
+  quantity?: number,
+  returnedBy?: string
 ): Promise<ClientContainerDeposit> => {
   const clientAxios = await getAxiosClient();
   const { data } = await clientAxios.post<ClientContainerDeposit>(
     `/client-container-deposits/${depositId}/return`,
-    { quantity }
+    { quantity, returnedBy }
   );
   return data;
 };
@@ -108,3 +112,44 @@ export const getAllPendingContainerDeposits = async (): Promise<ClientContainerD
   return data;
 };
 
+// Obtener los depósitos de envases generados en un rango de fechas (por createdAt)
+export const getContainerDepositsByDateRange = async (
+  startDate: string,
+  endDate: string
+): Promise<ClientContainerDeposit[]> => {
+  const clientAxios = await getAxiosClient();
+  const params = new URLSearchParams({ startDate, endDate });
+  const { data } = await clientAxios.get<ClientContainerDeposit[]>(
+    `/client-container-deposits?${params.toString()}`
+  );
+  return data;
+};
+
+
+// Depósitos PENDIENTES (por recuperar) en un rango de fechas.
+export const getPendingContainerDepositsByDateRange = async (
+  startDate: string,
+  endDate: string
+): Promise<ClientContainerDeposit[]> => {
+  const clientAxios = await getAxiosClient();
+  const params = new URLSearchParams({ startDate, endDate, status: "PENDING" });
+  const { data } = await clientAxios.get<ClientContainerDeposit[]>(
+    `/client-container-deposits?${params.toString()}`
+  );
+  return data;
+};
+
+// Depósitos por rango de fecha y estado opcional (PENDING | RETURNED | todos).
+export const getContainerDepositsFiltered = async (
+  startDate: string,
+  endDate: string,
+  status?: "PENDING" | "RETURNED"
+): Promise<ClientContainerDeposit[]> => {
+  const clientAxios = await getAxiosClient();
+  const params = new URLSearchParams({ startDate, endDate });
+  if (status) params.set("status", status);
+  const { data } = await clientAxios.get<ClientContainerDeposit[]>(
+    `/client-container-deposits?${params.toString()}`
+  );
+  return data;
+};
