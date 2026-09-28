@@ -69,7 +69,7 @@
   flex: 1 1 0; /* mitad de la pantalla (50/50 con la derecha) */
   min-width: 0; /* permite que el contenido se encoja sin romper la proporción */
   background: #fff;
-  padding: 16px;
+  padding: 2px;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   display: flex;
@@ -253,8 +253,10 @@
 }
 
 @media (max-width: 768px) {
+  /* Mantener búsqueda + botones en una sola fila (los botones muestran solo ícono). */
   .venta-search {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: nowrap;
   }
   
   .venta-search input:not(.search-input-modern) {
@@ -1592,4 +1594,54 @@
   border-radius: 999px;
   vertical-align: middle;
   white-space: nowrap;
+}
+
+/* ===== BOTONES DE ACCIÓN DE LA BÚSQUEDA (uniformes y compactos) ===== */
+.search-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-height: 48px;
+  padding: 0 2px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.search-action-btn:hover {
+  background: #eef2f7;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.search-action-btn:active { transform: translateY(0); }
+
+.search-action-btn:focus:not(:focus-visible) { outline: none; }
+
+.search-action-btn .sab-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.search-action-btn .sab-text {
+  font-size: 0.82rem;
+}
+
+/* En pantallas angostas, ocultar el texto y dejar solo el ícono (compacto). */
+@media (max-width: 900px) {
+  .search-action-btn .sab-text {
+    display: none;
+  }
+  .search-action-btn {
+    padding: 0 12px;
+  }
 }

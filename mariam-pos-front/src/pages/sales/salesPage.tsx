@@ -1875,37 +1875,37 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                     )}
                   </div>
                   <button
-                    className="btn-common-product"
+                    className="search-action-btn"
                     type="button"
                     onClick={(e) => {
                       e.preventDefault();
-                      // Quitar focus del botón inmediatamente
                       const button = e.currentTarget;
                       button.blur();
                       handleAddCommonProduct();
                     }}
                     onMouseDown={(e) => {
-                      // Prevenir que el botón reciba focus al hacer click
                       e.preventDefault();
                     }}
-                    title="Agregar producto no registrado (F3)"
+                    title="Agregar producto sin código (F3)"
                   >
-                    <span className="btn-icon">➕</span>
-                    <span className="btn-text">P C</span>
+                    <span className="sab-icon">➕</span>
+                    <span className="sab-text">Sin código</span>
                   </button>
                   <button
-                    className="btn-categories"
+                    className="search-action-btn"
                     onClick={() => setShowCategoryModal(true)}
                     title="Buscar productos por categoría"
                   >
-                    <span className="btn-icon">📂</span>
+                    <span className="sab-icon">📂</span>
+                    <span className="sab-text">Categorías</span>
                   </button>
                   <button
-                    className="btn-calculator"
+                    className="search-action-btn"
                     onClick={() => setShowCalculator(true)}
                     title="Calculadora rápida para agregar productos"
                   >
-                    <span className="btn-icon">🧮</span>
+                    <span className="sab-icon">🧮</span>
+                    <span className="sab-text">Calculadora</span>
                   </button>
                 </div>
                 {products.length > 0 && (
