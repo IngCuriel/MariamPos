@@ -23,6 +23,7 @@ import { ProductComunModal } from "./ProductComunModal";
 import { PresentationModal } from "./PresentationModal";
 import { TieredQuantityModal, resolveTierUnitPrice } from "./TieredQuantityModal";
 import PriceCheckModal from "./PriceCheckModal";
+import PromotionsModal from "./PromotionsModal";
 import CategoryProductModal from "./CategoryProductModal";
 import QuickAddCalculator from "./QuickAddCalculator";
 import ShiftModal from "./ShiftModal";
@@ -80,6 +81,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
   const [showClientModal, setShowClientModal] = useState(false);
   const [showPendingSalesModal, setShowPendingSalesModal] = useState(false);
   const [showPriceCheckModal, setShowPriceCheckModal] = useState(false); // 🔎 Verificador de precios
+  const [showPromotionsModal, setShowPromotionsModal] = useState(false); // 🎁 Promociones
   const [activeShift, setActiveShift] = useState<CashRegisterShift | null>(null);
   const [productCounter, setProductCounter] = useState(1);
   const [containersDepositInfo, setContainersDepositInfo] = useState<{
@@ -629,6 +631,16 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
     }
   };
 
+  // ¿El producto tiene promoción vigente? (isPromo, promoPrice válido y sin vencer)
+  const isPromoActive = (product: Product): boolean => {
+    if (!product.isPromo || !product.promoPrice || product.promoPrice <= 0) return false;
+    if (product.promoEndsAt) {
+      const ends = new Date(product.promoEndsAt);
+      if (!isNaN(ends.getTime()) && ends.getTime() < Date.now()) return false;
+    }
+    return true;
+  };
+
   const handleAdd = async(product: Product) => {
     let quantity = 1;
     let addCart = true;
@@ -843,7 +855,8 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         finalPrice = selectedPresentation.unitPrice;
         finalQuantity = selectedPresentation.quantity * presentationQuantity;
       } else {
-        finalPrice = product.price;
+        // Producto simple: aplicar precio de promoción si está vigente.
+        finalPrice = isPromoActive(product) ? (product.promoPrice as number) : product.price;
       }
 
       // Crear el item del carrito
@@ -1762,63 +1775,67 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
           className=""
         />
         
-        {/* Indicador de Turno de Caja y Cliente */}
-        <div className="shift-client-container">
-          {/* Columna de Turno (2/3) */}
-          <div className="shift-indicator shift-column">
-            <div className="shift-info">
-              <span className="shift-status-icon">
-                {activeShift ? "🟢" : "🔴"}
-              </span>
-              <span className="shift-status-text">
-                {activeShift 
-                  ? `Turno Activo`
-                  : "No hay turno activo"
-                }
-              </span>
-              {activeShift && (
-                <div className="shift-details">
-                  <span>Fondo de Caja: ${activeShift.initialCash.toFixed(2)}</span>
-                 { /*<span>Efectivo: ${activeShift.totalCash.toFixed(2)}</span>
-                  <span>Tarjeta: ${activeShift.totalCard.toFixed(2)}</span>*/}
-                </div>
-              )}
+        {/* Barra de acciones de venta: Turno | Herramientas | Cliente (una fila) */}
+        <div className="sales-toolbar">
+          {/* Grupo 1: Turno (estado + movimientos + cerrar) */}
+          <div className="stb-group stb-shift">
+            <div className={`stb-status ${activeShift ? "stb-status--on" : "stb-status--off"}`}>
+              <span className="stb-status-dot" />
+              <div className="stb-status-text">
+                <span className="stb-status-title">
+                  {activeShift ? "Turno activo" : "Sin turno"}
+                </span>
+                {activeShift && (
+                  <span className="stb-status-sub">
+                    Fondo: ${activeShift.initialCash.toFixed(2)}
+                  </span>
+                )}
+              </div>
             </div>
-            <div className="shift-actions">
+            {activeShift && (
               <button
-                className="btn-price-check"
-                onClick={() => setShowPriceCheckModal(true)}
-                title="Verificar precio (F6)"
+                className="stb-btn stb-btn--soft"
+                onClick={() => setShowCashMovementModal(true)}
+                title="Movimientos de Efectivo"
               >
-                🔎 Verificar precio
+                💰 Movimientos
               </button>
-              {activeShift && (
-                <button
-                  className="btn-movements"
-                  onClick={() => setShowCashMovementModal(true)}
-                  title="Movimientos de Efectivo"
-                >
-                  💰 Movimientos
-                </button>
-              )}
-              <button
-                className={`btn-shift ${activeShift ? "close" : "open"}`}
-                onClick={() => setShowShiftModal(true)}
-                title={activeShift ? "Cerrar Turno (F4)" : "Abrir Turno (F4)"}
-              >
-                {activeShift ? "🔴 Cerrar Turno" : "🟢 Abrir Turno"}
-              </button>
-            </div>
+            )}
+            <button
+              className={`stb-btn ${activeShift ? "stb-btn--danger" : "stb-btn--success"}`}
+              onClick={() => setShowShiftModal(true)}
+              title={activeShift ? "Cerrar Turno (F4)" : "Abrir Turno (F4)"}
+            >
+              {activeShift ? "🔴 Cerrar Turno" : "🟢 Abrir Turno"}
+            </button>
           </div>
 
-          {/* Columna de Cliente (1/3) */}
-          <div className="client-column">
+          {/* Grupo 2: Herramientas de venta (verificar precio + promociones) */}
+          <div className="stb-group stb-tools">
             <button
-              className="btn-client"
+              className="stb-btn stb-btn--info"
+              onClick={() => setShowPriceCheckModal(true)}
+              title="Verificar precio (F6)"
+            >
+              🔎 Verificar precio
+            </button>
+            <button
+              className="stb-btn stb-btn--promo"
+              onClick={() => setShowPromotionsModal(true)}
+              title="Productos en promoción"
+            >
+              🎁 Promociones
+            </button>
+          </div>
+
+          {/* Grupo 3: Cliente */}
+          <div className="stb-group stb-client">
+            <button
+              className="stb-btn stb-btn--client"
               onClick={() => setShowClientModal(true)}
               title="Click para cambiar cliente"
             >
-              👤 Cliente: {client}
+              👤 {client}
             </button>
           </div>
         </div>
@@ -2047,7 +2064,12 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                       return (
                         <tr key={`${item.id}-${item.selectedPresentation?.id || 'default'}-${index}`}>
                           <td>
-                            <h4>{displayName}</h4>
+                            <h4>
+                              {displayName}
+                              {isPromoActive(item) && !item.selectedPresentation && (
+                                <span className="cart-promo-badge">🎁 PROMO</span>
+                              )}
+                            </h4>
                             {presentationDetail && (
                               <small style={{ color: '#6b7280', fontSize: '0.85rem' }}>
                                 {presentationDetail}
@@ -2217,6 +2239,16 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
             setShowPriceCheckModal(false);
             setTimeout(() => inputRef.current?.focus(), 100);
           }}
+        />
+
+        {/* 🎁 Promociones: al elegir un producto se agrega al carrito (precio promo automático) */}
+        <PromotionsModal
+          isOpen={showPromotionsModal}
+          onClose={() => {
+            setShowPromotionsModal(false);
+            setTimeout(() => inputRef.current?.focus(), 100);
+          }}
+          onSelectProduct={(p) => handleAdd(p)}
         />
 
         {showCashMovementModal && activeShift && (

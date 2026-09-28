@@ -1,8 +1,9 @@
 import express from "express";
-import { getProducts, createProduct, filterProducts, getProductsByCategoryId, updateProduct, deleteProduct, getProductByCode } from "../controllers/productsController.js";
+import { getProducts, createProduct, filterProducts, getProductsByCategoryId, updateProduct, deleteProduct, getProductByCode, getPromotions } from "../controllers/productsController.js";
 const router = express.Router();
 
 router.get("/filters", filterProducts);
+router.get("/promotions", getPromotions);
 router.get("/category/:categoryId", getProductsByCategoryId);
 router.get("/code/:code", getProductByCode);
 

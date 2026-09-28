@@ -47,6 +47,9 @@ export interface Product {
   unit?: UnitOfMeasure | null; // Datos de la unidad (para mostrar)
   pricingMode?: string; // "simple" | "tiered"
   priceTiers?: ProductPriceTier[]; // Tramos de precio (solo si pricingMode = "tiered")
+  isPromo?: boolean; // Producto en promoción
+  promoPrice?: number | null; // Precio promocional (< price)
+  promoEndsAt?: string | Date | null; // Fecha fin opcional
   presentations?: ProductPresentation[]; // Presentaciones opcionales para compatibilidad
   trackInventory?: boolean; // Si el producto maneja inventario
   inventory?: Inventory;

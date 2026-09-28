@@ -1451,3 +1451,145 @@
     opacity: 0.9;
   }
 }
+
+/* ===== BARRA DE ACCIONES DE VENTA (una fila, 3 grupos) ===== */
+.sales-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: nowrap;
+  padding: 8px 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  margin-bottom: 8px;
+  overflow-x: auto;
+}
+
+.stb-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Separador visual entre grupos */
+.stb-tools {
+  padding-left: 0.75rem;
+  border-left: 1px solid #e2e8f0;
+}
+
+/* El grupo de cliente se empuja a la derecha */
+.stb-client {
+  margin-left: auto;
+  padding-left: 0.75rem;
+  border-left: 1px solid #e2e8f0;
+}
+
+/* ===== CHIP DE ESTADO DEL TURNO ===== */
+.stb-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 5px 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+
+.stb-status--on { background: #f0fdf4; border-color: #bbf7d0; }
+.stb-status--off { background: #fef2f2; border-color: #fecaca; }
+
+.stb-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.stb-status--on .stb-status-dot { background: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,0.18); }
+.stb-status--off .stb-status-dot { background: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.18); }
+
+.stb-status-text { display: flex; flex-direction: column; line-height: 1.15; }
+.stb-status-title { font-size: 0.85rem; font-weight: 800; color: #0f172a; }
+.stb-status--on .stb-status-title { color: #15803d; }
+.stb-status--off .stb-status-title { color: #b91c1c; }
+.stb-status-sub { font-size: 0.72rem; color: #64748b; }
+
+/* ===== BOTONES DE LA BARRA ===== */
+.stb-btn {
+  min-height: 44px;
+  padding: 0 5px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.stb-btn:hover { transform: translateY(-1px); }
+.stb-btn:active { transform: translateY(0); }
+
+/* Secundario suave (Movimientos) */
+.stb-btn--soft {
+  background: #f1f5f9;
+  color: #334155;
+  border-color: #e2e8f0;
+}
+.stb-btn--soft:hover { background: #e2e8f0; }
+
+/* Info (Verificar precio) */
+.stb-btn--info {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+.stb-btn--info:hover { background: #bae6fd; }
+
+/* Promociones */
+.stb-btn--promo {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #fff;
+}
+.stb-btn--promo:hover { filter: brightness(1.06); }
+
+/* Peligro (Cerrar turno) */
+.stb-btn--danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+}
+.stb-btn--danger:hover { filter: brightness(1.06); }
+
+/* Éxito (Abrir turno) */
+.stb-btn--success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+}
+.stb-btn--success:hover { filter: brightness(1.06); }
+
+/* Cliente */
+.stb-btn--client {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: #fff;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stb-btn--client:hover { filter: brightness(1.06); }
+
+/* Distintivo de producto en promoción dentro del carrito */
+.cart-promo-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  border-radius: 999px;
+  vertical-align: middle;
+  white-space: nowrap;
+}

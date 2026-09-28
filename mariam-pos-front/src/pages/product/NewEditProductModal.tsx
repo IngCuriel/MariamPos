@@ -55,6 +55,11 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
   // Precio escalonado (tiered pricing)
   const [pricingMode, setPricingMode] = useState<"simple" | "tiered">("simple");
   const [priceTiers, setPriceTiers] = useState<ProductPriceTier[]>([]);
+
+  // Promoción
+  const [isPromo, setIsPromo] = useState(false);
+  const [promoPrice, setPromoPrice] = useState<number>(0);
+  const [promoEndsAt, setPromoEndsAt] = useState<string>(""); // yyyy-mm-dd o ""
   const [labelQuantity, setLabelQuantity] = useState(5);
   const [activeTab, setActiveTab] = useState("producto");
   const [presentations, setPresentations] = useState<ProductPresentation[]>([]);
@@ -245,6 +250,21 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
               }))
             : []
         )
+        // Cargar promoción
+        setIsPromo(!!product.isPromo)
+        setPromoPrice(product.promoPrice ?? 0)
+        // Mostrar la fecha en HORA LOCAL (no UTC) para que no se corra un día.
+        setPromoEndsAt(
+          product.promoEndsAt
+            ? (() => {
+                const d = new Date(product.promoEndsAt as string);
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, "0");
+                const day = String(d.getDate()).padStart(2, "0");
+                return `${y}-${m}-${day}`;
+              })()
+            : ""
+        )
         
         // Cargar configuración de inventario
         setTrackInventory(product.inventory?.trackInventory || false);
@@ -281,6 +301,9 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
         setUnitId("");
         setPricingMode("simple");
         setPriceTiers([]);
+        setIsPromo(false);
+        setPromoPrice(0);
+        setPromoEndsAt("");
         
         // Inicializar inventario
         setTrackInventory(false);
@@ -408,6 +431,17 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
       }
     }
     
+    // Validar promoción: precio promo > 0 y menor al precio real.
+    if (isPromo) {
+      const base = presentations.find((p) => p.isDefault || p.quantity === 1);
+      const realPrice = base ? base.unitPrice : Number(formData.price);
+      if (!promoPrice || Number(promoPrice) <= 0) {
+        newErrors.promoPrice = "El precio de promoción debe ser mayor a 0.";
+      } else if (realPrice > 0 && Number(promoPrice) >= realPrice) {
+        newErrors.promoPrice = "El precio de promoción debe ser MENOR al precio real.";
+      }
+    }
+
     if (!formData.category.trim())
       newErrors.category = "La categoria es requerida";
     if (!formData.cost || Number(formData.cost) < 0)
@@ -517,6 +551,17 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
         unitId: unitId ? Number(unitId) : null, // Unidad de medida opcional
         pricingMode,
         priceTiers: pricingMode === "tiered" ? priceTiers : [],
+        isPromo,
+        promoPrice: isPromo ? Number(promoPrice) : null,
+        // La promo vale hasta el FIN del día elegido (23:59:59), no la medianoche
+        // del inicio, para que "válida hasta el 30" incluya todo el día 30.
+        promoEndsAt:
+          isPromo && promoEndsAt
+            ? (() => {
+                const [y, m, d] = promoEndsAt.split("-").map(Number);
+                return new Date(y, m - 1, d, 23, 59, 59, 999).toISOString();
+              })()
+            : null,
         // En modo tiered no se usan presentaciones.
         presentations:
           pricingMode === "tiered"
@@ -572,6 +617,9 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
             setUnitId("");
             setPricingMode("simple");
             setPriceTiers([]);
+            setIsPromo(false);
+            setPromoPrice(0);
+            setPromoEndsAt("");
             setTrackInventory(false);
             setInitialStock(0);
             setMinStock(0);
@@ -1137,6 +1185,63 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                           <span className="product-modal-error-message">{errors.cost}</span>
                         )}
                       </div>
+                    </div>
+
+                    {/* Promoción */}
+                    <div className="promo-box">
+                      <label className="promo-toggle">
+                        <input
+                          type="checkbox"
+                          checked={isPromo}
+                          onChange={() => setIsPromo(!isPromo)}
+                        />
+                        <span>🎁 Producto en promoción</span>
+                      </label>
+
+                      {isPromo && (
+                        <div className="promo-fields">
+                          <div className="promo-field">
+                            <label htmlFor="promoPrice">Precio de promoción *</label>
+                            <input
+                              id="promoPrice"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={promoPrice}
+                              onChange={(e) => setPromoPrice(Number(e.target.value) || 0)}
+                              onFocus={(e) => e.target.select()}
+                              className={errors.promoPrice ? "error" : ""}
+                              placeholder="0"
+                            />
+                          </div>
+                          <div className="promo-field">
+                            <label htmlFor="promoEndsAt">Válida hasta (opcional)</label>
+                            <input
+                              id="promoEndsAt"
+                              type="date"
+                              value={promoEndsAt}
+                              onChange={(e) => setPromoEndsAt(e.target.value)}
+                            />
+                          </div>
+                          {errors.promoPrice && (
+                            <span className="product-modal-error-message">{errors.promoPrice}</span>
+                          )}
+                          {(() => {
+                            const base = presentations.find((p) => p.isDefault || p.quantity === 1);
+                            const realPrice = base ? base.unitPrice : Number(formData.price);
+                            const ahorro = realPrice - Number(promoPrice);
+                            if (promoPrice > 0 && ahorro > 0) {
+                              const pct = Math.round((ahorro / realPrice) * 100);
+                              return (
+                                <div className="promo-save">
+                                  Ahorro: ${ahorro.toFixed(2)} ({pct}% menos)
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
+                      )}
                     </div>
                   </div>
 

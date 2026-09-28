@@ -67,6 +67,30 @@ export const resolveTierUnitPrice = (tiers, quantity) => {
   return tiers.length ? tiers[tiers.length - 1].unitPrice : 0;
 };
 
+// Valida y normaliza los datos de promoción. price = precio real del producto.
+// Devuelve { ok, error, data } donde data = { isPromo, promoPrice, promoEndsAt }.
+export const validatePromo = (isPromo, promoPrice, promoEndsAt, price) => {
+  if (!isPromo) {
+    return { ok: true, data: { isPromo: false, promoPrice: null, promoEndsAt: null } };
+  }
+  const pp = Number(promoPrice);
+  if (!Number.isFinite(pp) || pp <= 0) {
+    return { ok: false, error: "El precio promocional debe ser mayor a 0." };
+  }
+  if (Number.isFinite(Number(price)) && pp >= Number(price)) {
+    return { ok: false, error: "El precio promocional debe ser MENOR al precio real." };
+  }
+  let ends = null;
+  if (promoEndsAt) {
+    const d = new Date(promoEndsAt);
+    if (isNaN(d.getTime())) {
+      return { ok: false, error: "La fecha de fin de promoción no es válida." };
+    }
+    ends = d;
+  }
+  return { ok: true, data: { isPromo: true, promoPrice: pp, promoEndsAt: ends } };
+};
+
 export const getProducts = async (req, res) => {
   // Paginación server-side. Por defecto: página 1, 25 por página, más nuevos primero.
   // Si no vienen page/pageSize, mantiene compatibilidad devolviendo un array plano
@@ -143,6 +167,9 @@ export const createProduct = async (req, res) => {
       unitId,               // Unidad de medida (opcional, informativa)
       pricingMode = "simple", // "simple" | "tiered"
       priceTiers = [],      // Tramos de precio (solo si pricingMode = "tiered")
+      isPromo = false,      // Promoción activa
+      promoPrice,           // Precio promocional (< price)
+      promoEndsAt,          // Fecha fin opcional (ISO string o null)
       trackInventory,
       inventory,            // 🔄 Datos de inventario si trackInventory es true
       presentations = [],   // 👈 nuevas presentaciones opcionales
@@ -164,6 +191,10 @@ export const createProduct = async (req, res) => {
       if (!v.ok) return res.status(400).json({ error: v.error });
       validatedTiers = v.tiers;
     }
+
+    // Validar promoción (precio promo < precio real).
+    const promoV = validatePromo(isPromo, promoPrice, promoEndsAt, price);
+    if (!promoV.ok) return res.status(400).json({ error: promoV.error });
 
     if (!name) return res.status(400).json({ error: "El nombre es obligatorio" });
 
@@ -249,6 +280,9 @@ export const createProduct = async (req, res) => {
           categoryId, 
           unitId: unitId ? Number(unitId) : null, // Unidad de medida opcional
           pricingMode: pricingMode === "tiered" ? "tiered" : "simple",
+          isPromo: promoV.data.isPromo,
+          promoPrice: promoV.data.promoPrice,
+          promoEndsAt: promoV.data.promoEndsAt,
           trackInventory: isKit ? false : trackInventory, // Forzar false si es kit
           isKit, // 🆕 NUEVO: Marcar como kit
           branch: branch || "Sucursal Default", // 🔄 Sucursal
@@ -377,6 +411,9 @@ export const updateProduct = async (req, res) => {
       unitId,               // Unidad de medida (opcional, informativa)
       pricingMode,          // "simple" | "tiered" (opcional en update)
       priceTiers,           // Tramos (opcional)
+      isPromo,              // Promoción (opcional)
+      promoPrice,
+      promoEndsAt,
       trackInventory,
       inventory, 
       presentations = [],   // 👈 nuevas presentaciones
@@ -391,6 +428,14 @@ export const updateProduct = async (req, res) => {
       const v = validatePriceTiers(priceTiers || []);
       if (!v.ok) return res.status(400).json({ error: v.error });
       validatedTiersU = v.tiers;
+    }
+
+    // Validar promoción si viene isPromo en el request.
+    let promoUpdate = undefined;
+    if (isPromo !== undefined) {
+      const promoV = validatePromo(isPromo, promoPrice, promoEndsAt, price);
+      if (!promoV.ok) return res.status(400).json({ error: promoV.error });
+      promoUpdate = promoV.data;
     }
 
     if (!id) return res.status(400).json({ error: "El ID del producto es obligatorio" });
@@ -435,6 +480,12 @@ export const updateProduct = async (req, res) => {
           categoryId, 
           unitId: unitId !== undefined ? (unitId ? Number(unitId) : null) : existingProduct.unitId, // Unidad de medida opcional
           pricingMode: pricingMode !== undefined ? (pricingMode === "tiered" ? "tiered" : "simple") : existingProduct.pricingMode,
+          // Promoción: solo se toca si vino isPromo en el request.
+          ...(promoUpdate !== undefined ? {
+            isPromo: promoUpdate.isPromo,
+            promoPrice: promoUpdate.promoPrice,
+            promoEndsAt: promoUpdate.promoEndsAt,
+          } : {}),
           trackInventory,
           isKit: isKit !== undefined ? isKit : existingProduct.isKit,  // 🆕 Actualizar isKit si viene en el request
           branch: branch || existingProduct.branch || "Sucursal Default", // 🔄 Actualizar sucursal
@@ -773,3 +824,48 @@ export const getProductByCode = async (req, res) => {
     res.status(500).json({ error: "Error interno del servidor" });
   }
 }
+
+
+// Productos en promoción. Devuelve dos grupos:
+//  - active: vigentes (sin vencimiento o vence en el futuro) → vendibles.
+//  - expired: vencidas (con fecha fin pasada) → solo informativas.
+// Solo productos activos (status != 0).
+export const getPromotions = async (req, res) => {
+  try {
+    const now = new Date();
+    const include = {
+      category: true,
+      unit: true,
+      priceTiers: true,
+      presentations: true,
+      inventory: true,
+    };
+    const [active, expired] = await Promise.all([
+      prisma.product.findMany({
+        where: {
+          isPromo: true,
+          promoPrice: { not: null },
+          OR: [{ promoEndsAt: null }, { promoEndsAt: { gte: now } }],
+          AND: [{ OR: [{ status: { not: 0 } }, { status: null }] }],
+        },
+        include,
+        orderBy: { name: "asc" },
+      }),
+      prisma.product.findMany({
+        where: {
+          isPromo: true,
+          promoPrice: { not: null },
+          promoEndsAt: { lt: now }, // vencidas: fecha fin en el pasado
+          AND: [{ OR: [{ status: { not: 0 } }, { status: null }] }],
+        },
+        include,
+        orderBy: { name: "asc" },
+      }),
+    ]);
+
+    res.json({ active, expired });
+  } catch (error) {
+    console.error("Error al obtener promociones:", error);
+    res.status(500).json({ error: "Error al obtener promociones" });
+  }
+};

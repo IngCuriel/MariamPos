@@ -39,6 +39,18 @@ export const getProductsByCategoryPaged = async (
   return data;
 };
 
+// Promociones: vigentes (vendibles) y vencidas (informativas).
+export interface PromotionsResponse {
+  active: Product[];
+  expired: Product[];
+}
+
+export const getPromotions = async (): Promise<PromotionsResponse> => {
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.get<PromotionsResponse>("/products/promotions");
+  return data;
+};
+
 // Legacy: array plano (usado donde no se pagina).
 export const getProducts = async (): Promise<Product[]> => {
   const clientAxios = await getAxiosClient();

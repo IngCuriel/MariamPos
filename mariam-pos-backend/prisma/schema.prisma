@@ -47,6 +47,11 @@ model Product {
   // Excluyente con presentaciones: un producto es simple, por presentaciones, o tiered.
   pricingMode String @default("simple")
 
+  // Promoción: precio promocional fijo (menor al precio real) con fecha fin opcional.
+  isPromo     Boolean   @default(false)
+  promoPrice  Float? // precio promocional (debe ser < price)
+  promoEndsAt DateTime? // opcional: hasta cuándo aplica (null = sin vencimiento, manual)
+
   // Tramos de precio por cantidad (solo si pricingMode = "tiered").
   priceTiers ProductPriceTier[]
 

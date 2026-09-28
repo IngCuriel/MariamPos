@@ -914,3 +914,67 @@ input[type="radio"] {
 }
 
 .ptier-add:hover { background: #e0e7ff; }
+
+/* ===== SECCIÓN DE PROMOCIÓN ===== */
+.promo-box {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid #fde68a;
+  background: #fffbeb;
+  border-radius: 10px;
+}
+
+.promo-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #92400e;
+  cursor: pointer;
+}
+
+.promo-toggle input { width: 18px; height: 18px; cursor: pointer; }
+
+.promo-fields {
+  margin-top: 0.6rem;
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.promo-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+  min-width: 130px;
+}
+
+.promo-field label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #78350f;
+}
+
+.promo-field input {
+  min-height: 42px;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.promo-field input:focus {
+  outline: none;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
+}
+
+.promo-save {
+  width: 100%;
+  margin-top: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #b45309;
+}
