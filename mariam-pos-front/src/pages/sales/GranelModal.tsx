@@ -37,23 +37,55 @@ const showTouchCalculator = (
   );
 };
 
-export const GranelModal = async (product: Product) => {
-  const precioUnitario = parseFloat(product.price.toString()) || 0;
+export const GranelModal = async (product: Product, unitPriceOverride?: number) => {
+  // Precio unitario efectivo: si viene un override (ej: precio promocional
+  // vigente calculado en la venta) se usa ese; si no, el precio normal.
+  const basePrice = parseFloat(product.price.toString()) || 0;
+  const precioUnitario =
+    unitPriceOverride !== undefined && unitPriceOverride > 0
+      ? unitPriceOverride
+      : basePrice;
+  // ¿Hay promoción aplicada? (el override es menor al precio normal).
+  const hasPromo =
+    unitPriceOverride !== undefined &&
+    unitPriceOverride > 0 &&
+    unitPriceOverride < basePrice;
   const cantidadInicial = '1';
   const precioInicial = precioUnitario.toString();
+
+  // Unidad de medida del producto (informativa). Si la tiene, se usa su nombre;
+  // si no, se muestra el texto genérico marcado en rojo para avisar al cajero
+  // que a ese producto le falta configurar la unidad.
+  const unitName = product.unit?.name?.trim();
+  const hasUnit = !!unitName;
+  const cantidadLabelText = hasUnit
+    ? `Cantidad (${unitName})`
+    : 'Cantidad (kg, L, etc.)';
+  const cantidadLabelClass = hasUnit
+    ? 'granel-modal-label'
+    : 'granel-modal-label granel-modal-label--no-unit';
 
   const { value: formValues } = await Swal.fire({
     title: '',
     html: `
       <div class="granel-modal-container">
         <h3 class="granel-modal-title">${product.name}</h3>
-        <p class="granel-modal-subtitle">Precio Unitario: $${precioUnitario.toFixed(2)}</p>
+        <p class="granel-modal-subtitle">
+          ${
+            hasPromo
+              ? `<span class="granel-modal-promo-badge">🎁 PROMO</span>
+                 <span class="granel-modal-price-old">$${basePrice.toFixed(2)}</span>
+                 <span class="granel-modal-price-promo">Precio Unitario: $${precioUnitario.toFixed(2)}</span>`
+              : `Precio Unitario: $${precioUnitario.toFixed(2)}`
+          }
+        </p>
         
         <div class="granel-modal-form">
           <div class="granel-modal-field">
-            <label for="swal-cantidad" class="granel-modal-label">
+            <label for="swal-cantidad" class="${cantidadLabelClass}">
               <span class="granel-modal-label-icon">⚖️</span>
-              Cantidad (kg, L, etc.)
+              ${cantidadLabelText}
+              ${hasUnit ? '' : '<span class="granel-modal-unit-warn" title="Este producto no tiene unidad de medida configurada">⚠️ sin unidad</span>'}
             </label>
             <div class="granel-modal-input-wrapper">
               <input 

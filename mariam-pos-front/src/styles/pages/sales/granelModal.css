@@ -31,6 +31,33 @@
   margin-bottom: 1.5rem;
   text-align: center;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.granel-modal-promo-badge {
+  background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.granel-modal-price-old {
+  color: #94a3b8;
+  text-decoration: line-through;
+  font-weight: 600;
+}
+
+.granel-modal-price-promo {
+  color: #059669;
+  font-weight: 800;
 }
 
 .granel-modal-form {
@@ -56,6 +83,23 @@
 
 .granel-modal-label-icon {
   font-size: 1.1rem;
+}
+
+/* Producto sin unidad de medida configurada: se resalta en rojo para avisar */
+.granel-modal-label--no-unit {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.granel-modal-unit-warn {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #b91c1c;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
 }
 
 .granel-modal-input-wrapper {

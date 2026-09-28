@@ -24,6 +24,7 @@ import { PresentationModal } from "./PresentationModal";
 import { TieredQuantityModal, resolveTierUnitPrice } from "./TieredQuantityModal";
 import PriceCheckModal from "./PriceCheckModal";
 import PromotionsModal from "./PromotionsModal";
+import SavePendingModal from "./SavePendingModal";
 import CategoryProductModal from "./CategoryProductModal";
 import QuickAddCalculator from "./QuickAddCalculator";
 import ShiftModal from "./ShiftModal";
@@ -82,6 +83,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
   const [showPendingSalesModal, setShowPendingSalesModal] = useState(false);
   const [showPriceCheckModal, setShowPriceCheckModal] = useState(false); // 🔎 Verificador de precios
   const [showPromotionsModal, setShowPromotionsModal] = useState(false); // 🎁 Promociones
+  const [showSavePendingModal, setShowSavePendingModal] = useState(false); // 🕓 Guardar venta pendiente
   const [activeShift, setActiveShift] = useState<CashRegisterShift | null>(null);
   const [productCounter, setProductCounter] = useState(1);
   const [containersDepositInfo, setContainersDepositInfo] = useState<{
@@ -801,7 +803,12 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
     // Si no tiene presentaciones o ya se seleccionó una, continuar con el flujo normal
     // Solo abrir GranelModal si NO se ingresaron datos granel en el PresentationModal
     if (addCart && product.saleType === 'Granel' && !product.presentations?.length) {
-         const result = await GranelModal(product);
+         // Si el producto granel tiene promoción vigente, usar el precio promocional
+         // como precio unitario en el modal.
+         const granelUnitPrice = isPromoActive(product)
+           ? (product.promoPrice as number)
+           : undefined;
+         const result = await GranelModal(product, granelUnitPrice);
           if (result) {
             quantity = result.cantidad;
              console.log('Se vendió:', result.cantidad, 'kg a', result.precio, 'MXN');
@@ -1447,11 +1454,19 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
     }
   };
 
-  const saleToPending = async () => {
+  // Abre el modal para guardar venta pendiente (sin el paso previo de confirmación).
+  const saleToPending = () => {
     if (cart.length === 0) {
       Swal.fire("No hay Productos seleccionados");
       return;
     }
+    setShowSavePendingModal(true);
+  };
+
+  // Guarda la venta pendiente. description es opcional (el folio lo genera el backend).
+  const handleSavePending = async (description: string) => {
+    setShowSavePendingModal(false);
+    const clientName = description; // puede venir vacío
 
     // Calcular el total del carrito
     const total = cart.reduce((sum, item) => {
@@ -1459,121 +1474,6 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       const itemQuantity = item.quantity;
       return sum + (itemPrice * itemQuantity);
     }, 0);
-
-    // Pedir confirmación y nombre del cliente
-    const { value: confirm } = await Swal.fire({
-      title: "Venta pendiente",
-      text: "¿Deseas guardar la venta como pendiente?",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "Sí, guardar",
-      cancelButtonText: "Cancelar",
-      confirmButtonColor: "#4CAF50",
-      cancelButtonColor: "#d33",
-      allowOutsideClick: false,
-      allowEscapeKey: true,
-      didClose: () => {
-        // Cuando se cierra el modal (por cancelar o ESC), enfocar el input
-        // Usar múltiples intentos para asegurar que el foco se mantenga y no vuelva al botón
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            if (inputRef.current) {
-              // Quitar el foco de cualquier elemento que lo tenga (como el botón)
-              if (document.activeElement && document.activeElement instanceof HTMLElement && document.activeElement !== inputRef.current) {
-                document.activeElement.blur();
-              }
-              inputRef.current.focus();
-              // Verificar y re-enfocar múltiples veces para asegurar que se mantenga
-              setTimeout(() => {
-                if (inputRef.current && document.activeElement !== inputRef.current) {
-                  if (document.activeElement && document.activeElement instanceof HTMLElement) {
-                    document.activeElement.blur();
-                  }
-                  inputRef.current.focus();
-                }
-              }, 50);
-              // Tercer intento después de un delay adicional
-              setTimeout(() => {
-                if (inputRef.current && document.activeElement !== inputRef.current) {
-                  if (document.activeElement && document.activeElement instanceof HTMLElement) {
-                    document.activeElement.blur();
-                  }
-                  inputRef.current.focus();
-                }
-              }, 150);
-            }
-          }, 150);
-        });
-      },
-    });
-
-    if (!confirm) {
-      // El enfoque se maneja en didClose del Swal.fire
-      return;
-    }
-
-    const { value: clientName } = await Swal.fire({
-      title: "Guardar venta pendiente",
-      html: `
-        <p style="margin-bottom: 15px;">Ingresa el nombre del cliente para recordar esta venta:</p>
-        <p style="font-size: 12px; color: #666; margin-bottom: 10px;">Total: ${total.toLocaleString("es-MX", {
-          style: "currency",
-          currency: "MXN",
-        })}</p>
-      `,
-      input: "text",
-      inputLabel: "Nombre del cliente",
-      inputPlaceholder: "Ej: Juan Pérez, Mostrador 1, etc.",
-      showCancelButton: true,
-      confirmButtonText: "Guardar",
-      cancelButtonText: "Cancelar",
-      allowOutsideClick: false,
-      allowEscapeKey: true,
-      inputValidator: (value) => {
-        if (!value || value.trim() === "") {
-          return "Debes ingresar un nombre";
-        }
-        return null;
-      },
-      didClose: () => {
-        // Cuando se cierra el modal (por cancelar o ESC), enfocar el input
-        // Usar múltiples intentos para asegurar que el foco se mantenga y no vuelva al botón
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            if (inputRef.current) {
-              // Quitar el foco de cualquier elemento que lo tenga (como el botón)
-              if (document.activeElement && document.activeElement instanceof HTMLElement && document.activeElement !== inputRef.current) {
-                document.activeElement.blur();
-              }
-              inputRef.current.focus();
-              // Verificar y re-enfocar múltiples veces para asegurar que se mantenga
-              setTimeout(() => {
-                if (inputRef.current && document.activeElement !== inputRef.current) {
-                  if (document.activeElement && document.activeElement instanceof HTMLElement) {
-                    document.activeElement.blur();
-                  }
-                  inputRef.current.focus();
-                }
-              }, 50);
-              // Tercer intento después de un delay adicional
-              setTimeout(() => {
-                if (inputRef.current && document.activeElement !== inputRef.current) {
-                  if (document.activeElement && document.activeElement instanceof HTMLElement) {
-                    document.activeElement.blur();
-                  }
-                  inputRef.current.focus();
-                }
-              }, 150);
-            }
-          }, 150);
-        });
-      },
-    });
-
-    if (!clientName) {
-      // El enfoque se maneja en didClose del Swal.fire
-      return;
-    }
 
     try {
       // Convertir el carrito a formato de detalles de venta pendiente
@@ -1583,7 +1483,20 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         const itemQuantity = item.selectedPresentation
           ? (item.presentationQuantity ?? item.quantity)
           : item.quantity;
-        const subTotal = itemPrice * itemQuantity;
+
+        // ¿Es la presentación base? (isDefault o trae 1 unidad). El granel/precio
+        // libre y las presentaciones base usan el subtotal directo.
+        const isBasePres =
+          !!item.selectedPresentation &&
+          (item.selectedPresentation.isDefault ||
+            item.selectedPresentation.quantity === 1);
+        // subTotal real de la línea:
+        // - Presentación NO base (ej: Bulto de 20): precio × unidades × nº presentaciones.
+        // - Base / sin presentación: precio × cantidad.
+        const subTotal =
+          item.selectedPresentation && !isBasePres
+            ? itemPrice * item.selectedPresentation.quantity * itemQuantity
+            : itemPrice * itemQuantity;
 
         return {
           productId: item.id,
@@ -1612,19 +1525,23 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       setProductCounter(1);
       localStorage.removeItem("cart");
 
-      // Mostrar mensaje de éxito que desaparece automáticamente
+      // Mostrar el folio GRANDE para dárselo al cliente (no desaparece solo:
+      // el cajero debe verlo/anotarlo antes de continuar).
       await Swal.fire({
         icon: "success",
-        title: "Venta guardada",
+        title: "Venta pendiente guardada",
         html: `
-          <p>La venta se guardó correctamente</p>
-          <p style="margin-top: 10px; font-weight: bold; color: #059669;">
-            Código: ${pendingSale.code}
+          <p style="margin:0 0 10px; color:#475569;">Folio para el cliente:</p>
+          <div style="font-size:2.2rem; font-weight:900; color:#d97706; letter-spacing:0.02em; margin-bottom:10px;">
+            ${pendingSale.code}
+          </div>
+          <p style="font-size:0.85rem; color:#64748b; margin:0;">
+            Dáselo al cliente para que pase a pagar a caja.
           </p>
-          <p style="margin-top: 5px;">Cliente: ${pendingSale.clientName}</p>
+          ${pendingSale.clientName ? `<p style="font-size:0.85rem; color:#94a3b8; margin-top:8px;">${pendingSale.clientName}</p>` : ""}
         `,
-        timer: 2000,
-        showConfirmButton: false,
+        confirmButtonText: "Entendido",
+        confirmButtonColor: "#16a34a",
       });
 
       // Enfocar el input de búsqueda después de que desaparezca el mensaje (timer: 2000ms + delay adicional)
@@ -2249,6 +2166,18 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
             setTimeout(() => inputRef.current?.focus(), 100);
           }}
           onSelectProduct={(p) => handleAdd(p)}
+        />
+
+        {/* 🕓 Guardar venta pendiente (descripción o folio automático) */}
+        <SavePendingModal
+          isOpen={showSavePendingModal}
+          total={total}
+          itemCount={cart.length}
+          onClose={() => {
+            setShowSavePendingModal(false);
+            setTimeout(() => inputRef.current?.focus(), 100);
+          }}
+          onConfirm={(label) => handleSavePending(label)}
         />
 
         {showCashMovementModal && activeShift && (

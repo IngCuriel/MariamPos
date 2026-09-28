@@ -271,6 +271,21 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
       return;
     }
 
+    // Confirmación para evitar cierres accidentales (ej: escaneo con Enter).
+    const confirm = await Swal.fire({
+      icon: "question",
+      title: "¿Cerrar el turno de caja?",
+      html: `Estás por cerrar el <strong>Turno #${activeShift.id}</strong>.<br/>Esta acción no se puede deshacer.`,
+      showCancelButton: true,
+      confirmButtonText: "Sí, cerrar turno",
+      cancelButtonText: "No, cancelar",
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#6b7280",
+      reverseButtons: true,
+      focusCancel: true, // el foco por defecto en "No" para que Enter no cierre solo
+    });
+    if (!confirm.isConfirmed) return;
+
     setLoading(true);
     try {
       const input: CloseShiftInput = {

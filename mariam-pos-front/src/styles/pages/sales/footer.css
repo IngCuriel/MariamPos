@@ -43,39 +43,43 @@
 }
 
 .cart-count {
-  font-weight: 600;
-  color: #374151;
-  font-size: 0.95rem;
+  font-weight: 700;
+  color: #64748b;
+  font-size: 0.85rem;
   white-space: nowrap;
+  padding: 6px 12px;
+  background: #f1f5f9;
+  border-radius: 999px;
 }
 
 .checkout-section {
   display: flex;
   align-items: center;
   gap: 16px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .total-display {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 2px;
+  gap: 0;
+  line-height: 1.1;
 }
 
 .total-label {
-  font-size: 0.85rem;
-  color: #6b7280;
-  font-weight: 500;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
 }
 
 .total-amount {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1f2937;
-  line-height: 1;
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: #0f172a;
+  line-height: 1.1;
 }
 
 .btn-checkout {
@@ -83,17 +87,17 @@
   color: white;
   border: none;
   border-radius: 10px;
-  padding: 14px 24px;
-  font-weight: 600;
+  padding: 0 28px;
+  font-weight: 800;
   font-size: 1rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   min-width: 160px;
   white-space: nowrap;
-  min-height: 48px;
+  min-height: 52px;
 }
 
 .btn-checkout:hover:not(:disabled) {
@@ -115,54 +119,52 @@
   transform: none;
 }
 
-/* ====== TOUCH BUTTONS ====== */
+/* ====== BOTONES SECUNDARIOS (uniformes y sobrios) ====== */
+/* Cargar Pendiente, Poner Pendiente, Ventas del día: mismo estilo neutro.
+   El color protagonista queda solo para Cobrar. */
 .touch-btn { 
-  border: none;
+  border: 1px solid #e2e8f0;
   border-radius: 10px;
-  padding: 12px 20px;
+  padding: 0 16px;
   cursor: pointer;
-  color: white;
-  font-weight: 600;
-  font-size: 0.95rem;
-  transition: all 0.2s ease;
-  min-width: 140px;
-  min-height: 44px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  color: #334155;
+  background: #f8fafc;
+  font-weight: 700;
+  font-size: 0.88rem;
+  transition: all 0.15s ease;
+  min-width: 0;
+  min-height: 46px;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   white-space: nowrap;
 }
 
 .touch-btn:hover:not(:disabled) {
+  background: #eef2f7;
+  border-color: #cbd5e1;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .touch-btn:active:not(:disabled) {
   transform: translateY(0) scale(0.98);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
 .touch-btn:disabled {
-  background: #d1d5db !important;
-  color: #9ca3af !important;
+  background: #f1f5f9 !important;
+  color: #cbd5e1 !important;
+  border-color: #e2e8f0 !important;
   cursor: not-allowed;
-  box-shadow: none;
   transform: none;
-  opacity: 0.6;
 }
 
-/* ====== BUTTON COLORS ====== */
-.pending {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-}
-
-.today-sales {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-}
-
+/* Todos los botones secundarios comparten el mismo look neutro.
+   (Se sobreescriben los colores saturados anteriores.) */
+.pending,
+.today-sales,
+.dept-sales,
 .print-last {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: #f8fafc;
+  color: #334155;
 }
 
 .active-filter-report {

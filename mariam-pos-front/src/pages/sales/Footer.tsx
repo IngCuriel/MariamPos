@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import "../../styles/pages/sales/footer.css";
 import DaySalesModal from "./DaySalesModal";
+import DepartmentSalesModal from "./DepartmentSalesModal";
 
 interface FooterProps  {
  cartLength:number;
@@ -19,8 +20,11 @@ const Footer:React.FC<FooterProps>= ({
   onCheckout,
   onSaleToPending, 
   showPendingCarts, 
-  onFocusSearch
+  onFocusSearch,
+  cashRegister
 }) =>{
+  const [showDeptSales, setShowDeptSales] = useState(false);
+
   return (
     <footer className="pos-footer">
         <div className="column left">
@@ -33,6 +37,20 @@ const Footer:React.FC<FooterProps>= ({
                 🕓 Poner Pendiente
             </button>
             <DaySalesModal onClose={onFocusSearch}/>
+            <button
+                className="btn touch-btn dept-sales"
+                onClick={() => setShowDeptSales(true)}
+            >
+                🏢 Ventas x Depto
+            </button>
+            <DepartmentSalesModal
+                isOpen={showDeptSales}
+                cashRegister={cashRegister}
+                onClose={() => {
+                    setShowDeptSales(false);
+                    onFocusSearch?.();
+                }}
+            />
         </div>
         <div className="column center">
             <div className="cart-info">

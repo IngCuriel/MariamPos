@@ -73,3 +73,28 @@ export const getSalesByClient = async (params:Record<string, string>): Promise<{
   return data;
 };
 
+export interface DepartmentSale {
+  departmentId: string | null;
+  departmentName: string;
+  icon: string | null;
+  total: number;
+  quantity: number;
+  items: number;
+  percentage: number;
+}
+
+export interface DepartmentSalesResponse {
+  total: number;
+  departments: DepartmentSale[];
+}
+
+// Ventas agrupadas por departamento (para el modal de venta).
+export const getSalesByDepartment = async (
+  params: Record<string, string>
+): Promise<DepartmentSalesResponse> => {
+  const query = new URLSearchParams(params).toString();
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.get(`/sales/by-department?${query}`);
+  return data;
+};
+

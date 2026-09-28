@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { getPendingSales, deletePendingSale, type PendingSale } from "../../api/pendingSales";
 import Swal from "sweetalert2";
+import PendingSaleDetailModal from "./PendingSaleDetailModal";
 import "../../styles/pages/sales/pendingSalesModal.css";
 
 interface PendingSalesModalProps {
@@ -17,6 +18,7 @@ const PendingSalesModal: React.FC<PendingSalesModalProps> = ({
   const [pendingSales, setPendingSales] = useState<PendingSale[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [detailSale, setDetailSale] = useState<PendingSale | null>(null); // venta cuyos productos se ven en detalle
 
   useEffect(() => {
     if (isOpen) {
@@ -51,16 +53,17 @@ const PendingSalesModal: React.FC<PendingSalesModalProps> = ({
     const { value: confirm } = await Swal.fire({
       title: "Cargar venta pendiente",
       html: `
-        <div style="text-align: left; margin: 20px 0;">
-          <p><strong>Código:</strong> ${pendingSale.code}</p>
-          <p><strong>Cliente:</strong> ${pendingSale.clientName || "Sin nombre"}</p>
-          <p><strong>Total:</strong> ${pendingSale.total.toLocaleString("es-MX", {
-            style: "currency",
-            currency: "MXN",
-          })}</p>
-          <p><strong>Productos:</strong> ${pendingSale.details.length}</p>
+        <div style="text-align: center; margin: 16px 0;">
+          <p style="font-size: 13px; color: #6b7280; margin: 0;">Folio</p>
+          <p style="font-size: 22px; font-weight: 800; color: #4f46e5; font-family: 'Courier New', monospace; margin: 4px 0;">${pendingSale.code}</p>
+          <p style="font-size: 20px; font-weight: 700; color: #059669; margin: 8px 0 0;">${pendingSale.total.toLocaleString(
+            "es-MX",
+            { style: "currency", currency: "MXN" }
+          )}</p>
+          <p style="font-size: 13px; color: #6b7280; margin: 4px 0 0;">${pendingSale.details.length} ${
+        pendingSale.details.length === 1 ? "producto" : "productos"
+      }</p>
         </div>
-        <p style="margin-top: 15px;">¿Deseas cargar esta venta pendiente?</p>
       `,
       icon: "question",
       showCancelButton: true,
@@ -99,8 +102,8 @@ const PendingSalesModal: React.FC<PendingSalesModalProps> = ({
       title: "Eliminar venta pendiente",
       html: `
         <p>¿Estás seguro de eliminar la venta pendiente?</p>
-        <p style="margin-top: 10px;"><strong>${pendingSale.code}</strong></p>
-        <p>Cliente: ${pendingSale.clientName || "Sin nombre"}</p>
+        <p style="margin-top: 10px; font-size: 20px; font-weight: 800; color: #4f46e5; font-family: 'Courier New', monospace;">${pendingSale.code}</p>
+        ${pendingSale.clientName ? `<p style="color:#6b7280; font-size:13px;">📝 ${pendingSale.clientName}</p>` : ""}
       `,
       icon: "warning",
       showCancelButton: true,
@@ -146,6 +149,7 @@ const PendingSalesModal: React.FC<PendingSalesModalProps> = ({
   if (!isOpen) return null;
 
   return (
+    <>
     <div className="pending-sales-modal-overlay" onClick={onClose}>
       <div className="pending-sales-modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="pending-sales-modal-header">
@@ -196,29 +200,17 @@ const PendingSalesModal: React.FC<PendingSalesModalProps> = ({
           ) : (
             <div className="pending-sales-list">
               {pendingSales.map((pendingSale) => (
-                <div
-                  key={pendingSale.id}
-                  className="pending-sales-card"
-                  onClick={() => handleSelect(pendingSale)}
-                >
-                  <div className="pending-sales-card-header">
-                    <div className="pending-sales-code">
-                      <span className="pending-sales-code-label">Código:</span>
-                      <span className="pending-sales-code-value">{pendingSale.code}</span>
+                <div key={pendingSale.id} className="pending-sales-card">
+                  {/* Encabezado: folio + eliminar */}
+                  <div className="ps-card-top">
+                    <div className="ps-folio">
+                      <span className="ps-folio-label">Folio</span>
+                      <span className="ps-folio-value">{pendingSale.code}</span>
                     </div>
                     <button
                       className="pending-sales-delete-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        handleDelete(pendingSale, e);
-                      }}
-                      onMouseDown={(e) => {
-                        e.stopPropagation();
-                      }}
-                      onTouchStart={(e) => {
-                        e.stopPropagation();
-                      }}
+                      onClick={(e) => handleDelete(pendingSale, e)}
+                      onMouseDown={(e) => e.stopPropagation()}
                       title="Eliminar"
                       type="button"
                     >
@@ -226,42 +218,39 @@ const PendingSalesModal: React.FC<PendingSalesModalProps> = ({
                     </button>
                   </div>
 
-                  <div className="pending-sales-card-body">
-                    <div className="pending-sales-info-row">
-                      <span className="pending-sales-info-label">Cliente:</span>
-                      <span className="pending-sales-info-value">
-                        {pendingSale.clientName || "Sin nombre"}
-                      </span>
-                    </div>
-
-                    <div className="pending-sales-info-row">
-                      <span className="pending-sales-info-label">Total:</span>
-                      <span className="pending-sales-total">
-                        {pendingSale.total.toLocaleString("es-MX", {
-                          style: "currency",
-                          currency: "MXN",
-                        })}
-                      </span>
-                    </div>
-
-                    <div className="pending-sales-info-row">
-                      <span className="pending-sales-info-label">Productos:</span>
-                      <span className="pending-sales-info-value">
-                        {pendingSale.details.length} {pendingSale.details.length === 1 ? "producto" : "productos"}
-                      </span>
-                    </div>
-
-                    <div className="pending-sales-info-row">
-                      <span className="pending-sales-info-label">Fecha:</span>
-                      <span className="pending-sales-info-value">
-                        {formatDate(pendingSale.createdAt)}
-                      </span>
-                    </div>
+                  {/* Meta: total, productos, fecha */}
+                  <div className="ps-meta">
+                    <span className="ps-total">
+                      {pendingSale.total.toLocaleString("es-MX", {
+                        style: "currency",
+                        currency: "MXN",
+                      })}
+                    </span>
+                    <span className="ps-meta-sub">
+                      {pendingSale.details.length}{" "}
+                      {pendingSale.details.length === 1 ? "producto" : "productos"} ·{" "}
+                      {formatDate(pendingSale.createdAt)}
+                    </span>
+                    {pendingSale.clientName && (
+                      <span className="ps-note">📝 {pendingSale.clientName}</span>
+                    )}
                   </div>
 
-                  <div className="pending-sales-card-footer">
-                    <button className="pending-sales-load-btn">
-                      Cargar Venta
+                  {/* Acciones */}
+                  <div className="ps-actions">
+                    <button
+                      className="ps-btn ps-btn--ghost"
+                      onClick={() => setDetailSale(pendingSale)}
+                      type="button"
+                    >
+                      👁 Ver productos
+                    </button>
+                    <button
+                      className="ps-btn ps-btn--load"
+                      onClick={() => handleSelect(pendingSale)}
+                      type="button"
+                    >
+                      Cargar venta
                     </button>
                   </div>
                 </div>
@@ -277,6 +266,13 @@ const PendingSalesModal: React.FC<PendingSalesModalProps> = ({
         </div>
       </div>
     </div>
+
+    <PendingSaleDetailModal
+      isOpen={detailSale !== null}
+      pendingSale={detailSale}
+      onClose={() => setDetailSale(null)}
+    />
+    </>
   );
 };
 

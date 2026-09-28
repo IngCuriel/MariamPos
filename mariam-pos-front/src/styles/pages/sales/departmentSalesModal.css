@@ -1,0 +1,361 @@
+.dsm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9998;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.dsm-content {
+  background: #ffffff;
+  border-radius: 18px;
+  width: 100%;
+  max-width: 620px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.32);
+  overflow: hidden;
+}
+
+/* ---- Header ---- */
+.dsm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 22px;
+  background: linear-gradient(135deg, #0f766e 0%, #0e7490 100%);
+  color: white;
+}
+
+.dsm-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dsm-header-title {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.dsm-header-sub {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.dsm-close {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 10px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  color: white;
+  transition: background 0.15s ease;
+}
+
+.dsm-close:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+/* ---- Filtros de fecha ---- */
+.dsm-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 14px 22px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.dsm-today-btn {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid #0e7490;
+  background: #0e7490;
+  color: white;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.dsm-today-btn:hover {
+  background: #0c6478;
+  box-shadow: 0 2px 8px rgba(14, 116, 144, 0.3);
+}
+
+.dsm-date-fields {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dsm-date-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dsm-date-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.dsm-date-input {
+  min-height: 44px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 0 12px;
+  font-size: 14px;
+  color: #374151;
+  background: white;
+  cursor: pointer;
+}
+
+.dsm-date-input:focus {
+  outline: none;
+  border-color: #0e7490;
+  box-shadow: 0 0 0 3px rgba(14, 116, 144, 0.15);
+}
+
+.dsm-apply-btn {
+  min-height: 44px;
+  padding: 0 20px;
+  border: none;
+  background: #4f46e5;
+  color: white;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.dsm-apply-btn:hover:not(:disabled) {
+  background: #4338ca;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+}
+
+.dsm-apply-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dsm-range-error {
+  flex-basis: 100%;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b91c1c;
+}
+
+/* ---- Body ---- */
+.dsm-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 22px;
+  background: #f9fafb;
+}
+
+.dsm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dsm-item {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dsm-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.dsm-item-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dsm-item-icon {
+  font-size: 18px;
+}
+
+.dsm-item-total {
+  flex-shrink: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f766e;
+  font-variant-numeric: tabular-nums;
+}
+
+.dsm-bar-track {
+  width: 100%;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.dsm-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0f766e 0%, #14b8a6 100%);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.dsm-item-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+  flex-wrap: wrap;
+}
+
+/* ---- Estados (loading / error / vacío) ---- */
+.dsm-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.dsm-state--error {
+  color: #b91c1c;
+}
+
+.dsm-state-icon {
+  font-size: 44px;
+  margin-bottom: 10px;
+  opacity: 0.6;
+}
+
+.dsm-state-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 4px;
+}
+
+.dsm-state-text {
+  font-size: 13px;
+  margin: 0;
+}
+
+.dsm-spinner {
+  width: 42px;
+  height: 42px;
+  border: 4px solid #e5e7eb;
+  border-top-color: #0e7490;
+  border-radius: 50%;
+  animation: dsm-spin 1s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes dsm-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.dsm-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dsm-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+/* ---- Footer ---- */
+.dsm-footer {
+  padding: 16px 22px;
+  border-top: 1px solid #e5e7eb;
+  background: white;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.dsm-total-row {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.dsm-total-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.dsm-total-value {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f766e;
+  font-variant-numeric: tabular-nums;
+}
+
+.dsm-btn-close {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 24px;
+  background: #f3f4f6;
+  color: #374151;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.dsm-btn-close:hover {
+  background: #e5e7eb;
+}
+
+@media (max-width: 640px) {
+  .dsm-content {
+    max-width: 100%;
+    max-height: 94vh;
+  }
+}
