@@ -76,12 +76,12 @@ export const createPendingSale = async (req, res) => {
         .json({ error: "Debe incluir al menos un detalle de venta" });
     }
 
-    // Generar código único
-    const code = generatePendingSaleCode();
+    // Código temporal único para no violar la restricción unique al crear.
+    const tempCode = generatePendingSaleCode();
 
-    const pendingSale = await prisma.pendingSale.create({
+    const created = await prisma.pendingSale.create({
       data: {
-        code,
+        code: tempCode,
         clientName: clientName || null,
         total,
         branch: branch || "Sucursal Default",
@@ -100,6 +100,16 @@ export const createPendingSale = async (req, res) => {
           })),
         },
       },
+    });
+
+    // Folio legible y correlativo para el cliente: PP-1000, PP-1001, …
+    // (PP = Pago Pendiente). Basado en el id autoincremental → único, sin colisiones
+    // aunque varios cajeros guarden a la vez.
+    const friendlyCode = `PP-${1000 + created.id}`;
+
+    const pendingSale = await prisma.pendingSale.update({
+      where: { id: created.id },
+      data: { code: friendlyCode },
       include: {
         details: {
           include: {

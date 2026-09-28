@@ -515,6 +515,99 @@ export const getSalesByCategory = async (req, res) => {
   }
 };
 
+// Ventas por departamento (agrupa las categorías de cada departamento)
+export const getSalesByDepartment = async (req, res) => {
+  try {
+    const { range, start, end, cashRegister } = req.query;
+    let where = {};
+    const now = new Date();
+
+    if (range === "day") {
+      const startDay = new Date();
+      startDay.setHours(0, 0, 0, 0);
+      const endDay = new Date();
+      endDay.setHours(23, 59, 59, 999);
+      where = { createdAt: { gte: startDay, lte: endDay } };
+    } else if (range === "week") {
+      const startWeek = new Date();
+      startWeek.setDate(now.getDate() - 7);
+      where = { createdAt: { gte: startWeek } };
+    } else if (range === "month") {
+      const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      where = { createdAt: { gte: startMonth } };
+    } else if (start && end) {
+      // Formato esperado: YYYY-MM-DD
+      const startDate = new Date(`${start}T00:00:00.000`);
+      const endDate = new Date(`${end}T23:59:59.999`);
+      where = { createdAt: { gte: startDate, lte: endDate } };
+    }
+
+    if (cashRegister) {
+      where.cashRegister = cashRegister;
+    }
+
+    const sales = await prisma.sale.findMany({
+      where,
+      include: {
+        details: {
+          include: {
+            product: {
+              include: {
+                category: {
+                  include: { department: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Agrupar por departamento (usando la categoría del producto).
+    // Los productos cuya categoría no tiene departamento caen en "Sin departamento".
+    const deptMap = new Map();
+    let granTotal = 0;
+
+    sales.forEach((sale) => {
+      sale.details.forEach((detail) => {
+        const dept = detail.product?.category?.department;
+        const key = dept?.id || "__none__";
+        const name = dept?.name || "Sin departamento";
+        const icon = dept?.icon || null;
+
+        const current =
+          deptMap.get(key) || {
+            departmentId: dept?.id || null,
+            departmentName: name,
+            icon,
+            total: 0,
+            quantity: 0,
+            items: 0,
+          };
+        current.total += detail.subTotal;
+        current.quantity += detail.quantity;
+        current.items += 1;
+        deptMap.set(key, current);
+
+        granTotal += detail.subTotal;
+      });
+    });
+
+    // Calcular porcentaje de participación de cada departamento sobre el total.
+    const result = Array.from(deptMap.values())
+      .map((d) => ({
+        ...d,
+        percentage: granTotal > 0 ? (d.total / granTotal) * 100 : 0,
+      }))
+      .sort((a, b) => b.total - a.total);
+
+    res.json({ total: granTotal, departments: result });
+  } catch (error) {
+    console.error("Error al obtener ventas por departamento:", error);
+    res.status(500).json({ error: "Error al obtener ventas por departamento" });
+  }
+};
+
 // Ventas por cliente
 export const getSalesByClient = async (req, res) => {
   try {
