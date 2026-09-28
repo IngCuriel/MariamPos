@@ -9,6 +9,8 @@ interface ButtonProps {
   disabled?: boolean;
   type?: 'button' | 'submit' | 'reset';
   style?: React.CSSProperties;
+  title?: string;
+  'aria-label'?: string;
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -20,6 +22,8 @@ const Button: React.FC<ButtonProps> = ({
   disabled = false,
   type = 'button',
   style,
+  title,
+  'aria-label': ariaLabel,
 }) => {
   const baseClasses = 'button';
   const variantClasses = {
@@ -50,6 +54,8 @@ const Button: React.FC<ButtonProps> = ({
       onClick={onClick}
       disabled={disabled}
       style={style}
+      title={title}
+      aria-label={ariaLabel}
     >
       {children}
     </button>

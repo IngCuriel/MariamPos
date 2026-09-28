@@ -3,29 +3,25 @@
 
 .category-modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
   z-index: 1000;
-  padding: 1rem;
-  padding-top: 2rem;
+  padding: 16px;
   backdrop-filter: blur(4px);
   overflow-y: auto;
 }
 
 .category-modal-container {
   width: 100%;
-  max-width: 600px;
-  max-height: 90vh;
+  max-width: 460px;
+  max-height: 92vh;
   overflow-y: auto;
   background: white;
   border-radius: 16px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
 }
 
 .category-modal-card {
@@ -36,23 +32,27 @@
 
 /* ===== HEADER DEL MODAL ===== */
 .category-modal-header {
-  padding: 1.5rem;
-  border-bottom: 2px solid #e5e7eb;
-  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+  padding: 14px 18px;
+  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .category-modal-header h2 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1f2937;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #fff;
   margin: 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+}
+
+.category-modal-close-btn {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+.category-modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.18) !important;
+  color: #fff !important;
 }
 
 .category-modal-close-btn {
@@ -79,40 +79,42 @@
 
 /* ===== FORMULARIO ===== */
 .category-form {
-  padding: 1.5rem;
+  padding: 16px 18px;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 12px;
 }
 
 .category-form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 5px;
 }
 
 .category-form-group label {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #374151;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #475569;
 }
 
 .category-form-group input[type="text"],
-.category-form-group textarea {
-  padding: 0.75rem 1rem;
+.category-form-group textarea,
+.category-form-group select {
+  padding: 10px 12px;
   border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 1rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
   font-family: inherit;
-  transition: all 0.2s ease;
+  transition: border-color 0.15s;
   background: white;
+  min-height: 44px;
 }
 
 .category-form-group input[type="text"]:focus,
-.category-form-group textarea:focus {
+.category-form-group textarea:focus,
+.category-form-group select:focus {
   outline: none;
   border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .category-form-group input.error,
@@ -122,24 +124,23 @@
 
 .category-form-group textarea {
   resize: vertical;
-  min-height: 80px;
+  min-height: 60px;
   font-family: inherit;
 }
 
 .category-checkbox-label {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 10px;
   cursor: pointer;
-  padding: 0.75rem;
-  background: #f9fafb;
-  border-radius: 8px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 10px;
   border: 2px solid #e5e7eb;
-  transition: all 0.2s ease;
+  transition: border-color 0.15s;
 }
 
 .category-checkbox-label:hover {
-  background: #f3f4f6;
   border-color: #667eea;
 }
 
@@ -151,17 +152,16 @@
 }
 
 .category-checkbox-text {
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 0.92rem;
+  font-weight: 700;
   color: #374151;
 }
 
 .category-checkbox-hint {
-  font-size: 0.85rem;
-  color: #6b7280;
-  margin-top: 0.25rem;
-  margin-left: 0;
-  padding-left: 2.5rem;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  margin: 2px 0 0;
+  padding-left: 2px;
 }
 
 .category-error-message {
@@ -174,21 +174,22 @@
 /* ===== ACCIONES DEL FORMULARIO ===== */
 .category-form-actions {
   display: flex;
-  gap: 0.75rem;
+  gap: 10px;
   justify-content: flex-end;
-  padding-top: 1.25rem;
-  border-top: 2px solid #e5e7eb;
-  margin-top: 0.5rem;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+  margin-top: 2px;
 }
 
 .category-form-actions button {
-  padding: 0.75rem 1.5rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-  border-radius: 8px;
+  min-height: 44px;
+  padding: 8px 20px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border-radius: 10px;
   border: none;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .category-cancel-btn {

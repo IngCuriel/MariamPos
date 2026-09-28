@@ -1,0 +1,333 @@
+/* ===== MODAL DE AYUDA: CÓDIGO / NOMBRE DE PRODUCTO ===== */
+/* Estilos scopeados con prefijo phelp- para no tocar globales. */
+
+.phelp-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 11000;
+  animation: phelpFade 0.15s ease-out;
+}
+
+@keyframes phelpFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.phelp-modal {
+  width: 100%;
+  max-width: 640px;
+  max-height: 90vh;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: phelpPop 0.18s ease-out;
+}
+
+@keyframes phelpPop {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ===== HEADER ===== */
+.phelp-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 1.25rem 1.25rem 1rem;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: #fff;
+}
+
+.phelp-header-icon {
+  font-size: 1.9rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.phelp-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.phelp-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.phelp-subtitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  opacity: 0.92;
+  line-height: 1.35;
+}
+
+.phelp-close {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.phelp-close:hover { background: rgba(255, 255, 255, 0.32); }
+
+/* ===== BODY ===== */
+.phelp-body {
+  padding: 1.25rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.phelp-section-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.phelp-tips {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.phelp-tip {
+  position: relative;
+  padding: 0.625rem 0.75rem 0.625rem 2rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  color: #334155;
+  line-height: 1.4;
+}
+
+.phelp-tip::before {
+  content: "✔";
+  position: absolute;
+  left: 0.65rem;
+  top: 0.6rem;
+  color: #10b981;
+  font-weight: 900;
+  font-size: 0.85rem;
+}
+
+/* ===== EJEMPLOS POR RUBRO ===== */
+.phelp-examples {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.625rem;
+}
+
+.phelp-example-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.75rem 0.875rem;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.phelp-example-rubro {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.phelp-example-icon { font-size: 1rem; }
+
+.phelp-example-value {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  word-break: break-word;
+}
+
+/* ===== TABLA DE EJEMPLOS DE PRESENTACIONES ===== */
+.phelp-pres-table {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.phelp-pres-row {
+  display: grid;
+  grid-template-columns: 1.4fr 0.9fr 0.9fr 0.9fr 0.9fr 0.8fr;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.82rem;
+}
+
+.phelp-pres-row:last-child { border-bottom: none; }
+
+.phelp-pres-head {
+  background: #f1f5f9;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.phelp-pres-prod {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.phelp-pres-badge {
+  display: inline-block;
+  justify-self: start;
+  padding: 2px 10px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #4f46e5;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.phelp-pres-muted { color: #64748b; }
+
+.phelp-pres-right { text-align: right; }
+
+/* Precio por pieza suelta: tachado para resaltar que es el más caro */
+.phelp-pres-strike {
+  color: #94a3b8;
+  text-decoration: line-through;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Precio por pieza en mayoreo: resaltado como el conveniente */
+.phelp-pres-unit {
+  font-weight: 800;
+  color: #4f46e5;
+  font-variant-numeric: tabular-nums;
+}
+
+.phelp-pres-price {
+  font-weight: 800;
+  color: #047857;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== NOTA ===== */
+.phelp-note {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  padding: 0.75rem 0.875rem;
+  font-size: 0.85rem;
+  color: #92400e;
+  line-height: 1.4;
+}
+
+/* ===== FOOTER ===== */
+.phelp-footer {
+  padding: 0.875rem 1.25rem;
+  border-top: 1px solid #eef2f7;
+  display: flex;
+  justify-content: flex-end;
+  background: #f8fafc;
+}
+
+.phelp-btn-ok {
+  min-height: 44px;
+  padding: 0.5rem 1.75rem;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.phelp-btn-ok:hover { filter: brightness(1.08); }
+
+/* ===== BOTÓN DE AYUDA (ícono ? junto al label) ===== */
+.phelp-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-left: 0.4rem;
+  padding: 0;
+  border: 1px solid #c7d2fe;
+  border-radius: 50%;
+  background: #eef2ff;
+  color: #4f46e5;
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: all 0.15s;
+}
+
+.phelp-trigger:hover {
+  background: #4f46e5;
+  color: #fff;
+  border-color: #4f46e5;
+}
+
+/* Área táctil ampliada en pantallas touch sin agrandar visualmente */
+@media (hover: none) and (pointer: coarse) {
+  .phelp-trigger {
+    width: 28px;
+    height: 28px;
+    font-size: 0.85rem;
+  }
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 560px) {
+  .phelp-examples {
+    grid-template-columns: 1fr;
+  }
+
+  /* La tabla de presentaciones scrollea horizontal en pantallas angostas
+     para no aplastar las 6 columnas de precios. */
+  .phelp-pres-table {
+    overflow-x: auto;
+  }
+
+  .phelp-pres-row {
+    min-width: 560px;
+  }
+}

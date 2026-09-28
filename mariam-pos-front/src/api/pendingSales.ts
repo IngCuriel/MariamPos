@@ -11,6 +11,8 @@ export interface PendingSaleDetail {
   presentationName?: string;
   product?: {
     presentations?: { id: number; name: string; quantity: number; unitPrice: number }[];
+    unitId?: number | null;
+    unit?: { id: number; name: string; abbreviation: string } | null;
   };
   saleType?: string;
   basePrice?: number;

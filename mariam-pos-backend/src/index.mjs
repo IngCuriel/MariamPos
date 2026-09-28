@@ -42,6 +42,9 @@ app.use(express.json());
 
 // Rutas
 import categoriesRouter from "./routes/categories.js"; 
+import departmentsRouter from "./routes/departments.js"; 
+import codePrefixesRouter from "./routes/codePrefixes.js"; 
+import unitsRouter from "./routes/units.js"; 
 import clientsRouter from "./routes/clients.js"; 
 import productsRouter from "./routes/products.js";
 import salesRouter from "./routes/sales.js";
@@ -64,6 +67,9 @@ import accountPayablesRouter from "./routes/accountPayables.js";
 app.use("/health", healthRouter);
 
 app.use("/api/categories", categoriesRouter); 
+app.use("/api/departments", departmentsRouter); 
+app.use("/api/code-prefixes", codePrefixesRouter); 
+app.use("/api/units", unitsRouter); 
 app.use("/api/clients", clientsRouter); 
 app.use("/api/products", productsRouter); 
 app.use("/api/sales", salesRouter); 

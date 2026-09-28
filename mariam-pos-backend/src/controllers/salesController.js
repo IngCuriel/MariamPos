@@ -79,6 +79,7 @@ export const createSales = async (req, res) => {
             price: d.price,
             productName: d.productName,
             subTotal: d.subTotal,
+            unitAbbrev: d.unitAbbrev || null, // Unidad congelada al momento de la venta
           })),
         },
       },

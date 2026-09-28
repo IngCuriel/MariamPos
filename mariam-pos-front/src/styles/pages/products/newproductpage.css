@@ -605,11 +605,24 @@ input[type="radio"] {
   gap: 0.5rem;
 }
 
-.add-presentation-btn,
 .update-presentation-btn,
 .cancel-edit-btn {
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
+}
+
+/* Botón de solo ícono "+" para agregar presentación (táctil, cuadrado) */
+.add-presentation-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .form-hint {
@@ -631,3 +644,273 @@ input[type="radio"] {
     max-height: none;
   }
 }
+
+/* ===== CÓDIGO CON GENERACIÓN AUTOMÁTICA (prefijo por categoría) ===== */
+.pcode-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.pcode-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.pcode-input--auto {
+  background: #f1f5f9;
+  color: #334155;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.pcode-toggle {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 0.9rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.pcode-toggle:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.pcode-toggle--on {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #4f46e5;
+}
+
+.pcode-hint {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.pcode-hint--ok { color: #047857; }
+.pcode-hint--warn { color: #b45309; }
+
+.pcode-link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: #4f46e5;
+  font-weight: 700;
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* ===== MINI-MODAL CREAR PREFIJO ===== */
+.pcode-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 12000;
+}
+
+.pcode-modal {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
+  padding: 1.25rem;
+}
+
+.pcode-modal-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.pcode-modal-desc {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.pcode-modal-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.pcode-modal-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.6rem 0.75rem;
+  border: 2px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #1e293b;
+  text-transform: uppercase;
+}
+
+.pcode-modal-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.pcode-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.pcode-modal-btn {
+  min-height: 44px;
+  padding: 0 1.25rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.pcode-modal-btn--cancel {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+.pcode-modal-btn--cancel:hover { background: #e2e8f0; }
+
+.pcode-modal-btn--save {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: #fff;
+}
+
+.pcode-modal-btn--save:hover { filter: brightness(1.08); }
+
+.pcode-modal-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ===== MODO DE PRECIO (presentaciones vs escalonado) ===== */
+.ptier-mode {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.ptier-mode-btn {
+  flex: 1;
+  min-height: 42px;
+  padding: 0.5rem;
+  border: 2px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  color: #475569;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ptier-mode-btn--on {
+  border-color: #4f46e5;
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+/* ===== TABLA DE TRAMOS ===== */
+.ptier-hint {
+  font-size: 0.78rem;
+  color: #64748b;
+  line-height: 1.35;
+  margin: 0 0 0.6rem;
+}
+
+.ptier-table {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 0.6rem;
+}
+
+.ptier-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.2fr 44px;
+  gap: 0.4rem;
+  align-items: center;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.ptier-row:last-child { border-bottom: none; }
+
+.ptier-head {
+  background: #f1f5f9;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.ptier-head span { padding: 0 0.2rem; }
+
+.ptier-input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.ptier-input:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.12);
+}
+
+.ptier-remove {
+  min-height: 40px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.ptier-remove:hover { background: #fee2e2; }
+
+.ptier-add {
+  width: 100%;
+  min-height: 44px;
+  border: 1px dashed #c7d2fe;
+  background: #eef2ff;
+  color: #4f46e5;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ptier-add:hover { background: #e0e7ff; }

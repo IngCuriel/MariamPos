@@ -741,7 +741,7 @@
 .category-card {
   background: linear-gradient(145deg, #ffffff, #f8f9fa);
   border-radius: 15px;
-  padding: 20px;
+  padding: 2px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
   border: 2px solid transparent;

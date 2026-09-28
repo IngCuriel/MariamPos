@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { getCategoriesShowInPOS } from "../../api/categories";
 import { getProductsByCategoryId } from "../../api/products";
 import type { Category, Product } from "../../types";
@@ -41,6 +41,27 @@ const CategoryProductModal: React.FC<CategoryProductModalProps> = ({
       setLoading(false);
     }
   };
+
+  // Agrupar categorías por departamento (las sin departamento van al final).
+  const groupedCategories = useMemo(() => {
+    const byDept = new Map<string, { name: string; cats: Category[] }>();
+    const noDept: Category[] = [];
+    for (const c of categories) {
+      if (c.department?.id) {
+        const g = byDept.get(c.department.id) ?? { name: c.department.name, cats: [] };
+        g.cats.push(c);
+        byDept.set(c.department.id, g);
+      } else {
+        noDept.push(c);
+      }
+    }
+    const groups = Array.from(byDept.values()).sort((a, b) =>
+      a.name.localeCompare(b.name, "es")
+    );
+    groups.forEach((g) => g.cats.sort((a, b) => a.name.localeCompare(b.name, "es")));
+    noDept.sort((a, b) => a.name.localeCompare(b.name, "es"));
+    return { groups, noDept };
+  }, [categories]);
 
   const handleCategorySelect = async (category: Category) => {
     try {
@@ -138,22 +159,42 @@ const CategoryProductModal: React.FC<CategoryProductModalProps> = ({
                   <p>📭 No hay categorías disponibles</p>
                 </div>
               ) : (
-                <div className="category-product-grid">
-                  {categories.map((category) => (
-                    <button
-                      key={category.id}
-                      className="category-card"
-                      onClick={() => handleCategorySelect(category)}
-                    >
-                      <div className="category-card-icon">📁</div>
-                      <div className="category-card-name">{category.name}</div>
-                      {category.description && (
-                        <div className="category-card-description">
-                          {category.description}
-                        </div>
-                      )}
-                    </button>
+                <div className="cat-groups">
+                  {groupedCategories.groups.map((group) => (
+                    <div key={group.name} className="cat-group">
+                      <div className="cat-group-title">🏢 {group.name}</div>
+                      <div className="category-product-grid">
+                        {group.cats.map((category) => (
+                          <button
+                            key={category.id}
+                            className="category-card"
+                            onClick={() => handleCategorySelect(category)}
+                          >
+                            <span className="category-card-icon">📁</span>
+                            <span className="category-card-name">{category.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   ))}
+
+                  {groupedCategories.noDept.length > 0 && (
+                    <div className="cat-group">
+                      <div className="cat-group-title">📂 Sin departamento</div>
+                      <div className="category-product-grid">
+                        {groupedCategories.noDept.map((category) => (
+                          <button
+                            key={category.id}
+                            className="category-card"
+                            onClick={() => handleCategorySelect(category)}
+                          >
+                            <span className="category-card-icon">📁</span>
+                            <span className="category-card-name">{category.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </>
@@ -170,17 +211,25 @@ const CategoryProductModal: React.FC<CategoryProductModalProps> = ({
                   </button>
                 </div>
               ) : (
-                <div className="category-product-grid">
+                <div className="category-product-grid product-grid-compact">
                   {products.map((product) => (
                     <button
                       key={product.id}
                       className="product-card-modal"
                       onClick={() => handleProductSelect(product)}
+                      title={product.name}
                     >
-                      <div className="product-card-modal-icon">
-                        {product.icon || "📦"}
-                      </div>
-                      <div className="product-card-modal-name">
+                      {/* Nombre largo (>42 chars): ocultar ícono y permitir 4 líneas. */}
+                      {product.name.length <= 42 && (
+                        <div className="product-card-modal-icon">
+                          {product.icon || "📦"}
+                        </div>
+                      )}
+                      <div
+                        className={`product-card-modal-name ${
+                          product.name.length > 42 ? "product-card-modal-name--long" : ""
+                        }`}
+                      >
                         {product.name}
                       </div>
                       <div className="product-card-modal-price">
@@ -189,11 +238,6 @@ const CategoryProductModal: React.FC<CategoryProductModalProps> = ({
                           currency: "MXN",
                         })}
                       </div>
-                      {product.description && (
-                        <div className="product-card-modal-description">
-                          {product.description}
-                        </div>
-                      )}
                     </button>
                   ))}
                 </div>

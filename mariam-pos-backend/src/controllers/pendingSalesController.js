@@ -18,6 +18,7 @@ export const getPendingSales = async (req, res) => {
             product: {
               include: {
                 category: true,
+                unit: true,
                 presentations: true,
               },
             },
@@ -44,6 +45,7 @@ export const getPendingSaleById = async (req, res) => {
             product: {
               include: {
                 category: true,
+                unit: true,
                 presentations: true,
               },
             },
@@ -104,6 +106,7 @@ export const createPendingSale = async (req, res) => {
             product: {
               include: {
                 category: true,
+                unit: true,
                 presentations: true,
               },
             },
@@ -178,6 +181,7 @@ export const updatePendingSale = async (req, res) => {
             product: {
               include: {
                 category: true,
+                unit: true,
                 presentations: true,
               },
             },

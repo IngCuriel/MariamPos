@@ -51,37 +51,45 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
   // Verificar si es producto a granel con múltiples presentaciones
   const isGranel = product.saleType === 'Granel';
 
+  // Nombre de la unidad de medida del producto (ej: "Kilogramo"). Fallback: "unidad".
+  const unitName = product.unit?.name || 'unidad';
+  const unitPlural = product.unit?.name ? product.unit.name : 'unidades';
+
   const presentationsHTML = product.presentations
     .map((pres, index) => {
       const totalPrice = pres.quantity * pres.unitPrice;
       const isDefault = pres.isDefault || pres.quantity === 1;
+
+      // Contenido (unidades que trae) usando el nombre de la unidad:
+      // - Base:  "1 Kilogramo"
+      // - No base: "20 Kilogramos por Bulto"
+      const contentLabel = isDefault
+        ? `${pres.quantity} ${pres.quantity === 1 ? unitName : unitPlural}`
+        : `${pres.quantity} ${unitPlural} por ${pres.name}`;
+
       return `
         <div class="presentation-card" data-index="${index}" style="
           border: 2px solid #e5e7eb;
-          border-radius: 12px;
-          padding: 1rem;
-          margin-bottom: 0.75rem;
+          border-radius: 10px;
+          padding: 0.6rem 0.8rem;
+          margin-bottom: 0.5rem;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all 0.15s ease;
           background: ${isDefault ? '#f0f9ff' : '#fff'};
         ">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="flex: 1;">
-              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                <strong style="font-size: 1.1rem; color: #1f2937;">${pres.name}</strong>
-                ${isDefault ? '<span style="background: #3b82f6; color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">Base</span>' : ''}
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;">
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.15rem;">
+                <strong style="font-size: 1rem; color: #1f2937;">${pres.name}</strong>
+                ${isDefault ? '<span style="background: #3b82f6; color: white; padding: 0.1rem 0.4rem; border-radius: 999px; font-size: 0.68rem; font-weight: 700;">Base</span>' : ''}
               </div>
-              <div style="display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.9rem; color: #6b7280;">
-                <span>📦 ${pres.quantity} unidad${pres.quantity !== 1 ? 'es' : ''}</span>
-                <span>💰 $${pres.unitPrice.toFixed(2)} c/u</span>
+              <div style="font-size: 0.82rem; color: #6b7280;">
+                ${contentLabel} · $${pres.unitPrice.toFixed(2)} por ${unitName}
               </div>
             </div>
-            <div style="text-align: right;">
-              <div style="font-size: 1.5rem; font-weight: 700; color: #059669;">
+            <div style="text-align: right; flex-shrink: 0;">
+              <div style="font-size: 1.25rem; font-weight: 800; color: #059669; white-space: nowrap;">
                 $${totalPrice.toFixed(2)}
-              </div>
-              <div style="font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem;">
-                Total
               </div>
             </div>
           </div>
@@ -93,17 +101,16 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
   const { value: selectedIndex } = await Swal.fire({
     title: ``,
     html: `
-      <div style="text-align: center; margin-bottom: 1rem;">
-        <h3 style="margin: 0; color: #1f2937; font-size: 1.2rem;">${product.name}</h3>
-        <p style="margin: 0.5rem 0 0 0; color: #6b7280; font-size: 0.9rem;">Elige cómo quieres vender este producto</p>
+      <div style="text-align: center; margin-bottom: 0.6rem;">
+        <h3 style="margin: 0; color: #1f2937; font-size: 1.1rem;">${product.name}</h3>
+        <p style="margin: 0.2rem 0 0 0; color: #6b7280; font-size: 0.82rem;">Elegí la presentación</p>
       </div>
-      <div id="presentations-container" style="max-height: 400px; overflow-y: auto; padding: 0.5rem;">
+      <div id="presentations-container" style="max-height: 320px; overflow-y: auto; padding: 0.25rem;">
         ${presentationsHTML}
       </div>
-      <div id="presentation-quantity-field" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
-        <label for="swal-quantity" style="display: block; font-weight: 600; margin-bottom: 0.5rem; text-align: left;">
-          <span style="margin-right: 0.5rem;">📦</span>
-          Cantidad de presentaciones:
+      <div id="presentation-quantity-field" style="margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid #e5e7eb;">
+        <label for="swal-quantity" id="swal-quantity-label" style="display: block; font-weight: 600; margin-bottom: 0.35rem; text-align: left; font-size: 0.85rem;">
+          📦 ¿Cuántas presentaciones?
         </label>
         <div style="display: flex; gap: 0.5rem; align-items: center;">
           <input 
@@ -143,9 +150,8 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
       <div id="granel-fields" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; display: none;">
         <div style="display: flex; flex-direction: column; gap: 12px;">
           <div>
-            <label for="swal-granel-cantidad" style="display: block; font-weight: 600; margin-bottom: 0.5rem; text-align: left;">
-              <span style="margin-right: 0.5rem;">⚖️</span>
-              Cantidad (kg, L, etc.):
+            <label for="swal-granel-cantidad" style="display: block; font-weight: 600; margin-bottom: 0.35rem; text-align: left; font-size: 0.85rem;">
+              ⚖️ Cantidad en ${unitPlural}:
             </label>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
               <input 
@@ -182,9 +188,8 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
             </div>
           </div>
           <div>
-            <label for="swal-granel-precio" style="display: block; font-weight: 600; margin-bottom: 0.5rem; text-align: left;">
-              <span style="margin-right: 0.5rem;">💰</span>
-              Precio Total:
+            <label for="swal-granel-precio" style="display: block; font-weight: 600; margin-bottom: 0.35rem; text-align: left; font-size: 0.85rem;">
+              💰 Precio Total:
             </label>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
               <input 
@@ -224,7 +229,7 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
       </div>
       ` : ''}
     `,
-    width: '600px',
+    width: '460px',
     focusConfirm: false,
     showCancelButton: true,
     confirmButtonText: '✓ Agregar al carrito',
@@ -253,8 +258,22 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
 
       if (!quantityInput || cards.length === 0) return;
 
+      const quantityLabel = document.getElementById('swal-quantity-label') as HTMLElement | null;
+
+      // Pluralizar simple: agrega "s" si no termina ya en "s".
+      const pluralize = (name: string) => {
+        const n = (name || '').trim();
+        if (!n) return 'presentaciones';
+        return n.toLowerCase().endsWith('s') ? n : `${n}s`;
+      };
+
       // función visual
       const updateSelection = (index: number) => {
+        // Actualizar el label de cantidad con el nombre de la presentación en plural.
+        if (quantityLabel) {
+          const pres = product.presentations![index];
+          quantityLabel.textContent = `📦 ¿Cuántos ${pluralize(pres.name)}?`;
+        }
         cards.forEach((c, i) => {
           const isDefault = product.presentations![i].isDefault || product.presentations![i].quantity === 1;
           if (i === index) {

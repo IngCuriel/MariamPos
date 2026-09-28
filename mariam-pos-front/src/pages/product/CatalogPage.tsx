@@ -5,18 +5,23 @@ import Header from "../../components/Header";
 import Card from "../../components/Card";
 import type { Product, Category } from "../../types";
 import {
-  getProducts,
+  getProductsPaged,
+  getProductsByCategoryPaged,
   getProductsFilters,
-  getProductsByCategoryId,
   createProduct,
   updateProduct,
   deleteProduct,
+  type ProductStatusFilter,
 } from "../../api/products";
 import { getCategories } from "../../api/categories";
 import "../../styles/pages/products/products.css";
 import "../../styles/pages/products/catalog.css";
 import NewEditProductModal from "./NewEditProductModal";
 import EditKitModal from "./EditKitModal";
+import DepartmentsModal from "../../components/DepartmentsModal";
+import CodePrefixesModal from "../../components/CodePrefixesModal";
+import UnitsModal from "../../components/UnitsModal";
+import CategorySelect from "../../components/CategorySelect";
 
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
@@ -37,6 +42,9 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack, onCategories, onCreat
   const [showAddForm, setShowAddForm] = useState(false);
   const [showEditKitModal, setShowEditKitModal] = useState(false); // 🆕 Modal de edición de kit
   const [showActionsMenu, setShowActionsMenu] = useState(false); // 🆕 Menú desplegable de acciones
+  const [showDepartmentsModal, setShowDepartmentsModal] = useState(false); // 🏢 Modal de departamentos
+  const [showCodePrefixesModal, setShowCodePrefixesModal] = useState(false); // 🏷️ Modal de prefijos de código
+  const [showUnitsModal, setShowUnitsModal] = useState(false); // 📏 Modal de unidades de medida
   const [menuDirection, setMenuDirection] = useState<'up' | 'down'>('up'); // 🆕 Dirección del menú
   const inputRef = useRef<HTMLInputElement>(null); // 👈 referencia al input
   const actionsMenuRef = useRef<HTMLDivElement>(null); // 👈 referencia al menú desplegable
@@ -44,11 +52,21 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack, onCategories, onCreat
 
   const [loading, setLoading] = useState(false);
 
+  // Paginación del catálogo (25 por página, más nuevos primero).
+  const PAGE_SIZE = 25;
+  const [page, setPage] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
+  // Filtro de estado: activos (default) o inactivos.
+  const [statusFilter, setStatusFilter] = useState<ProductStatusFilter>("active");
+  // ¿Estamos en modo búsqueda por texto? (la búsqueda no pagina, trae coincidencias)
+  const isSearching = searchTerm.length > 2;
+  const totalPages = Math.max(1, Math.ceil(totalProducts / PAGE_SIZE));
+
   // 🟢 Llamada al API cuando el hook se monta
+  // (la carga de productos la dispara el efecto de [selectedCategory] con page 1).
   useEffect(() => {
     inputRef.current?.focus();
     fetchCategories();
-    fetchProducts();
   }, []);
 
   // Calcular dirección del menú (arriba o abajo) basado en el espacio disponible
@@ -94,26 +112,48 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack, onCategories, onCreat
 
       // Limpiar el timeout si `search` cambia antes de que pasen los 300 ms
       return () => clearTimeout(handler);
-    } else if (searchTerm.length===0) {
-       setProducts([])
-    } 
+    }
+    // Nota: cuando se limpia la búsqueda, la recarga paginada la maneja
+    // el flujo de categoría / paginación (no vaciamos la lista aquí).
   }, [searchTerm]);
 
+  // Al cambiar de categoría, limpiar búsqueda y cargar página 1 de esa categoría
+  // (o del catálogo completo si se elige "Todas").
   useEffect(() => {
-    fetchProductsByCategoryId();
+    setSearchTerm("");
+    fetchProducts(1, selectedCategory);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategory]);
 
-  const fetchProducts = async () => {
+  // Carga paginada. Si hay categoría seleccionada, pagina dentro de esa categoría.
+  // status: permite forzar el filtro (útil al cambiarlo, antes de que el estado se actualice).
+  const fetchProducts = async (
+    targetPage: number,
+    categoryId?: string,
+    status?: ProductStatusFilter
+  ) => {
     try {
-      setLoading(true); // 🔹 iniciar loader
-      const data = await getProducts();
-      setProducts(data);
+      setLoading(true);
+      const cat = categoryId !== undefined ? categoryId : selectedCategory;
+      const st = status ?? statusFilter;
+      const res = cat
+        ? await getProductsByCategoryPaged(cat, targetPage, PAGE_SIZE, st)
+        : await getProductsPaged(targetPage, PAGE_SIZE, st);
+      setProducts(res.data);
+      setTotalProducts(res.total);
+      setPage(res.page);
     } catch (err) {
       console.error(err);
     } finally {
-      console.log("Finally");
-      setLoading(false); // 🔹 finalizar loader
+      setLoading(false);
     }
+  };
+
+  // Cambiar filtro de estado (activos/inactivos): recargar desde página 1.
+  const handleStatusChange = (next: ProductStatusFilter) => {
+    setStatusFilter(next);
+    setSearchTerm("");
+    fetchProducts(1, selectedCategory, next);
   };
 
   const fetchProductsFilters = async () => {
@@ -121,6 +161,7 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack, onCategories, onCreat
       try {
         const data = await getProductsFilters(searchTerm);
         setProducts(data);
+        setTotalProducts(data.length);
       } catch (err) {
         console.error(err);
       } finally {
@@ -130,19 +171,11 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack, onCategories, onCreat
       }
   };
 
-  const fetchProductsByCategoryId = async () => {
-    setSearchTerm(() => "");
-    if (selectedCategory !== "") {
-      setLoading(true); // 🔹 iniciar loader
-      try {
-        const data = await getProductsByCategoryId(selectedCategory);
-        setProducts(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false); // 🔹 finalizar loader
-        console.log("Finally");
-      }
+  // Cambiar de página (anterior/siguiente) en el catálogo paginado.
+  const goToPage = (target: number) => {
+    const clamped = Math.min(Math.max(1, target), totalPages);
+    if (clamped !== page) {
+      fetchProducts(clamped);
     }
   };
 
@@ -172,9 +205,14 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack, onCategories, onCreat
       if (resultSwal.isConfirmed) {
         const result = await deleteProduct(_productId);
         console.log("result delete product", result);
+        // Quitar de la vista y recargar la página actual para rellenar el hueco
+        // y actualizar el total (salvo que estemos en búsqueda por texto).
         setProducts((prevProducts) =>
           prevProducts.filter((p) => p.id !== _productId)
         );
+        if (!isSearching) {
+          fetchProducts(page);
+        }
         // toast.success('✅ Producto eliminado correctamente');
         // 🔔 Notificación de éxito
         Swal.fire({
@@ -218,17 +256,16 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack, onCategories, onCreat
       
       // Actualizar la lista de productos
       if (product.id > 0) {
-        // Actualizar producto existente
+        // Edición: actualizar el producto visible en la página actual.
         setProducts((prevProducts) =>
           prevProducts.map((p) =>
             p.id === product.id ? { ...p, ...product } : p
           )
         );
       } else {
-        // Agregar nuevo producto a la lista
-        if (data) {
-          setProducts((prevProducts) => [data, ...prevProducts]);
-        }
+        // Creación: el producto nuevo es el más reciente (orden createdAt desc),
+        // así que recargamos la página 1 para verlo y mantener la paginación consistente.
+        fetchProducts(1);
       }
       
       // No cerrar aquí, el modal maneja el cierre según si es nuevo o edición
@@ -398,12 +435,6 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack, onCategories, onCreat
         <div className="catalog-content">
           {/* Sección de Filtros */}
           <Card className="catalog-filters-section">
-            <div className="catalog-filters-header">
-              <h3 className="catalog-section-title">
-                <span className="section-icon">🔍</span>
-                Filtros de Búsqueda
-              </h3>
-            </div>
             <div className="catalog-filters">
               <div className="catalog-filter-group">
                 <label htmlFor="search" className="catalog-filter-label">
@@ -424,18 +455,27 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack, onCategories, onCreat
                 <label htmlFor="category" className="catalog-filter-label">
                   Categoría
                 </label>
-                <select
-                  id="category"
+                <CategorySelect
+                  categories={categories}
                   value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  onChange={(id) => setSelectedCategory(id)}
+                  allLabel="Todas las categorías"
+                  className="csel-wide"
+                />
+              </div>
+
+              <div className="catalog-filter-group">
+                <label htmlFor="statusFilter" className="catalog-filter-label">
+                  Estado
+                </label>
+                <select
+                  id="statusFilter"
+                  value={statusFilter}
+                  onChange={(e) => handleStatusChange(e.target.value as ProductStatusFilter)}
                   className="catalog-category-select"
                 >
-                  <option value="">Todas las categorías</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
+                  <option value="active">Activos</option>
+                  <option value="inactive">Inactivos</option>
                 </select>
               </div>
 
@@ -482,6 +522,39 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack, onCategories, onCreat
                       </button>
                       <button
                         type="button"
+                        className="catalog-menu-item catalog-menu-departments"
+                        onClick={() => {
+                          setShowDepartmentsModal(true);
+                          setShowActionsMenu(false);
+                        }}
+                      >
+                        <span className="menu-icon">🏢</span>
+                        <span className="menu-text">Departamentos</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="catalog-menu-item catalog-menu-prefixes"
+                        onClick={() => {
+                          setShowCodePrefixesModal(true);
+                          setShowActionsMenu(false);
+                        }}
+                      >
+                        <span className="menu-icon">🏷️</span>
+                        <span className="menu-text">Prefijos de Código</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="catalog-menu-item catalog-menu-units"
+                        onClick={() => {
+                          setShowUnitsModal(true);
+                          setShowActionsMenu(false);
+                        }}
+                      >
+                        <span className="menu-icon">📏</span>
+                        <span className="menu-text">Unidades de Medida</span>
+                      </button>
+                      <button
+                        type="button"
                         className="catalog-menu-item catalog-menu-kit"
                         onClick={() => {
                           onCreateKit?.();
@@ -508,77 +581,118 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack, onCategories, onCreat
               </div>
             </div>
           </Card>
-          {/* Grid de productos */}
-          <div className="catalog-products-grid">
-            {loading ? (
-              <Card className="no-products-card">
-                <div className="loader-container">
-                      <div className="loader"></div>
-                      <p>Cargando productos...</p>
-                 </div>
-              </Card>
-            ) : products.length === 0 ? (
-              <Card className="no-products-card">
-                <h3>No se encontraron productos</h3>
-                <p>Intenta ajustar los filtros de búsqueda</p>
-              </Card>
-            ) : ( products.map((product) => {
-                return (
-                  <Card
-                    key={product.id}
-                    className="catalog-product-card"
-                    variant="product"
-                  >
-                    {/* Header con color y nombre */}
-                    <div className="catalog-card-header-simple">
-                      {product.icon && (
-                        <div className="catalog-product-icon-simple">{product.icon}</div>
-                      )}
-                      <h3 className="catalog-product-name-simple" title={product.name}>
-                        {product.name}
-                      </h3>
-                    </div>
-                    
-                    {/* Precios */}
-                    <div className="catalog-card-content-simple">
-                      <div className="catalog-pricing-simple">
-                        <div className="price-item-simple">
-                          <span className="price-label-simple">Precio</span>
-                          <span className="price-value-simple">${product.price.toFixed(2)}</span>
+          {/* Tabla de productos (táctil) */}
+          {loading ? (
+            <Card className="no-products-card">
+              <div className="loader-container">
+                <div className="loader"></div>
+                <p>Cargando productos...</p>
+              </div>
+            </Card>
+          ) : products.length === 0 ? (
+            <Card className="no-products-card">
+              <h3>No se encontraron productos</h3>
+              <p>Intenta ajustar los filtros de búsqueda</p>
+            </Card>
+          ) : (
+            <div className="products-table-wrap">
+              <table className="products-table">
+                <thead>
+                  <tr>
+                    <th className="prod-th-num">#</th>
+                    <th>Producto</th>
+                    <th>Código</th>
+                    <th>Categoría</th>
+                    <th className="prod-th-right">Precio</th>
+                    <th className="prod-th-right">Costo</th>
+                    <th className="prod-th-center">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map((product, index) => (
+                    <tr
+                      key={product.id}
+                      className={product.status === 0 ? "prod-row--inactive" : ""}
+                    >
+                      <td className="prod-td-num">{index + 1}</td>
+                      <td>
+                        <div className="prod-name-cell">
+                          {product.icon && (
+                            <span className="prod-icon">{product.icon}</span>
+                          )}
+                          <span className="prod-name" title={product.name}>
+                            {product.name}
+                          </span>
+                          {product.isKit && <span className="prod-kit-badge">Kit</span>}
                         </div>
-                        {product.cost && product.cost > 0 && (
-                          <div className="price-item-simple">
-                            <span className="price-label-simple">Costo</span>
-                            <span className="price-value-simple cost-value-simple">${product.cost.toFixed(2)}</span>
-                          </div>
+                      </td>
+                      <td className="prod-td-muted">{product.code || "—"}</td>
+                      <td>
+                        {product.category?.name ? (
+                          <span className="prod-cat-badge">{product.category.name}</span>
+                        ) : (
+                          <span className="prod-td-muted">—</span>
                         )}
-                      </div>
-                    </div>
+                      </td>
+                      <td className="prod-th-right prod-price">
+                        ${product.price.toFixed(2)}
+                      </td>
+                      <td className="prod-th-right prod-td-muted">
+                        {product.cost && product.cost > 0
+                          ? `$${product.cost.toFixed(2)}`
+                          : "—"}
+                      </td>
+                      <td className="prod-th-center">
+                        <div className="prod-actions">
+                          <button
+                            type="button"
+                            className="prod-action prod-action--edit"
+                            onClick={() => onEdit(product)}
+                            title="Editar producto"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            type="button"
+                            className="prod-action prod-action--delete"
+                            onClick={() => handleDelete(product.id)}
+                            title="Eliminar producto"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
 
-                    {/* Footer con acciones */}
-                    <div className="catalog-card-footer-simple">
-                      <button
-                        type="button"
-                        className="catalog-action-btn-simple catalog-edit-btn-simple"
-                        onClick={() => onEdit(product)}
-                        title="Editar producto"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        type="button"
-                        className="catalog-action-btn-simple catalog-delete-btn-simple"
-                        onClick={() => handleDelete(product.id)}
-                        title="Eliminar producto"
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  </Card>
-                );
-              })
-            )}
-          </div>
+              {/* Paginación (oculta durante la búsqueda por texto) */}
+              {!isSearching && totalProducts > 0 && (
+                <div className="prod-pagination">
+                  <button
+                    type="button"
+                    className="prod-page-btn"
+                    onClick={() => goToPage(page - 1)}
+                    disabled={page <= 1 || loading}
+                  >
+                    ← Anterior
+                  </button>
+                  <span className="prod-page-info">
+                    Página {page} de {totalPages} · {totalProducts} productos
+                  </span>
+                  <button
+                    type="button"
+                    className="prod-page-btn"
+                    onClick={() => goToPage(page + 1)}
+                    disabled={page >= totalPages || loading}
+                  >
+                    Siguiente →
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         {/* Modal para agregar/editar productos */}
         <NewEditProductModal
@@ -595,6 +709,24 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack, onCategories, onCreat
           onClose={handleCloseKitModal}
           onSave={handleSaveKit}
           kit={kitEdit}
+        />
+
+        {/* Modal CRUD de departamentos */}
+        <DepartmentsModal
+          isOpen={showDepartmentsModal}
+          onClose={() => setShowDepartmentsModal(false)}
+        />
+
+        {/* Modal catálogo de prefijos de código */}
+        <CodePrefixesModal
+          isOpen={showCodePrefixesModal}
+          onClose={() => setShowCodePrefixesModal(false)}
+        />
+
+        {/* Modal catálogo de unidades de medida */}
+        <UnitsModal
+          isOpen={showUnitsModal}
+          onClose={() => setShowUnitsModal(false)}
         />
       </div>
     </div>

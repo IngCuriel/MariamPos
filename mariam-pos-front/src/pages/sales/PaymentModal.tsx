@@ -749,7 +749,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
 
             {/* Efectivo */}
             <div style={{ marginBottom: "15px" }}>
-              <label style={{ display: "block", marginBottom: "8px", fontSize: "0.9rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <label style={{ flexShrink: 0, width: "150px", fontSize: "0.9rem" }}>
                 💵 Monto en Efectivo:
                 {containersDepositInfo && containersDepositInfo.total > 0 && (
                   <span style={{ color: "#dc2626", fontSize: "0.85rem", marginLeft: "0.5rem" }}>
@@ -757,7 +758,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
                   </span>
                 )}
               </label>
-              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <div style={{ display: "flex", gap: "10px", alignItems: "center", flex: 1 }}>
                 <div className="input-wrapper" style={{ flex: 1 }}>
                   <input
                     ref={cashInputRef}
@@ -826,6 +827,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
                   🧮
                 </button>
               </div>
+              </div>
               {/* Desglose del efectivo cuando hay envases */}
               {containersDepositInfo && containersDepositInfo.total > 0 && (
                 <div style={{
@@ -864,7 +866,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
 
             {/* Tarjeta */}
             <div style={{ marginBottom: "15px" }}>
-              <label style={{ display: "block", marginBottom: "8px", fontSize: "0.9rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <label style={{ flexShrink: 0, width: "150px", fontSize: "0.9rem" }}>
                 💳 Monto en Tarjeta:
                 {containersDepositInfo && containersDepositInfo.total > 0 && (
                   <span style={{ color: "#6b7280", fontSize: "0.85rem", marginLeft: "0.5rem" }}>
@@ -872,7 +875,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
                   </span>
                 )}
               </label>
-              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <div style={{ display: "flex", gap: "10px", alignItems: "center", flex: 1 }}>
                 <div className="input-wrapper" style={{ flex: 1 }}>
                   <input
                     ref={cardInputRef}
@@ -937,6 +940,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
                 >
                   🧮
                 </button>
+              </div>
               </div>
             </div>
 
@@ -1179,7 +1183,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
 
                 {/* Efectivo */}
                 <div style={{ marginBottom: "15px" }}>
-                  <label style={{ display: "block", marginBottom: "8px", fontSize: "0.9rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <label style={{ flexShrink: 0, width: "150px", fontSize: "0.9rem" }}>
                     💵 Monto en Efectivo:
                     {containersDepositInfo && containersDepositInfo.total > 0 && (
                       <span style={{ color: "#dc2626", fontSize: "0.85rem", marginLeft: "0.5rem" }}>
@@ -1187,7 +1192,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
                       </span>
                     )}
                   </label>
-                  <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center", flex: 1 }}>
                     <div className="input-wrapper" style={{ flex: 1 }}>
                       <input
                         ref={cashInputRef}
@@ -1256,6 +1261,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
                       🧮
                     </button>
                   </div>
+                  </div>
                   {/* Desglose del efectivo cuando hay envases */}
                   {containersDepositInfo && containersDepositInfo.total > 0 && (
                     <div style={{
@@ -1294,7 +1300,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
 
                 {/* Tarjeta */}
                 <div style={{ marginBottom: "15px" }}>
-                  <label style={{ display: "block", marginBottom: "8px", fontSize: "0.9rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <label style={{ flexShrink: 0, width: "150px", fontSize: "0.9rem" }}>
                     💳 Monto en Tarjeta:
                     {containersDepositInfo && containersDepositInfo.total > 0 && (
                       <span style={{ color: "#6b7280", fontSize: "0.85rem", marginLeft: "0.5rem" }}>
@@ -1302,7 +1309,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
                       </span>
                     )}
                   </label>
-                  <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center", flex: 1 }}>
                     <div className="input-wrapper" style={{ flex: 1 }}>
                       <input
                         ref={cardInputRef}
@@ -1367,6 +1374,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
                     >
                       🧮
                     </button>
+                  </div>
                   </div>
                 </div>
 

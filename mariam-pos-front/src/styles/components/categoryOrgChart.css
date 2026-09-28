@@ -1,0 +1,227 @@
+/* Organigrama del catálogo: Sucursal → Departamentos → Categorías. */
+
+.org-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1300;
+}
+
+.org-modal {
+  width: 100%;
+  max-width: 1100px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  background: #f1f5f9;
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
+  overflow: hidden;
+}
+
+.org-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #fff;
+  color: #0f172a;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.org-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.org-close {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: #f1f5f9;
+  color: #475569;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+  touch-action: manipulation;
+}
+
+.org-close:hover { background: #e2e8f0; }
+
+.org-body {
+  flex: 1;
+  overflow: auto;
+  padding: 28px 20px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.org-empty {
+  padding: 40px;
+  text-align: center;
+  color: #64748b;
+}
+
+/* Árbol */
+.org-chart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: min-content;
+}
+
+.org-level--root {
+  display: flex;
+  justify-content: center;
+}
+
+/* Nodo genérico */
+.org-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border-radius: 12px;
+  padding: 12px 18px;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.1);
+  white-space: nowrap;
+}
+
+.org-node-icon { font-size: 1.4rem; line-height: 1; }
+.org-node-name { font-weight: 800; font-size: 0.95rem; }
+.org-node-sub { font-size: 0.7rem; opacity: 0.75; font-weight: 600; }
+
+/* Sucursal (raíz) */
+.org-node--branch {
+  background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+  color: #fff;
+  min-width: 200px;
+}
+
+/* Conector vertical desde la raíz */
+.org-connector-root {
+  width: 2px;
+  height: 24px;
+  background: #cbd5e1;
+}
+
+/* Fila de departamentos */
+.org-departments {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  justify-content: center;
+  flex-wrap: nowrap;
+  position: relative;
+  padding-top: 24px;
+}
+
+/* Línea horizontal que une los departamentos */
+.org-departments::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: #cbd5e1;
+}
+
+/* Rama de un departamento */
+.org-branch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+/* Conector vertical desde la línea horizontal al nodo departamento */
+.org-branch::before {
+  content: "";
+  position: absolute;
+  top: -24px;
+  width: 2px;
+  height: 24px;
+  background: #cbd5e1;
+}
+
+/* Nodo departamento */
+.org-node--dept {
+  background: #fff;
+  color: #0f172a;
+  border: 2px solid #bfdbfe;
+  min-width: 160px;
+}
+
+.org-node--dept .org-node-sub { color: #1d4ed8; opacity: 1; }
+
+.org-node--none {
+  border-color: #e2e8f0;
+}
+.org-node--none .org-node-sub { color: #64748b; }
+
+/* Conector departamento → categorías */
+.org-connector-dept {
+  width: 2px;
+  height: 18px;
+  background: #e2e8f0;
+}
+
+/* Categorías (hojas) apiladas */
+.org-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+  position: relative;
+  padding-top: 4px;
+}
+
+.org-node--cat {
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #3b82f6;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  align-items: flex-start;
+  text-align: left;
+}
+
+.org-footer {
+  padding: 14px 20px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  background: #fff;
+}
+
+.org-btn-close {
+  min-height: 48px;
+  padding: 10px 28px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  background: #0f172a;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+  touch-action: manipulation;
+}
+
+.org-btn-close:hover { background: #1e293b; }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Button from "../../components/Button";
 import Card from "../../components/Card";
-import type { Product, Category, ProductPresentation } from "../../types/index";
+import type { Product, Category, ProductPresentation, ProductPriceTier } from "../../types/index";
 import jsPDF from "jspdf";
 import JsBarcode from "jsbarcode";
 import Swal from "sweetalert2";
@@ -10,6 +10,11 @@ import { getCategories } from "../../api/categories";
 
 import "../../styles/pages/products/newproductpage.css";
 import "../../styles/pages/products/productModal.css";
+import ProductHelpModal, { type ProductHelpTopic } from "./ProductHelpModal";
+import { previewNextCode, suggestPrefix, createCodePrefix } from "../../api/codePrefixes";
+import { getUnits } from "../../api/units";
+import type { CodePreview, UnitOfMeasure } from "../../types/index";
+import CategorySelect from "../../components/CategorySelect";
 
 interface NewEditProductModalProps {
   isOpen: boolean;
@@ -44,6 +49,12 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
   const [initialStock, setInitialStock] = useState<number>(0);
   const [minStock, setMinStock] = useState<number>(0);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [units, setUnits] = useState<UnitOfMeasure[]>([]);
+  const [unitId, setUnitId] = useState<string>(""); // id de la unidad seleccionada (o "")
+
+  // Precio escalonado (tiered pricing)
+  const [pricingMode, setPricingMode] = useState<"simple" | "tiered">("simple");
+  const [priceTiers, setPriceTiers] = useState<ProductPriceTier[]>([]);
   const [labelQuantity, setLabelQuantity] = useState(5);
   const [activeTab, setActiveTab] = useState("producto");
   const [presentations, setPresentations] = useState<ProductPresentation[]>([]);
@@ -57,11 +68,23 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [presentationErrors, setPresentationErrors] = useState<Record<number, Record<string, string>>>({});
 
+  // Modal de ayuda (buenas prácticas para código / nombre)
+  const [helpTopic, setHelpTopic] = useState<ProductHelpTopic | null>(null);
+
+  // Generación automática de código por prefijo de categoría
+  const [autoCode, setAutoCode] = useState(false); // true = código lo genera el backend al guardar
+  const [codePreview, setCodePreview] = useState<CodePreview | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [showCreatePrefix, setShowCreatePrefix] = useState(false);
+  const [prefixInput, setPrefixInput] = useState("");
+  const [savingPrefix, setSavingPrefix] = useState(false);
+
   // 👇 Refs para todos los inputs importantes
   const inputRefs = useRef<(HTMLInputElement | HTMLTextAreaElement | null)[]>([]);
   
   useEffect(() => {
     fetchCategories();
+    fetchUnits();
   }, []);
 
   const fetchCategories = async () => {
@@ -73,11 +96,127 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
     }
   };
 
+  const fetchUnits = async () => {
+    try {
+      const data = await getUnits(true); // solo activas
+      console.log("🔎 [fetchUnits] unidades recibidas:", data);
+      setUnits(data);
+    } catch (error) {
+      console.log("Error al cargar unidades", error);
+    }
+  };
+
+  // Consultar el preview del código automático al cambiar la categoría (solo producto nuevo).
+  const isNewProduct = !product || product.id === 0;
+
+  const loadCodePreview = async (categoryId: string) => {
+    if (!categoryId) {
+      setCodePreview(null);
+      return;
+    }
+    try {
+      setLoadingPreview(true);
+      const preview = await previewNextCode(categoryId);
+      setCodePreview(preview);
+      // NO forzar el modo automático: si el producto tiene código de barras real,
+      // el cajero debe poder escanearlo/escribirlo. El auto queda como opción
+      // disponible (botón "Generar automático"), no como comportamiento por defecto.
+      setAutoCode(false);
+    } catch (err) {
+      console.error("Error al obtener preview de código:", err);
+      setCodePreview(null);
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
+  // Escuchar cambios de categoría solo en producto nuevo.
+  useEffect(() => {
+    if (!isOpen || !isNewProduct) return;
+    loadCodePreview(formData.category);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.category, isOpen]);
+
+  // Alternar entre código automático y manual.
+  const handleToggleAutoCode = () => {
+    if (autoCode) {
+      // Pasar a manual: limpiar para que el usuario escriba.
+      setAutoCode(false);
+      setFormData((prev) => ({ ...prev, code: "" }));
+    } else if (codePreview?.hasPrefix && codePreview.code) {
+      // Volver a automático.
+      setAutoCode(true);
+      setFormData((prev) => ({ ...prev, code: codePreview.code as string }));
+    }
+  };
+
+  // Abrir el mini-formulario para crear prefijo (sugiere uno desde depto+categoría).
+  const handleOpenCreatePrefix = async () => {
+    if (!formData.category) {
+      Swal.fire({
+        icon: "info",
+        title: "Selecciona una categoría",
+        text: "Primero elige la categoría del producto para crear su prefijo.",
+        timer: 2500,
+        showConfirmButton: false,
+      });
+      return;
+    }
+    try {
+      const { suggested } = await suggestPrefix(formData.category);
+      setPrefixInput(suggested || "");
+    } catch {
+      setPrefixInput("");
+    }
+    setShowCreatePrefix(true);
+  };
+
+  // Guardar el prefijo nuevo y activar el código automático.
+  const handleSavePrefix = async () => {
+    const clean = prefixInput.trim().toUpperCase();
+    if (!clean) {
+      Swal.fire({
+        icon: "warning",
+        title: "El prefijo es obligatorio",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+      return;
+    }
+    try {
+      setSavingPrefix(true);
+      await createCodePrefix({ categoryId: formData.category, prefix: clean });
+      setShowCreatePrefix(false);
+      // Recargar preview: ahora la categoría ya tiene prefijo.
+      await loadCodePreview(formData.category);
+      Swal.fire({
+        icon: "success",
+        title: "Prefijo creado",
+        text: "El código se generará automáticamente al guardar.",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    } catch (err: any) {
+      Swal.fire({
+        icon: "error",
+        title: err?.response?.data?.error || "No se pudo crear el prefijo",
+        timer: 3000,
+        showConfirmButton: false,
+      });
+    } finally {
+      setSavingPrefix(false);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
-      // Foco inicial en primer input
-      inputRefs.current[0]?.focus();
-      inputRefs.current[0]?.select();
+      // Foco inicial en el campo Código (índice 1). La Categoría ahora es un
+      // selector custom (CategorySelect), no un input con ref.
+      const firstEl = inputRefs.current[1];
+      firstEl?.focus();
+      if (firstEl && "select" in firstEl && typeof firstEl.select === "function") {
+        firstEl.select();
+      }
 
       if (product) {
         setFormData({
@@ -94,6 +233,18 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
         });
         setSaleType(product.saleType)
         setStatus(product.status)
+        setUnitId(product.unitId ? String(product.unitId) : "")
+        // Cargar modo de precio y tramos
+        setPricingMode(product.pricingMode === "tiered" ? "tiered" : "simple")
+        setPriceTiers(
+          product.priceTiers && product.priceTiers.length > 0
+            ? product.priceTiers.map((t) => ({
+                minQty: t.minQty,
+                maxQty: t.maxQty,
+                unitPrice: t.unitPrice,
+              }))
+            : []
+        )
         
         // Cargar configuración de inventario
         setTrackInventory(product.inventory?.trackInventory || false);
@@ -127,6 +278,9 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
         });
         setStatus(1);
         setSaleType("Pieza");
+        setUnitId("");
+        setPricingMode("simple");
+        setPriceTiers([]);
         
         // Inicializar inventario
         setTrackInventory(false);
@@ -149,6 +303,11 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
         quantity: 1,
         unitPrice: 0,
       });
+      // Reset del estado de código automático (el efecto de categoría lo recalcula).
+      setAutoCode(false);
+      setCodePreview(null);
+      setShowCreatePrefix(false);
+      setPrefixInput("");
     }
   }, [isOpen, product]);
 
@@ -178,7 +337,10 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
       const nextInput = inputRefs.current[index + 1];
       if (nextInput) {
         nextInput.focus();
-        if ("select" in nextInput) nextInput.select();
+        // Solo los <input> tienen .select(); los <select> no.
+        if ("select" in nextInput && typeof (nextInput as any).select === "function") {
+          (nextInput as any).select();
+        }
       }
     }
   };
@@ -225,17 +387,24 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.code.trim()) newErrors.code = "Codigo es requerido";
+    // En modo automático el código lo genera el backend, no se exige aquí.
+    if (!(autoCode && isNewProduct) && !formData.code.trim())
+      newErrors.code = "Codigo es requerido";
     if (!formData.name.trim()) newErrors.name = "El nombre es requerido";
     
-    // Validar que haya al menos una presentación válida
-    if (presentations.length === 0) {
-      newErrors.presentations = "Debe tener al menos una presentación";
+    if (pricingMode === "tiered") {
+      // Modo escalonado: validar tramos (arrancan en 1, continuos, precios > 0).
+      const tierError = validateTiers(priceTiers);
+      if (tierError) newErrors.price = tierError;
     } else {
-      // Validar que la presentación base tenga precio válido
-      const defaultPresentation = presentations.find(p => p.isDefault || p.quantity === 1);
-      if (!defaultPresentation || !defaultPresentation.unitPrice || defaultPresentation.unitPrice <= 0) {
-        newErrors.price = "El precio base (1 pieza) debe ser mayor a 0";
+      // Modo simple: validar que haya al menos una presentación válida.
+      if (presentations.length === 0) {
+        newErrors.presentations = "Debe tener al menos una presentación";
+      } else {
+        const defaultPresentation = presentations.find(p => p.isDefault || p.quantity === 1);
+        if (!defaultPresentation || !defaultPresentation.unitPrice || defaultPresentation.unitPrice <= 0) {
+          newErrors.price = "El precio base (1 pieza) debe ser mayor a 0";
+        }
       }
     }
     
@@ -254,11 +423,66 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
       }
     }
 
-    // Validar todas las presentaciones
-    const allPresentationsValid = presentations.every((p, index) => validatePresentation(p, index));
+    // En modo tiered no se validan presentaciones.
+    const allPresentationsValid =
+      pricingMode === "tiered"
+        ? true
+        : presentations.every((p, index) => validatePresentation(p, index));
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0 && allPresentationsValid;
+  };
+
+  // Valida los tramos escalonados en el front (espejo del backend).
+  // Devuelve un mensaje de error o null si están OK.
+  const validateTiers = (tiers: ProductPriceTier[]): string | null => {
+    if (tiers.length === 0) return "Agrega al menos un tramo de precio.";
+    const sorted = [...tiers].sort((a, b) => a.minQty - b.minQty);
+    if (sorted[0].minQty !== 1) return "El primer tramo debe iniciar en 1.";
+    for (let i = 0; i < sorted.length; i++) {
+      const t = sorted[i];
+      const isLast = i === sorted.length - 1;
+      if (!t.unitPrice || t.unitPrice <= 0) return "El precio de cada tramo debe ser mayor a 0.";
+      if (!isLast) {
+        if (t.maxQty === null) return "Solo el último tramo puede ser 'en adelante'.";
+        if (t.maxQty < t.minQty) return "El máximo no puede ser menor al mínimo.";
+        if (sorted[i + 1].minQty !== t.maxQty + 1)
+          return `Los tramos deben ser continuos: después de ${t.maxQty} sigue ${t.maxQty + 1}.`;
+      }
+    }
+    return null;
+  };
+
+  // Agregar un tramo nuevo. El minQty se calcula automático (continuo).
+  const handleAddTier = () => {
+    setPriceTiers((prev) => {
+      if (prev.length === 0) {
+        return [{ minQty: 1, maxQty: 10, unitPrice: 0 }];
+      }
+      const last = prev[prev.length - 1];
+      // El tramo anterior deja de ser "en adelante": le ponemos un max si era null.
+      const prevMax = last.maxQty ?? last.minQty + 9;
+      const updated = prev.map((t, i) =>
+        i === prev.length - 1 ? { ...t, maxQty: prevMax } : t
+      );
+      return [...updated, { minQty: prevMax + 1, maxQty: null, unitPrice: 0 }];
+    });
+  };
+
+  const handleTierChange = (index: number, field: keyof ProductPriceTier, value: string) => {
+    setPriceTiers((prev) =>
+      prev.map((t, i) => {
+        if (i !== index) return t;
+        if (field === "maxQty") {
+          return { ...t, maxQty: value === "" ? null : Number(value) };
+        }
+        return { ...t, [field]: Number(value) } as ProductPriceTier;
+      })
+    );
+  };
+
+  const handleRemoveTier = (index: number) => {
+    setPriceTiers((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -268,10 +492,19 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
       // Obtener el precio base de la presentación por defecto
       const defaultPresentation = presentations.find(p => p.isDefault || p.quantity === 1);
       const basePrice = defaultPresentation?.unitPrice || Number(formData.price);
-      
+
+      // La presentación base toma el nombre de la unidad de medida seleccionada
+      // (ej: "Kilogramo"). Si no hay unidad, queda "Pieza".
+      const selectedUnitName = units.find((u) => String(u.id) === unitId)?.name || "Pieza";
+      const presentationsToSave = presentations.map((p) =>
+        (p.isDefault || p.quantity === 1) ? { ...p, name: selectedUnitName } : p
+      );
+
       const productToSave: Omit<Product, "createdAt"> = {
         id: formData.id,
-        code: formData.code.trim(),
+        // En modo automático (producto nuevo con prefijo) se manda vacío:
+        // el backend genera el código y reserva el consecutivo al guardar.
+        code: autoCode && isNewProduct ? "" : formData.code.trim(),
         name: formData.name.trim(),
         status: status,
         saleType: saleType,
@@ -281,7 +514,16 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
         description: formData.description.trim(),
         categoryId: formData.category,
         category: categories.find((cat) => cat.id === formData.category),
-        presentations: presentations.length > 1 ? presentations : undefined, // Solo incluir si hay más de una presentación
+        unitId: unitId ? Number(unitId) : null, // Unidad de medida opcional
+        pricingMode,
+        priceTiers: pricingMode === "tiered" ? priceTiers : [],
+        // En modo tiered no se usan presentaciones.
+        presentations:
+          pricingMode === "tiered"
+            ? undefined
+            : presentationsToSave.length > 1
+            ? presentationsToSave
+            : undefined,
         inventory: trackInventory ? {
           id: 0,
           productId: formData.id,
@@ -327,6 +569,9 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
             });
             setStatus(1);
             setSaleType("Pieza");
+            setUnitId("");
+            setPricingMode("simple");
+            setPriceTiers([]);
             setTrackInventory(false);
             setInitialStock(0);
             setMinStock(0);
@@ -344,12 +589,18 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
               quantity: 1,
               unitPrice: 0,
             });
+            // Reset del código automático para el siguiente producto.
+            setAutoCode(false);
+            setCodePreview(null);
             setActiveTab("producto");
             
             // Enfocar el primer input
             setTimeout(() => {
-              inputRefs.current[0]?.focus();
-              inputRefs.current[0]?.select();
+              const firstEl = inputRefs.current[1];
+              firstEl?.focus();
+              if (firstEl && "select" in firstEl && typeof firstEl.select === "function") {
+                firstEl.select();
+              }
             }, 100);
           } else {
             // Cerrar el modal
@@ -617,34 +868,140 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                 <div className="product-modal-form-grid">
                   {/* Columna izquierda - Información del Producto */}
                   <div className="product-modal-form-left">
+                    {/* Categoría primero: define el prefijo de código disponible */}
                     <div className="product-modal-form-group">
-                      <label htmlFor="code">Codigo del Producto *</label>
-                      <input
-                        ref={(el) => (inputRefs.current[0] = el  as any)}
-                        type="text"
-                        id="code"
-                        name="code"
-                        value={formData.code}
-                        onChange={handleInputChange}
-                        onKeyDown={handleEnterFocusNext(0)}
-                        className={errors.code ? "error" : ""}
-                        placeholder="Ej: 232323"
+                      <label htmlFor="category">Categoría *</label>
+                      <CategorySelect
+                        categories={categories}
+                        value={formData.category}
+                        onChange={(id) =>
+                          handleInputChange({
+                            target: { name: "category", value: id },
+                          } as React.ChangeEvent<HTMLSelectElement>)
+                        }
+                        allLabel={null}
+                        placeholder="Selecciona una categoría"
+                        error={!!errors.category}
                       />
+                      {errors.category && (
+                        <span className="product-modal-error-message">{errors.category}</span>
+                      )}
+                    </div>
+
+                    <div className="product-modal-form-group">
+                      <label htmlFor="code">
+                        Codigo del Producto *
+                        <button
+                          type="button"
+                          className="phelp-trigger"
+                          onClick={() => setHelpTopic("code")}
+                          title="¿Cómo crear un buen código?"
+                          aria-label="Ayuda: cómo crear el código del producto"
+                        >
+                          ?
+                        </button>
+                      </label>
+
+                      <div className="pcode-row">
+                        <input
+                          ref={(el) => (inputRefs.current[1] = el as any)}
+                          type="text"
+                          id="code"
+                          name="code"
+                          value={formData.code}
+                          onChange={handleInputChange}
+                          onKeyDown={handleEnterFocusNext(1)}
+                          className={`pcode-input ${errors.code ? "error" : ""} ${
+                            autoCode && isNewProduct ? "pcode-input--auto" : ""
+                          }`}
+                          placeholder="Ej: 232323"
+                          readOnly={autoCode && isNewProduct}
+                        />
+                        {isNewProduct && codePreview?.hasPrefix && (
+                          <button
+                            type="button"
+                            className={`pcode-toggle ${autoCode ? "pcode-toggle--on" : ""}`}
+                            onClick={handleToggleAutoCode}
+                            title={
+                              autoCode
+                                ? "Código automático activado. Toca para escribir/escanear."
+                                : "Generar código automático con el prefijo de la categoría"
+                            }
+                          >
+                            {autoCode ? "🔒 Auto" : "🏷️ Generar"}
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Estado del código automático */}
+                      {isNewProduct && loadingPreview && (
+                        <span className="pcode-hint">Buscando prefijo de la categoría…</span>
+                      )}
+
+                      {/* Auto activado: se generará al guardar */}
+                      {isNewProduct && !loadingPreview && autoCode && codePreview?.code && (
+                        <span className="pcode-hint pcode-hint--ok">
+                          Se generará automático al guardar (aprox. {codePreview.code}). Si el producto
+                          tiene código de barras, toca “🏷️ Auto” para escribirlo.
+                        </span>
+                      )}
+
+                      {/* Hay prefijo pero auto NO está activo: escribir/escanear o usar auto */}
+                      {isNewProduct &&
+                        !loadingPreview &&
+                        !autoCode &&
+                        codePreview?.hasPrefix && (
+                          <span className="pcode-hint">
+                            Escanea o escribe el código de barras. ¿Sin código? Usa “🏷️ Auto” para
+                            generarlo con el prefijo de la categoría.
+                          </span>
+                        )}
+
+                      {/* Sin prefijo en la categoría */}
+                      {isNewProduct &&
+                        !loadingPreview &&
+                        formData.category &&
+                        codePreview &&
+                        !codePreview.hasPrefix && (
+                          <span className="pcode-hint pcode-hint--warn">
+                            Escanea o escribe el código. Si estos productos no traen código,{" "}
+                            <button
+                              type="button"
+                              className="pcode-link"
+                              onClick={handleOpenCreatePrefix}
+                            >
+                              crea un prefijo
+                            </button>{" "}
+                            para generarlo automático.
+                          </span>
+                        )}
+
                       {errors.code && (
                         <span className="product-modal-error-message">{errors.code}</span>
                       )}
                     </div>
 
                     <div className="product-modal-form-group">
-                      <label htmlFor="name">Nombre del Producto *</label>
+                      <label htmlFor="name">
+                        Nombre del Producto *
+                        <button
+                          type="button"
+                          className="phelp-trigger"
+                          onClick={() => setHelpTopic("name")}
+                          title="¿Cómo crear un buen nombre?"
+                          aria-label="Ayuda: cómo crear el nombre del producto"
+                        >
+                          ?
+                        </button>
+                      </label>
                       <input
-                        ref={(el) => (inputRefs.current[1] = el as any)}
+                        ref={(el) => (inputRefs.current[2] = el as any)}
                         type="text"
                         id="name"
                         name="name"
                         value={formData.name}
                         onChange={handleInputChange}
-                        onKeyDown={handleEnterFocusNext(1)}
+                        onKeyDown={handleEnterFocusNext(2)}
                         className={errors.name ? "error" : ""}
                         placeholder="Ej: Manzanas rojas"
                       />
@@ -694,31 +1051,28 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                     </div>
 
                     <div className="product-modal-form-group">
-                      <label htmlFor="category">Categoría *</label>
+                      <label htmlFor="unit">Unidad de medida</label>
                       <select
-                        id="category"
-                        name="category"
-                        value={formData.category}
-                        onChange={handleInputChange}
-                        ref={(el) => (inputRefs.current[2] = el as any)}
-                        onKeyDown={handleEnterFocusNext(2)}
-                        className={errors.category ? "error" : ""}
+                        id="unit"
+                        name="unit"
+                        value={unitId}
+                        onChange={(e) => setUnitId(e.target.value)}
                       >
-                        <option value="">Selecciona una categoría</option>
-                        {categories.map((category) => (
-                          <option key={category.id} value={category.id}>
-                            {category.name}
+                        <option value="">Sin unidad</option>
+                        {units.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name} ({u.abbreviation})
                           </option>
                         ))}
                       </select>
-                      {errors.category && (
-                        <span className="product-modal-error-message">{errors.category}</span>
-                      )}
                     </div>
 
                     <div className="product-modal-form-row">
                       <div className="product-modal-form-group">
-                        <label htmlFor="price">Precio Base (1 Pieza) *</label>
+                        <label htmlFor="price">
+                          Precio Base (1{" "}
+                          {units.find((u) => String(u.id) === unitId)?.name || "Pieza"}) *
+                        </label>
                         <input
                           ref={(el) => (inputRefs.current[3] = el as any)}
                           type="number"
@@ -749,7 +1103,6 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                         {errors.price && (
                           <span className="product-modal-error-message">{errors.price}</span>
                         )}
-                        <small>Este es el precio de venta por pieza individual</small>
                       </div>
 
                       <div className="product-modal-form-group">
@@ -787,10 +1140,102 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Columna derecha - Presentaciones de Venta */}
+                  {/* Columna derecha - Modo de precio */}
                   <div className="product-modal-form-right">
+                    {/* Selector de modo: presentaciones (simple) o precio escalonado (tiered) */}
+                    <div className="ptier-mode">
+                      <button
+                        type="button"
+                        className={`ptier-mode-btn ${pricingMode === "simple" ? "ptier-mode-btn--on" : ""}`}
+                        onClick={() => setPricingMode("simple")}
+                      >
+                        📦 Presentaciones
+                      </button>
+                      <button
+                        type="button"
+                        className={`ptier-mode-btn ${pricingMode === "tiered" ? "ptier-mode-btn--on" : ""}`}
+                        onClick={() => setPricingMode("tiered")}
+                      >
+                        🔢 Precio por cantidad
+                      </button>
+                    </div>
+
+                    {pricingMode === "tiered" ? (
+                      /* ── Precio escalonado (tiered) ── */
+                      <div className="product-modal-form-group">
+                        <label>Precio por cantidad (escalonado)</label>
+                        <p className="ptier-hint">
+                          Toda la cantidad se cobra al precio del tramo donde cae.
+                          Ej: 15 piezas en el tramo 11–20 se cobran a ese precio.
+                        </p>
+                        <div className="ptier-table">
+                          <div className="ptier-row ptier-head">
+                            <span>Desde</span>
+                            <span>Hasta</span>
+                            <span>Precio c/u</span>
+                            <span></span>
+                          </div>
+                          {priceTiers.map((tier, index) => {
+                            const isLast = index === priceTiers.length - 1;
+                            return (
+                              <div key={index} className="ptier-row">
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={tier.minQty}
+                                  onChange={(e) => handleTierChange(index, "minQty", e.target.value)}
+                                  className="ptier-input"
+                                />
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={tier.maxQty ?? ""}
+                                  placeholder={isLast ? "∞" : ""}
+                                  onChange={(e) => handleTierChange(index, "maxQty", e.target.value)}
+                                  className="ptier-input"
+                                />
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={tier.unitPrice}
+                                  onChange={(e) => handleTierChange(index, "unitPrice", e.target.value)}
+                                  onFocus={(e) => e.target.select()}
+                                  className="ptier-input"
+                                />
+                                <button
+                                  type="button"
+                                  className="ptier-remove"
+                                  onClick={() => handleRemoveTier(index)}
+                                  title="Quitar tramo"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <button type="button" className="ptier-add" onClick={handleAddTier}>
+                          + Agregar tramo
+                        </button>
+                        {errors.price && (
+                          <span className="product-modal-error-message">{errors.price}</span>
+                        )}
+                      </div>
+                    ) : (
                     <div className="product-modal-form-group">
-                      <label>Presentaciones de Venta *</label>
+                      <label>
+                        Presentaciones de Venta *
+                        <button
+                          type="button"
+                          className="phelp-trigger"
+                          onClick={() => setHelpTopic("presentation")}
+                          title="¿Para qué sirven las presentaciones?"
+                          aria-label="Ayuda: presentaciones para venta a mayoreo"
+                        >
+                          ?
+                        </button>
+                      </label>
                       <div className="product-modal-presentations-section">
                     <div className="product-modal-presentations-list">
                       {presentations.map((presentation, index) => (
@@ -801,7 +1246,11 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                               {presentation.isDefault && <span className="product-modal-badge-default">Base</span>}
                             </div>
                             <div className="product-modal-presentation-details">
-                              <span>{presentation.quantity} unidad{presentation.quantity !== 1 ? 'es' : ''}</span>
+                              <span>
+                                {presentation.quantity}{" "}
+                                {units.find((u) => String(u.id) === unitId)?.name
+                                  || `unidad${presentation.quantity !== 1 ? "es" : ""}`}
+                              </span>
                               <span className="product-modal-separator">•</span>
                               <span>${presentation.unitPrice.toFixed(2)} c/u</span>
                               <span className="product-modal-separator">•</span>
@@ -909,8 +1358,10 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                               variant="primary"
                               onClick={handleAddPresentation}
                               className="add-presentation-btn"
+                              title="Agregar presentación"
+                              aria-label="Agregar presentación"
                             >
-                              Agregar
+                              +
                             </Button>
                           </div>
                         </div>
@@ -1015,6 +1466,7 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                         <span className="product-modal-error-message">{errors.presentations}</span>
                       )}
                     </div>
+                    )}
                   </div>
                 </div>
                 <div className="product-modal-form-actions">
@@ -1038,23 +1490,17 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
               <form onSubmit={handleSubmit} className="product-modal-form">
                     {/* Sección de Control de Inventario */}
                     <div className="product-modal-inventory-section">
-                      <div className="product-modal-section-header">
-                        <h3>📦 Control de Inventario</h3>
-                        <p className="product-modal-section-description">
-                          Activa el control de inventario para rastrear el stock de este producto automáticamente
-                        </p>
-                      </div>
-
                       <div className="product-modal-inventory-toggle-card">
                         <div className="product-modal-toggle-header">
                           <div className="product-modal-toggle-info">
-                            <label htmlFor="inventory" className="product-modal-toggle-label">
+                            {/* Texto NO clickeable: solo el switch activa/desactiva */}
+                            <span className="product-modal-toggle-label">
                               <strong>Activar control de inventario</strong>
-                            </label>
+                            </span>
                             <p className="product-modal-toggle-description">
                               {trackInventory 
-                                ? "El sistema rastreará automáticamente las entradas y salidas de este producto"
-                                : "Sin control de inventario. El producto se puede vender sin límite de stock"}
+                                ? "El sistema rastreará las entradas y salidas de este producto"
+                                : "Sin control de inventario. Se vende sin límite de stock"}
                             </p>
                           </div>
                           <div className="product-modal-toggle-switch">
@@ -1066,7 +1512,7 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                               onChange={() => setTrackInventory(!trackInventory)}
                               className="product-modal-switch-input"
                             />
-                            <label htmlFor="inventory" className="product-modal-switch-label">
+                            <label htmlFor="inventory" className="product-modal-switch-label" aria-label="Activar control de inventario">
                               <span className="product-modal-switch-slider"></span>
                             </label>
                           </div>
@@ -1124,21 +1570,11 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                               </div>
                             </div>
 
-                            <div className="product-modal-inventory-preview">
-                              <div className="product-modal-preview-item">
-                                <span className="product-modal-preview-label">Stock inicial:</span>
-                                <span className="product-modal-preview-value">{initialStock}</span>
+                            {initialStock <= minStock && initialStock > 0 && (
+                              <div className="product-modal-preview-warning">
+                                ⚠️ El stock inicial está en o por debajo del mínimo
                               </div>
-                              <div className="product-modal-preview-item">
-                                <span className="product-modal-preview-label">Stock mínimo:</span>
-                                <span className="product-modal-preview-value">{minStock}</span>
-                              </div>
-                              {initialStock <= minStock && initialStock > 0 && (
-                                <div className="product-modal-preview-warning">
-                                  ⚠️ El stock inicial está en o por debajo del mínimo
-                                </div>
-                              )}
-                            </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1194,6 +1630,53 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
           )}
         </Card>
       </div>
+
+      {/* Modal de ayuda: buenas prácticas para código / nombre */}
+      <ProductHelpModal
+        isOpen={helpTopic !== null}
+        topic={helpTopic ?? "code"}
+        onClose={() => setHelpTopic(null)}
+      />
+
+      {/* Mini-modal: crear prefijo para la categoría */}
+      {showCreatePrefix && (
+        <div className="pcode-modal-overlay" onClick={() => setShowCreatePrefix(false)}>
+          <div className="pcode-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="pcode-modal-title">🏷️ Crear prefijo de código</h3>
+            <p className="pcode-modal-desc">
+              Este prefijo se usará para generar códigos automáticos de esta categoría
+              (ej: {prefixInput.trim().toUpperCase() || "ABA-REF"}-001, -002…). Puedes editarlo.
+            </p>
+            <label className="pcode-modal-label">Prefijo</label>
+            <input
+              type="text"
+              className="pcode-modal-input"
+              value={prefixInput}
+              onChange={(e) => setPrefixInput(e.target.value.toUpperCase())}
+              placeholder="Ej: ABA-REF"
+              autoFocus
+            />
+            <div className="pcode-modal-actions">
+              <button
+                type="button"
+                className="pcode-modal-btn pcode-modal-btn--cancel"
+                onClick={() => setShowCreatePrefix(false)}
+                disabled={savingPrefix}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="pcode-modal-btn pcode-modal-btn--save"
+                onClick={handleSavePrefix}
+                disabled={savingPrefix}
+              >
+                {savingPrefix ? "Guardando…" : "Crear prefijo"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -90,7 +90,7 @@ const Ticket: React.FC<TicketProps> = ({sale, creditAmount = 0, containerAmount 
                 <div style={{ flex: 1, textAlign: "left" }}>
                   <span style={{ fontWeight: "500" }}>{item.productName}</span>
                   <div style={{ fontSize: "12px", color: "#666", marginTop: "2px" }}>
-                   Cantidad: {item.quantity} x  Precio U: ${item.price.toFixed(2)}
+                   Cantidad: {item.quantity}{item.unitAbbrev ? ` ${item.unitAbbrev}` : ""} x  Precio U: ${item.price.toFixed(2)}
                   </div>
                 </div>
                 <div style={{ textAlign: "right", whiteSpace: "nowrap", fontWeight: "600" }}>
@@ -153,7 +153,7 @@ const Ticket: React.FC<TicketProps> = ({sale, creditAmount = 0, containerAmount 
         )}
         <hr />
         {sale.shift?.shiftNumber && (
-          <p style={{ textAlign: "center", margin: "4px 0" }}>Turno: {sale.shift.shiftNumber}</p>
+          <p style={{ textAlign: "center", margin: "4px 0" }}>Turno: # {sale.shift.id}</p>
         )}
         <p style={{ textAlign: "center" }}>¡Gracias por su compra!</p>
         {sale.createdBy && (

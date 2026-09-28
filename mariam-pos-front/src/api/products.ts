@@ -2,9 +2,49 @@
 import {getAxiosClient} from "./axiosClient";
 import type { Product } from "../types/index";
 
+export interface PagedProducts {
+  data: Product[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export type ProductStatusFilter = "active" | "inactive";
+
+// Catálogo paginado (más nuevos primero). page inicia en 1.
+export const getProductsPaged = async (
+  page = 1,
+  pageSize = 25,
+  status: ProductStatusFilter = "active"
+): Promise<PagedProducts> => {
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.get<PagedProducts>("/products", {
+    params: { page, pageSize, status },
+  });
+  return data;
+};
+
+// Productos de una categoría, paginado (catálogo).
+export const getProductsByCategoryPaged = async (
+  categoryId: string,
+  page = 1,
+  pageSize = 25,
+  status: ProductStatusFilter = "active"
+): Promise<PagedProducts> => {
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.get<PagedProducts>(
+    `/products/category/${categoryId}`,
+    { params: { page, pageSize, status } }
+  );
+  return data;
+};
+
+// Legacy: array plano (usado donde no se pagina).
 export const getProducts = async (): Promise<Product[]> => {
   const clientAxios = await getAxiosClient();
-  const { data } = await clientAxios.get<Product[]>("/products");
+  const { data } = await clientAxios.get<Product[]>("/products", {
+    params: { paginate: "false" },
+  });
   return data;
 };
 

@@ -124,7 +124,7 @@ const QuickAddCalculator: React.FC<QuickAddCalculatorProps> = ({
       {/* Header */}
       <div className="quick-add-calculator-header-inline">
         <h2 className="quick-add-calculator-title-inline">
-          🧮 Calculadora Rápida
+          🧮 Calculadora
         </h2>
         <button
           className="quick-add-calculator-close-btn-inline"

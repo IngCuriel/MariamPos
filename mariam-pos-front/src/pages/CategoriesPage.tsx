@@ -3,7 +3,10 @@ import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import CategoryModal from '../components/CategoryModal';
-import type { Category } from '../types';
+import CategoryOrgChartModal from '../components/CategoryOrgChartModal';
+import type { Category, Department } from '../types';
+import { getDepartments } from '../api/departments';
+import Swal from 'sweetalert2';
 import '../styles/pages/categories/categoriesPage.css';
 
 interface CategoriesPageProps {
@@ -24,22 +27,58 @@ const CategoriesPage: React.FC<CategoriesPageProps> = ({
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  
+  const [showOrgChart, setShowOrgChart] = useState(false);
+  const [departments, setDepartments] = useState<Department[]>([]);
+
   const inputRef = useRef<HTMLInputElement>(null); // 👈 referencia al input
-  
+
   useEffect(() => {
-         inputRef.current?.focus();
+    inputRef.current?.focus();
+    // Cargar departamentos para el organigrama.
+    getDepartments()
+      .then(setDepartments)
+      .catch((e) => console.error('Error al cargar departamentos:', e));
   }, [])
    
   // Filtrar categorías por término de búsqueda
-  const filteredCategories = categories.filter(category =>
-    category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    category.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCategories = categories
+    .filter(category =>
+      category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      category.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    // Agrupar por departamento (alfabético); las sin departamento van al final.
+    // Dentro de cada grupo, ordenar por nombre de categoría.
+    .sort((a, b) => {
+      const depA = a.department?.name ?? '';
+      const depB = b.department?.name ?? '';
+      if (depA !== depB) {
+        // Las que no tienen departamento (cadena vacía) se mandan al final.
+        if (!depA) return 1;
+        if (!depB) return -1;
+        return depA.localeCompare(depB, 'es');
+      }
+      return a.name.localeCompare(b.name, 'es');
+    });
 
-  const handleDelete = (categoryId: string) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar esta categoría?')) {
-      onDelete(categoryId);
+  const handleDelete = async (category: Category) => {
+    const result = await Swal.fire({
+      icon: 'warning',
+      title: 'Eliminar categoría',
+      html: `
+        <p style="margin:0 0 10px;">¿Seguro que querés eliminar <strong>${category.name}</strong>?</p>
+        <div style="text-align:left;font-size:0.85rem;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;">
+          ⚠️ Si la categoría tiene productos asignados (por ejemplo, productos que ya se vendieron), no se podrá eliminar.
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: '🗑️ Eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      reverseButtons: true,
+    });
+    if (result.isConfirmed) {
+      onDelete(category.id);
     }
   };
 
@@ -93,6 +132,13 @@ const CategoriesPage: React.FC<CategoriesPageProps> = ({
                 />
               </div>
               <Button
+                variant="info"
+                onClick={() => setShowOrgChart(true)}
+                className="categories-add-btn"
+              >
+                🗂️ Estructura
+              </Button>
+              <Button
                 variant="success"
                 onClick={handleAddNew}
                 className="categories-add-btn"
@@ -102,59 +148,69 @@ const CategoriesPage: React.FC<CategoriesPageProps> = ({
             </div>
           </Card>
 
-          {/* Estadísticas */}
-          <div className="categories-stats">
-            <p>Mostrando {filteredCategories.length} de {categories.length} categoría{categories.length !== 1 ? 's' : ''}</p>
-          </div>
-
-          {/* Lista de categorías */}
-          <div className="categories-grid">
-            {filteredCategories.length === 0 ? (
-              <Card className="no-categories-card">
-                <h3>No se encontraron categorías</h3>
-                <p>Intenta ajustar el término de búsqueda o agrega una nueva categoría</p>
-              </Card>
-            ) : (
-              filteredCategories.map(category => (
-                <Card key={category.id} className="category-card-cat">
-                  <div className="category-header">
-                    <div className="category-info">
-                      <h3 className="category-name">{category.name}</h3>
-                      {category.description && (
-                        <p className="category-description">{category.description}</p>
-                      )}
-                      <p className="category-date">
-                        {new Date(category?.createdAt).toLocaleString('es-MX', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="category-actions">
-                    <Button
-                      variant="info"
-                      size="small"
-                      onClick={() => handleEdit(category)}
-                      className="edit-btn"
-                    >
-                      ✏️ Editar
-                    </Button>
-                    <Button
-                      variant="warning"
-                      size="small"
-                      onClick={() => handleDelete(category.id)}
-                      className="delete-btn"
-                    >
-                      🗑️ Eliminar
-                    </Button>
-                  </div>
-                </Card>
-              ))
-            )}
+          {/* Tabla de categorías (táctil) */}
+          <div className="categories-table-wrap">
+            <table className="categories-table">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Departamento</th>
+                  <th className="cat-th-center">En POS</th>
+                  <th className="cat-th-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCategories.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="categories-table-state">
+                      No se encontraron categorías
+                    </td>
+                  </tr>
+                ) : (
+                  filteredCategories.map((category) => (
+                    <tr key={category.id}>
+                      <td className="cat-td-name">{category.name}</td>
+                      <td>
+                        {category.department?.name ? (
+                          <span className="category-dept-badge">🏢 {category.department.name}</span>
+                        ) : (
+                          <span className="category-dept-badge category-dept-badge--none">
+                            Sin departamento
+                          </span>
+                        )}
+                      </td>
+                      <td className="cat-th-center">
+                        {category.showInPOS ? (
+                          <span className="cat-pos-badge cat-pos-badge--on">Sí</span>
+                        ) : (
+                          <span className="cat-pos-badge cat-pos-badge--off">No</span>
+                        )}
+                      </td>
+                      <td className="cat-th-center">
+                        <div className="cat-actions">
+                          <button
+                            type="button"
+                            className="cat-action cat-action--edit"
+                            title="Editar"
+                            onClick={() => handleEdit(category)}
+                          >
+                            ✏️ Editar
+                          </button>
+                          <button
+                            type="button"
+                            className="cat-action cat-action--delete"
+                            title="Eliminar"
+                            onClick={() => handleDelete(category)}
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -165,6 +221,14 @@ const CategoriesPage: React.FC<CategoriesPageProps> = ({
           onSave={handleSave}
           category={editingCategory}
           title={editingCategory ? 'Editar Categoría' : 'Nueva Categoría'}
+        />
+
+        {/* Organigrama: Sucursal → Departamentos → Categorías */}
+        <CategoryOrgChartModal
+          isOpen={showOrgChart}
+          onClose={() => setShowOrgChart(false)}
+          departments={departments}
+          categories={categories}
         />
       </div>
     </div>

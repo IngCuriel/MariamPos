@@ -11,6 +11,14 @@ export interface ProductPresentation {
   isDefault?: boolean; // Indica si es la presentación por defecto (1 pieza)
 }
 
+// Tramo de precio escalonado (tiered pricing).
+export interface ProductPriceTier {
+  id?: number;
+  minQty: number;
+  maxQty: number | null; // null = "en adelante"
+  unitPrice: number;
+}
+
 // 🆕 NUEVO: Item de un kit
 export interface KitItem {
   id?: number;
@@ -35,11 +43,33 @@ export interface Product {
   description?: string;
   categoryId: string;
   category?: Category;
+  unitId?: number | null; // Unidad de medida (opcional, informativa)
+  unit?: UnitOfMeasure | null; // Datos de la unidad (para mostrar)
+  pricingMode?: string; // "simple" | "tiered"
+  priceTiers?: ProductPriceTier[]; // Tramos de precio (solo si pricingMode = "tiered")
   presentations?: ProductPresentation[]; // Presentaciones opcionales para compatibilidad
   trackInventory?: boolean; // Si el producto maneja inventario
   inventory?: Inventory;
   isKit?: boolean; // 🆕 NUEVO: Si es un kit/combo
   kitItems?: KitItem[]; // 🆕 NUEVO: Items del kit (solo si isKit = true)
+}
+
+// Unidad de medida (catálogo informativo): pza, kg, L, caja, etc.
+export interface UnitOfMeasure {
+  id: number;
+  name: string;
+  abbreviation: string;
+  status?: number | null; // null o != 0 = activo, 0 = inactivo
+  branch?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+  _count?: { products: number };
+}
+
+export interface CreateUnitInput {
+  name: string;
+  abbreviation: string;
+  status?: number | null;
 }
 
 export interface Category {
@@ -48,6 +78,56 @@ export interface Category {
   description?: string;
   showInPOS?: boolean; 
   createdAt: Date;
+  departmentId?: string | null; // Departamento al que pertenece (opcional)
+  department?: { id: string; name: string } | null; // Datos del departamento (para mostrar)
+}
+
+// Departamento que agrupa categorías (Papelería, Abarrotes, etc.)
+export interface Department {
+  id: string;
+  name: string;
+  description?: string | null;
+  icon?: string | null;
+  status?: number | null; // null o != 0 = activo, 0 = inactivo
+  branch?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+  _count?: { categories: number };
+}
+
+export interface CreateDepartmentInput {
+  name: string;
+  description?: string;
+  icon?: string;
+  status?: number | null;
+}
+
+// Prefijo de código ligado a una categoría (catálogo de prefijos).
+export interface CategoryCodePrefix {
+  id: number;
+  categoryId: string;
+  prefix: string;
+  lastNumber: number;
+  padding: number;
+  branch?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+  category?: Category | null;
+}
+
+export interface CreateCodePrefixInput {
+  categoryId: string;
+  prefix: string;
+  padding?: number;
+  lastNumber?: number;
+}
+
+// Respuesta del preview del siguiente código.
+export interface CodePreview {
+  hasPrefix: boolean;
+  prefix: string | null;
+  nextNumber: number | null;
+  code: string | null;
 }
 
 export interface Client {
@@ -88,6 +168,7 @@ export interface SaleDetail {
   price: number;
   productName: string;
   subTotal: number;
+  unitAbbrev?: string | null; // Unidad de medida congelada al momento de la venta
   saleId: number;
   productId: number;
   product: Product;

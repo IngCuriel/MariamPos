@@ -931,14 +931,7 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
               <button className="btn touch-btn close-btn-day-sales" onClick={closeModal}>
                 ↩️ Regresar
               </button>
-              <button
-                type="button"
-                className="corte-general-trigger"
-                onClick={() => setShowCorte(true)}
-                title="Ver corte general del día"
-              >
-                📊 Corte general
-              </button>
+             
               <div className="footer-actions-group">
                 {/*<button
                   className="btn touch-btn email-btn"
@@ -948,6 +941,14 @@ export default function DaySalesModal({ onClose }: DaySalesModalProps) {
                 >
                   📧 Enviar por Email
                 </button>*/}
+                 <button
+                type="button"
+                className="corte-general-trigger"
+                onClick={() => setShowCorte(true)}
+                title="Ver corte general del día"
+              >
+                📊 Corte general
+              </button>
                 <button
                   className="btn touch-btn whatsapp-btn"
                   onClick={handleSendWhatsApp}

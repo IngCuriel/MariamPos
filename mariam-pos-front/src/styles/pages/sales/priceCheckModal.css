@@ -1,0 +1,232 @@
+/* ===== VERIFICADOR DE PRECIOS (solo consulta) ===== */
+.pchk-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 4vh 1rem;
+  z-index: 11000;
+  animation: pchkFade 0.15s ease-out;
+}
+
+@keyframes pchkFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.pchk-modal {
+  width: 100%;
+  max-width: 620px;
+  max-height: 88vh;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pchk-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.25rem;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  color: #fff;
+}
+
+.pchk-title { margin: 0; font-size: 1.1rem; font-weight: 800; }
+
+.pchk-close {
+  border: none;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.pchk-close:hover { background: rgba(255, 255, 255, 0.32); }
+
+.pchk-body {
+  padding: 1rem 1.25rem 1.25rem;
+  overflow-y: auto;
+}
+
+.pchk-input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.6rem 0.9rem;
+  border: 2px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+.pchk-input:focus {
+  outline: none;
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+}
+
+.pchk-hint {
+  margin-top: 0.75rem;
+  color: #64748b;
+  font-size: 0.88rem;
+  text-align: center;
+}
+
+/* ===== RESULTADOS ===== */
+.pchk-results {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.pchk-result {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 52px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+.pchk-result:hover { background: #f0f9ff; border-color: #7dd3fc; }
+
+.pchk-result-icon { font-size: 1.3rem; flex-shrink: 0; }
+.pchk-result-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  color: #1e293b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pchk-result-price {
+  flex-shrink: 0;
+  font-weight: 800;
+  color: #0284c7;
+}
+
+/* ===== DETALLE ===== */
+.pchk-detail { margin-top: 0.75rem; }
+
+.pchk-back {
+  border: none;
+  background: none;
+  color: #0284c7;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 0.6rem;
+}
+
+.pchk-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+.pchk-detail-icon { font-size: 2rem; flex-shrink: 0; }
+.pchk-detail-info { min-width: 0; }
+.pchk-detail-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.25;
+}
+.pchk-detail-code {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 0.15rem;
+}
+
+.pchk-price-main {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #059669;
+  text-align: center;
+  padding: 0.75rem;
+  background: #d1fae5;
+  border-radius: 12px;
+  margin-bottom: 0.75rem;
+}
+.pchk-price-unit { font-size: 1rem; font-weight: 700; color: #047857; }
+
+.pchk-section { margin-bottom: 0.75rem; }
+.pchk-section-title {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 0.4rem;
+}
+
+.pchk-table {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.pchk-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.9rem;
+}
+.pchk-row:last-child { border-bottom: none; }
+.pchk-row-label { font-weight: 700; color: #1e293b; }
+.pchk-row-muted { color: #64748b; font-size: 0.85rem; }
+.pchk-row-price { font-weight: 800; color: #059669; white-space: nowrap; }
+
+/* Fila de presentación: nombre | detalle (cantidad · c/u) | total + ahorro */
+.pchk-row--pres {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.6rem;
+  align-items: center;
+}
+.pchk-row--pres .pchk-row-muted { text-align: left; }
+
+.pchk-row-totals {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.pchk-row-save {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #b45309;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.pchk-stock {
+  padding: 0.6rem 0.75rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: #1e40af;
+}

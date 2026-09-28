@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Button from './Button';
 import Card from './Card';
-import type { Category } from '../types';
+import type { Category, Department } from '../types';
+import { getDepartments } from '../api/departments';
 import '../styles/components/categoryModal.css';
 
 interface CategoryModalProps {
@@ -22,23 +23,46 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    showInPOS: true
+    showInPOS: true,
+    departmentId: '' as string,
   });
 
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  // Enfocar el input de nombre al abrir (crear o editar).
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => nameInputRef.current?.focus(), 80);
+    }
+  }, [isOpen]);
+
+  // Cargar departamentos activos al abrir.
+  useEffect(() => {
+    if (!isOpen) return;
+    getDepartments(true)
+      .then(setDepartments)
+      .catch((e) => {
+        console.error('Error al cargar departamentos:', e);
+        setDepartments([]);
+      });
+  }, [isOpen]);
 
   useEffect(() => {
     if (category) {
       setFormData({
         name: category.name,
         description: category.description || '',
-        showInPOS: category.showInPOS !== undefined ? category.showInPOS : true
+        showInPOS: category.showInPOS !== undefined ? category.showInPOS : true,
+        departmentId: category.departmentId || '',
       });
     } else {
       setFormData({
         name: '',
         description: '',
-        showInPOS: true
+        showInPOS: true,
+        departmentId: '',
       });
     }
     setErrors({});
@@ -86,7 +110,8 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
       const categoryData: Omit<Category, 'id' | 'createdAt'> = {
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
-        showInPOS: formData.showInPOS
+        showInPOS: formData.showInPOS,
+        departmentId: formData.departmentId || null,
       };
       
       onSave(categoryData);
@@ -109,6 +134,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
             <div className="category-form-group">
               <label htmlFor="name">Nombre de la Categoría *</label>
               <input
+                ref={nameInputRef}
                 type="text"
                 id="name"
                 name="name"
@@ -130,6 +156,28 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
                 placeholder="Descripción opcional de la categoría"
                 rows={3}
               />
+            </div>
+
+            <div className="category-form-group">
+              <label htmlFor="departmentId">Departamento</label>
+              <select
+                id="departmentId"
+                name="departmentId"
+                value={formData.departmentId}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, departmentId: e.target.value }))
+                }
+              >
+                <option value="">Sin departamento</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+              <p className="category-checkbox-hint">
+                Agrupá esta categoría dentro de un departamento (opcional)
+              </p>
             </div>
 
             <div className="category-form-group">

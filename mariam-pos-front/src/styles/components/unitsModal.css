@@ -1,0 +1,257 @@
+/* ===== MODAL CATÁLOGO DE UNIDADES DE MEDIDA ===== */
+/* Estilos scopeados con prefijo uom-. */
+
+.uom-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 11000;
+}
+
+.uom-modal {
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.uom-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  color: #fff;
+}
+
+.uom-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.uom-close {
+  border: none;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.uom-close:hover { background: rgba(255, 255, 255, 0.32); }
+
+.uom-body {
+  padding: 1.25rem;
+  overflow-y: auto;
+}
+
+.uom-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.9rem;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+}
+
+.uom-error { color: #b91c1c; border-color: #fecaca; background: #fef2f2; }
+
+/* ===== LISTA ===== */
+.uom-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.875rem;
+}
+
+.uom-list-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.uom-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.uom-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.uom-item--inactive { opacity: 0.6; }
+
+.uom-item-text {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.uom-item-name { font-weight: 700; color: #0f172a; }
+
+.uom-item-abbrev {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #0284c7;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.uom-item-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.uom-item-count {
+  font-size: 0.78rem;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.uom-status-toggle {
+  min-height: 36px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.uom-status-toggle--on { color: #047857; background: #d1fae5; border-color: #a7f3d0; }
+.uom-status-toggle--off { color: #b45309; background: #fef3c7; border-color: #fde68a; }
+
+.uom-icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.uom-icon-btn--edit:hover { background: #eff6ff; border-color: #bfdbfe; }
+.uom-icon-btn--delete:hover { background: #fef2f2; border-color: #fecaca; }
+
+/* ===== FORMULARIO ===== */
+.uom-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.uom-form-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 0.75rem;
+}
+
+.uom-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin: 0.5rem 0 0.3rem;
+}
+
+.uom-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.6rem 0.75rem;
+  border: 2px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #1e293b;
+}
+
+.uom-input:focus {
+  outline: none;
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+}
+
+.uom-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+/* ===== BOTONES ===== */
+.uom-btn {
+  min-height: 44px;
+  padding: 0 1.25rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.uom-btn--sm { min-height: 38px; padding: 0 0.875rem; font-size: 0.82rem; }
+
+.uom-btn--primary {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  color: #fff;
+}
+
+.uom-btn--primary:hover { filter: brightness(1.08); }
+
+.uom-btn--ghost { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
+.uom-btn--ghost:hover { background: #e2e8f0; }
+
+.uom-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.uom-footer {
+  padding: 0.875rem 1.25rem;
+  border-top: 1px solid #eef2f7;
+  display: flex;
+  justify-content: flex-end;
+  background: #f8fafc;
+}
+
+.uom-btn-close {
+  min-height: 44px;
+  padding: 0.5rem 1.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.uom-btn-close:hover { background: #f1f5f9; }

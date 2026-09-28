@@ -21,6 +21,8 @@ import Footer from "./Footer";
 import Swal from "sweetalert2";
 import { ProductComunModal } from "./ProductComunModal";
 import { PresentationModal } from "./PresentationModal";
+import { TieredQuantityModal, resolveTierUnitPrice } from "./TieredQuantityModal";
+import PriceCheckModal from "./PriceCheckModal";
 import CategoryProductModal from "./CategoryProductModal";
 import QuickAddCalculator from "./QuickAddCalculator";
 import ShiftModal from "./ShiftModal";
@@ -77,6 +79,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
   const [showCashMovementModal, setShowCashMovementModal] = useState(false);
   const [showClientModal, setShowClientModal] = useState(false);
   const [showPendingSalesModal, setShowPendingSalesModal] = useState(false);
+  const [showPriceCheckModal, setShowPriceCheckModal] = useState(false); // 🔎 Verificador de precios
   const [activeShift, setActiveShift] = useState<CashRegisterShift | null>(null);
   const [productCounter, setProductCounter] = useState(1);
   const [containersDepositInfo, setContainersDepositInfo] = useState<{
@@ -87,7 +90,8 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
 
   // Nuevo Agrega estos estados y funciones dentro de tu componente
   const [activeIndex, setActiveIndex] = useState(-1);
-  const cardsPerRow = 5; // Ajusta según tu grilla de productos
+  // Lista de una columna: arriba/abajo se mueve de a 1 fila.
+  const cardsPerRow = 1;
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (products.length === 0) return;
@@ -568,6 +572,9 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       } else if (e.key === "F4") {
         e.preventDefault();
         setShowShiftModal(true);
+      } else if (e.key === "F6") {
+        e.preventDefault();
+        setShowPriceCheckModal(true);
       }
     }
     window.addEventListener("keydown", handleKeyDown);
@@ -628,6 +635,63 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
     let selectedPresentation: ProductPresentation | undefined;
     let presentationQuantity = 1;
 
+    // 🔢 Producto con precio escalonado (tiered): pedir cantidad y aplicar el
+    // precio del tramo. Flujo independiente de presentaciones/granel.
+    if (product.pricingMode === "tiered" && product.priceTiers && product.priceTiers.length > 0) {
+      const tierResult = await TieredQuantityModal(product);
+      if (!tierResult) {
+        setSearch("");
+        inputRef.current?.focus();
+        return;
+      }
+      // Validar stock si maneja inventario.
+      if (product.trackInventory && product.id !== 1) {
+        try {
+          const inventory = await getProductInventory(product.id);
+          if (inventory && inventory.currentStock < tierResult.cantidad) {
+            Swal.fire({
+              icon: "warning",
+              title: "Stock insuficiente",
+              html: `<p>Stock disponible: <strong>${inventory.currentStock}</strong></p><p>Stock requerido: <strong>${tierResult.cantidad}</strong></p>`,
+              confirmButtonText: "Entendido",
+            });
+            setSearch("");
+            inputRef.current?.focus();
+            return;
+          }
+        } catch (error) {
+          console.error("Error validando stock:", error);
+        }
+      }
+
+      const tierItem: ItemCart = {
+        ...product,
+        quantity: tierResult.cantidad,
+        price: tierResult.unitPrice,
+      };
+      setCart((prev) => {
+        // Mismo producto tiered: reemplazar cantidad recalculando el tramo.
+        const existing = prev.find(
+          (it) => it.id === product.id && !it.selectedPresentation
+        );
+        if (existing) {
+          const newQty = existing.quantity + tierResult.cantidad;
+          const newPrice = resolveTierUnitPrice(product.priceTiers!, newQty);
+          return prev.map((it) =>
+            it.id === product.id && !it.selectedPresentation
+              ? { ...it, quantity: newQty, price: newPrice }
+              : it
+          );
+        }
+        return [...prev, tierItem];
+      });
+      playAddProductSound();
+      setSearch("");
+      setProducts([]);
+      setTimeout(() => inputRef.current?.focus(), 100);
+      return;
+    }
+
     // 🏭 PRIMERO: Validar stock si el producto rastrea inventario
     if (product.trackInventory && product.id !== 1) {
       try {
@@ -651,9 +715,15 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       if (presentationResult) {
         selectedPresentation = presentationResult.presentation;
         presentationQuantity = presentationResult.quantity;
-        
-        // Si tiene datos granel, usarlos
-        if (presentationResult.granelData) {
+
+        // El flujo granel (cantidad decimal libre) SOLO aplica a la presentación base.
+        // Una presentación no base (ej: Bulto) siempre se vende a precio fijo:
+        // unitPrice * quantity * cantidad de presentaciones.
+        const isBasePresentation =
+          selectedPresentation.isDefault || selectedPresentation.quantity === 1;
+
+        // Si tiene datos granel Y es la presentación base, usarlos.
+        if (presentationResult.granelData && isBasePresentation) {
           granelDataFromPresentation = presentationResult.granelData;
           quantity = granelDataFromPresentation.cantidad;
         } else {
@@ -938,15 +1008,18 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
 
   // Calcular total considerando presentaciones y productos granel
   const total = cart.reduce((acc, item) => {
-    // Si tiene presentación seleccionada, calcular: cantidad de presentaciones * precio unitario * unidades por presentación
+    const isBasePres =
+      !!item.selectedPresentation &&
+      (item.selectedPresentation.isDefault || item.selectedPresentation.quantity === 1);
+    // Granel real: solo la presentación base de un producto granel. El price ya es el total.
+    if (item.saleType === 'Granel' && isBasePres) {
+      return acc + item.price;
+    }
+    // Cualquier presentación (base fija o no base, ej: Bulto):
+    // precio por unidad base * unidades por presentación * cantidad de presentaciones.
     if (item.selectedPresentation && item.presentationQuantity) {
       const totalUnits = item.selectedPresentation.quantity * item.presentationQuantity;
       return acc + (item.selectedPresentation.unitPrice * totalUnits);
-    }
-    // Para productos granel con presentación base, el price ya es el precio total
-    if (item.saleType === 'Granel' && item.selectedPresentation) {
-      // El precio ya es el total ingresado por el usuario
-      return acc + item.price;
     }
     // Si no tiene presentación, usar el cálculo normal
     return acc + (item.price * item.quantity);
@@ -998,42 +1071,50 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       };
 
       const details: SaleDetailInput[] = cart.map((item) => {
+        // ¿Es la presentación base? El flujo granel (precio total libre) SOLO aplica a la base.
+        const isBasePres =
+          !!item.selectedPresentation &&
+          (item.selectedPresentation.isDefault || item.selectedPresentation.quantity === 1);
+        // Granel real: producto granel vendido en su presentación base (ej: 0.5 kg).
+        const isGranelBase = item.saleType === 'Granel' && isBasePres;
+
         // Calcular subtotal según presentación o producto granel
         let subtotal: number;
-        if (item.selectedPresentation && item.presentationQuantity) {
-          // Presentación normal
-          subtotal = item.selectedPresentation.unitPrice * item.selectedPresentation.quantity * item.presentationQuantity;
-        } else if (item.saleType === 'Granel' && item.selectedPresentation) {
-          // Producto granel con presentación base - el price ya es el total
+        if (isGranelBase) {
+          // Granel en base: el price ya es el total ingresado.
           subtotal = item.price;
+        } else if (item.selectedPresentation) {
+          // Cualquier presentación (base fija o no base, ej: Bulto):
+          // precio por unidad base * unidades por presentación * cantidad de presentaciones.
+          subtotal = item.selectedPresentation.unitPrice * item.selectedPresentation.quantity * (item.presentationQuantity || 1);
         } else {
           // Sin presentación
           subtotal = item.price * item.quantity;
         }
-        
-        // Nombre del producto con presentación si aplica
+
+        // Nombre del producto para el ticket.
+        // - Base (1 unidad / isDefault) o sin presentación → solo el nombre.
+        // - No base → "Producto (20 Kilogramo por Bulto)".
+        const unitNameForName = item.unit?.name || "unidades";
         let productName: string;
-        if (item.saleType === 'Granel' && item.selectedPresentation) {
-          // Para granel con presentación base, mostrar cantidad granel
-          productName = `${item.name} (${item.quantity} ${item.selectedPresentation.name || 'unidades'})`;
-        } else if (item.selectedPresentation && item.presentationQuantity) {
-          productName = `${item.name} (${item.presentationQuantity}x ${item.selectedPresentation.name})`;
-        } else {
+        if (!item.selectedPresentation || isBasePres) {
           productName = item.name;
+        } else {
+          productName = `${item.name} (${item.selectedPresentation.quantity} ${unitNameForName} por ${item.selectedPresentation.name})`;
         }
-        
-        // Precio unitario usado
+
+        // Precio unitario usado (por unidad base).
         let unitPrice: number;
-        if (item.saleType === 'Granel' && item.selectedPresentation) {
-          // Para granel, calcular precio unitario (precio total / cantidad)
+        if (isGranelBase) {
+          // Para granel en base, calcular precio unitario (precio total / cantidad).
           unitPrice = item.quantity > 0 ? item.price / item.quantity : item.price;
         } else if (item.selectedPresentation) {
           unitPrice = item.selectedPresentation.unitPrice;
         } else {
           unitPrice = item.price;
         }
-        
-        // Cantidad total de unidades
+
+        // Cantidad total de unidades base.
         const totalQuantity = item.selectedPresentation && item.presentationQuantity
           ? item.selectedPresentation.quantity * item.presentationQuantity
           : item.quantity;
@@ -1044,6 +1125,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
           productName,
           subTotal: subtotal,
           productId: item.id,
+          unitAbbrev: item.unit?.abbreviation || null, // Unidad congelada en la venta
         };
       });
       
@@ -1583,6 +1665,10 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         cost: 0,
         icon: '',
         categoryId: '',
+        // Recuperar la unidad de medida del producto para que el carrito
+        // muestre "Kilogramo" y no "unidades" al recargar el pendiente.
+        unitId: detail.product?.unitId ?? null,
+        unit: detail.product?.unit ?? null,
       };
       
       // Crear presentación si existe
@@ -1595,18 +1681,45 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
           unitPrice: detail.basePrice || detail.price,
         };
       }
-      
-      // Calcular presentationQuantity si hay presentación
+
+      // ¿Es la presentación base? (1 unidad o marcada como default)
+      const isBasePres =
+        !!selectedPresentation &&
+        (selectedPresentation.isDefault || selectedPresentation.quantity === 1);
+      // Granel real: producto granel vendido en su presentación base (ej: 0.5 kg).
+      const isGranelBase = baseProduct.saleType === 'Granel' && isBasePres;
+
+      // Reconstruir cantidad, precio y presentationQuantity según el caso.
+      let cartQuantity: number;
+      let cartPrice: number;
       let presentationQuantity: number | undefined;
-      if (selectedPresentation) {
-        presentationQuantity = Math.ceil(detail.quantity);
+
+      if (isGranelBase) {
+        // Granel base: quantity es la cantidad granel (kg) con decimales;
+        // price es el total de la línea (subTotal). presentationQuantity = cantidad granel.
+        cartQuantity = detail.quantity; // ej: 0.5 kg
+        cartPrice = detail.subTotal;    // precio total ingresado
+        presentationQuantity = detail.quantity;
+      } else if (selectedPresentation) {
+        // Presentación no base (ej: Bulto): al guardar el pendiente, detail.quantity
+        // guarda la CANTIDAD DE PRESENTACIONES (ej: 5 bultos), no las unidades base.
+        // Por eso se lee directo como presentationQuantity.
+        const unitsPerPres = selectedPresentation.quantity || 1;
+        presentationQuantity = detail.quantity; // ej: 5 bultos
+        cartQuantity = detail.quantity * unitsPerPres; // unidades base totales (5 * 20 = 100)
+        cartPrice = selectedPresentation.unitPrice; // precio por unidad base
+      } else {
+        // Sin presentación.
+        cartQuantity = detail.quantity;
+        cartPrice = detail.price;
+        presentationQuantity = undefined;
       }
-      
+
       // Crear el item del carrito
       const cartItem: ItemCart = {
         ...baseProduct,
-        quantity: detail.quantity,
-        price: detail.price,
+        quantity: cartQuantity,
+        price: cartPrice,
         selectedPresentation,
         presentationQuantity,
       };
@@ -1672,6 +1785,13 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
               )}
             </div>
             <div className="shift-actions">
+              <button
+                className="btn-price-check"
+                onClick={() => setShowPriceCheckModal(true)}
+                title="Verificar precio (F6)"
+              >
+                🔎 Verificar precio
+              </button>
               {activeShift && (
                 <button
                   className="btn-movements"
@@ -1762,7 +1882,6 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                     title="Buscar productos por categoría"
                   >
                     <span className="btn-icon">📂</span>
-                    <span className="btn-text">Categorías</span>
                   </button>
                   <button
                     className="btn-calculator"
@@ -1770,26 +1889,28 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                     title="Calculadora rápida para agregar productos"
                   >
                     <span className="btn-icon">🧮</span>
-                    <span className="btn-text">Calculadora</span>
                   </button>
                 </div>
                 {products.length > 0 && (
-                  <div className="sales-cards">
+                  <div className="sales-list">
                     {products.map((p, index) => (
                       <div
                         key={p.id}
-                        className={`product-card-sales ${activeIndex === index ? "active-card" : ""}`}
+                        className={`sales-list-item ${activeIndex === index ? "active-row" : ""}`}
                         onClick={() => handleAdd(p)}
                         onMouseEnter={() => setActiveIndex(index)}
                       >
-                        <div>{p.icon}</div>
-                        <h4>{p.name}</h4>
-                        <p>
+                        {p.icon && <span className="sales-list-icon">{p.icon}</span>}
+                        <div className="sales-list-info">
+                          <span className="sales-list-name" title={p.name}>{p.name}</span>
+                          {p.code && <span className="sales-list-code">{p.code}</span>}
+                        </div>
+                        <span className="sales-list-price">
                           {p.price.toLocaleString("es-MX", {
                             style: "currency",
                             currency: "MXN",
                           })}
-                        </p>
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -1885,15 +2006,38 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                         ? item.selectedPresentation.unitPrice * item.selectedPresentation.quantity * item.presentationQuantity
                         : item.price * item.quantity;
                       
-                      // Mostrar información de presentación si existe
-                      const displayName = item.selectedPresentation
-                        ? `${item.name} (${item.presentationQuantity}x ${item.selectedPresentation.name})`
-                        : item.name;
-                      
-                      // Mostrar cantidad: unidades totales o cantidad de presentaciones
-                      const displayQuantity = item.selectedPresentation && item.presentationQuantity
-                        ? `${item.presentationQuantity} ${item.selectedPresentation.name}${item.presentationQuantity > 1 ? 's' : ''}`
-                        : item.quantity;
+                      // ¿La presentación seleccionada es la base? (1 unidad o marcada como default)
+                      const isBasePresentation =
+                        !!item.selectedPresentation &&
+                        (item.selectedPresentation.isDefault || item.selectedPresentation.quantity === 1);
+
+                      // Nombre de la unidad de medida del producto (ej: "Kilogramo").
+                      const unitName = item.unit?.name || "unidades";
+
+                      // Nombre a mostrar: siempre solo el nombre del producto (limpio).
+                      const displayName = item.name;
+
+                      // Detalle de la presentación (subtexto bajo el nombre), solo si NO es base.
+                      // Ej: "20 Kilogramos por Bulto".
+                      const presentationDetail =
+                        item.selectedPresentation && !isBasePresentation
+                          ? `${item.selectedPresentation.quantity} ${unitName} por ${item.selectedPresentation.name}`
+                          : null;
+
+                      // Cantidad a mostrar:
+                      // - Base → "1 Kilogramo" (cantidad de presentaciones + nombre de la unidad).
+                      // - No base → "2 Bultos" (cantidad de presentaciones + nombre presentación pluralizado).
+                      // - Sin presentación → cantidad simple.
+                      let displayQuantity: React.ReactNode;
+                      if (item.selectedPresentation && item.presentationQuantity) {
+                        if (isBasePresentation) {
+                          displayQuantity = `${item.presentationQuantity} ${unitName}`;
+                        } else {
+                          displayQuantity = `${item.presentationQuantity} ${item.selectedPresentation.name}${item.presentationQuantity > 1 ? 's' : ''}`;
+                        }
+                      } else {
+                        displayQuantity = item.quantity;
+                      }
                       
                       // Precio unitario a mostrar
                       const displayPrice = item.selectedPresentation
@@ -1904,9 +2048,9 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                         <tr key={`${item.id}-${item.selectedPresentation?.id || 'default'}-${index}`}>
                           <td>
                             <h4>{displayName}</h4>
-                            {item.selectedPresentation && (
+                            {presentationDetail && (
                               <small style={{ color: '#6b7280', fontSize: '0.85rem' }}>
-                                {item.selectedPresentation.quantity} unidad{item.selectedPresentation.quantity !== 1 ? 'es' : ''} por {item.selectedPresentation.name}
+                                {presentationDetail}
                               </small>
                             )}
                           </td>
@@ -1949,21 +2093,14 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                                 </button>
                               </div>
                             ) : (
-                              <>
-                                <h4>{displayQuantity}</h4>
-                                {item.selectedPresentation && item.quantity > item.presentationQuantity! && (
-                                  <small style={{ color: '#6b7280', fontSize: '0.85rem' }}>
-                                    ({item.quantity} unidades totales)
-                                  </small>
-                                )}
-                              </>
+                              <h4>{displayQuantity}</h4>
                             )}
                           </td>
                           <td>
                             <h4>${displayPrice.toFixed(2)}</h4>
                             {item.selectedPresentation && (
                               <small style={{ color: '#6b7280', fontSize: '0.85rem' }}>
-                                c/u
+                                c/{unitName}
                               </small>
                             )}
                           </td>
@@ -2073,6 +2210,15 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
             }}
           />
         )}
+        {/* 🔎 Verificador de precios (solo consulta, no afecta el carrito) */}
+        <PriceCheckModal
+          isOpen={showPriceCheckModal}
+          onClose={() => {
+            setShowPriceCheckModal(false);
+            setTimeout(() => inputRef.current?.focus(), 100);
+          }}
+        />
+
         {showCashMovementModal && activeShift && (
           <CashMovementModal
             shift={activeShift}

@@ -39,6 +39,17 @@ model Product {
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])
 
+  // Unidad de medida (informativa): pza, kg, L, caja, etc. Opcional.
+  unitId Int?
+  unit   UnitOfMeasure? @relation(fields: [unitId], references: [id])
+
+  // Modo de precio: "simple" (default) o "tiered" (precio escalonado por cantidad).
+  // Excluyente con presentaciones: un producto es simple, por presentaciones, o tiered.
+  pricingMode String @default("simple")
+
+  // Tramos de precio por cantidad (solo si pricingMode = "tiered").
+  priceTiers ProductPriceTier[]
+
   // 🔥 Nueva relación (un producto puede tener varias presentaciones)
   presentations ProductPresentation[]
 
@@ -61,6 +72,30 @@ model Product {
   @@index([isKit]) // Índice para filtrar kits rápidamente
   @@index([syncStatus])
   @@index([branch])
+  @@index([unitId])
+}
+
+// ------------------------------------------------------------
+// Unidades de medida (catálogo informativo): pieza, kg, litro, caja, etc.
+// No afecta el inventario ni cálculos; solo describe cómo se vende el producto.
+// ------------------------------------------------------------
+model UnitOfMeasure {
+  id           Int      @id @default(autoincrement())
+  name         String // Ej: "Kilogramo", "Litro", "Pieza"
+  abbreviation String // Ej: "kg", "L", "pza"
+  status       Int?     // null o != 0 = activo, 0 = inactivo (patrón Product/Container)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // 🔄 Campos de sincronización
+  syncStatus String  @default("pendiente")
+  branch     String? @default("Sucursal Default")
+
+  products Product[]
+
+  @@index([abbreviation])
+  @@index([status])
+  @@index([syncStatus])
 }
 
 model ProductPresentation {
@@ -90,6 +125,31 @@ model ProductPresentation {
   @@index([branch])
 }
 
+// ------------------------------------------------------------
+// Tramos de precio por cantidad (precio escalonado / tiered).
+// Ej: 1-10 => $5, 11-20 => $4, 21+ => $3.
+// Escalón SIMPLE: toda la cantidad se cobra al precio del tramo donde cae.
+// ------------------------------------------------------------
+model ProductPriceTier {
+  id        Int     @id @default(autoincrement())
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  minQty    Int // cantidad mínima del tramo (inclusive)
+  maxQty    Int? // cantidad máxima del tramo (inclusive); null = "en adelante"
+  unitPrice Float // precio por unidad en este tramo
+
+  // 🔄 Sincronización
+  syncStatus String  @default("pendiente")
+  branch     String? @default("Sucursal Default")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([syncStatus])
+}
+
 model Category {
   id          String   @id @default(uuid())
   name        String
@@ -102,10 +162,66 @@ model Category {
   syncStatus String @default("pendiente") // pendiente, enviado
   branch     String? @default("Sucursal Default") // Sucursal de la categoría
 
+  // Departamento al que pertenece la categoría (opcional: puede no tener).
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
   Product Product[]
+
+  // Prefijo de código ligado a esta categoría (opcional, 1:1).
+  codePrefix CategoryCodePrefix?
 
   @@index([syncStatus])
   @@index([branch])
+  @@index([departmentId])
+}
+
+// ------------------------------------------------------------
+// Prefijos de código por categoría.
+// Permite generar códigos consecutivos automáticos: PREFIX-001, PREFIX-002…
+// El consecutivo (lastNumber) se reserva al GUARDAR el producto, no al generarlo.
+// ------------------------------------------------------------
+model CategoryCodePrefix {
+  id         Int      @id @default(autoincrement())
+  categoryId String   @unique
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  prefix     String // ej: "ABA-REF"
+  lastNumber Int      @default(0) // último consecutivo usado
+  padding    Int      @default(3) // ceros a la izquierda: 001
+
+  // 🔄 Campos de sincronización
+  syncStatus String  @default("pendiente")
+  branch     String? @default("Sucursal Default")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([prefix])
+  @@index([syncStatus])
+}
+
+// ------------------------------------------------------------
+// Departamentos (agrupan categorías): Papelería, Abarrotes, etc.
+// ------------------------------------------------------------
+model Department {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  icon        String?
+  status      Int?     // null o != 0 = activo, 0 = inactivo (mismo criterio que Container/Product)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 🔄 Campos de sincronización
+  syncStatus String  @default("pendiente")
+  branch     String? @default("Sucursal Default")
+
+  categories Category[]
+
+  @@index([syncStatus])
+  @@index([branch])
+  @@index([status])
 }
 
 model Client {
@@ -175,6 +291,7 @@ model SaleDetail {
   price       Float
   subTotal    Float
   productName String?
+  unitAbbrev  String? // Unidad de medida congelada al momento de la venta (ej: "kg")
   createdAt   DateTime @default(now())
 
   // Relación con Sale

@@ -10,7 +10,9 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   overflow: visible;
   position: relative;
-  z-index: 1;
+  /* Alto para que el menú de Acciones (anidado) quede por encima del
+     thead sticky de la tabla (que crea su propio contexto de apilamiento). */
+  z-index: 100;
   flex-shrink: 0;
 }
 
@@ -38,19 +40,27 @@
 
 .catalog-filters {
   padding: 1rem;
-  display: grid;
-  grid-template-columns: 2fr 1fr auto;
+  display: flex;
+  flex-wrap: nowrap;
   gap: 1rem;
-  align-items: end;
+  align-items: center;
 }
 
 .catalog-filter-group {
   display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
 }
 
+/* El grupo de "Buscar" crece; el de categoría también pero menos */
+.catalog-filter-group:first-child { flex: 2; }
+.catalog-filter-group:nth-child(2) { flex: 1; }
+
 .catalog-filter-label {
+  flex-shrink: 0;
+  white-space: nowrap;
   font-size: 0.75rem;
   font-weight: 600;
   color: #475569;
@@ -60,6 +70,8 @@
 }
 
 .catalog-search-input {
+  flex: 1;
+  min-width: 0;
   width: 100%;
   padding: 0.625rem 0.875rem;
   border: 2px solid #cbd5e1;
@@ -85,6 +97,8 @@
 }
 
 .catalog-category-select {
+  flex: 1;
+  min-width: 0;
   width: 100%;
   padding: 0.625rem 0.875rem;
   padding-right: 2.5rem;
@@ -126,6 +140,12 @@
 .catalog-actions-group {
   position: relative;
   z-index: 10;
+  flex: 0 0 auto; /* no crece: queda a la derecha con su tamaño */
+}
+
+/* En layout de fila, el label del grupo de acciones no aporta: ocultarlo del todo. */
+.catalog-actions-group .catalog-filter-label {
+  display: none;
 }
 
 .catalog-actions-dropdown {
@@ -636,7 +656,7 @@
 
 @media (max-width: 768px) {
   .catalog-filters {
-    grid-template-columns: 1fr;
+    flex-wrap: wrap;
     gap: 0.75rem;
   }
 
@@ -814,4 +834,234 @@
   .catalog-action-btn {
     min-height: 48px;
   }
+}
+
+/* ===== TABLA DE PRODUCTOS (táctil) ===== */
+.products-table-wrap {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow-y: auto;
+  overflow-x: auto;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+  /* Ocupa el alto disponible del contenedor y scrollea internamente
+     cuando hay muchos productos. min-height:0 es necesario para que
+     el hijo de un flex column pueda encogerse y activar el scroll. */
+  flex: 1;
+  min-height: 0;
+  /* Firefox: barra visible y con color de marca */
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #eef2f7;
+}
+
+/* Scrollbar visible y táctil (WebKit/Chromium — Electron usa Chromium) */
+.products-table-wrap::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+.products-table-wrap::-webkit-scrollbar-track {
+  background: #eef2f7;
+  border-radius: 0 12px 12px 0;
+}
+
+.products-table-wrap::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border: 3px solid #eef2f7;
+  border-radius: 999px;
+  min-height: 48px;
+}
+
+.products-table-wrap::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+.products-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.products-table thead th {
+  position: sticky;
+  top: 0;
+  background: #f1f5f9;
+  color: #334155;
+  font-weight: 700;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-align: left;
+  padding: 12px 16px;
+  white-space: nowrap;
+  border-bottom: 2px solid #e2e8f0;
+  z-index: 1;
+}
+
+.products-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+  vertical-align: middle;
+}
+
+.products-table tbody tr {
+  min-height: 56px;
+  transition: background 0.12s;
+}
+
+.products-table tbody tr:last-child td { border-bottom: none; }
+.products-table tbody tr:hover { background: #f8fafc; }
+
+/* Producto desactivado (status = 0): identificador visual en rojo. */
+.products-table tbody tr.prod-row--inactive {
+  background: #fef2f2;
+}
+.products-table tbody tr.prod-row--inactive:hover {
+  background: #fee2e2;
+}
+.products-table tbody tr.prod-row--inactive td {
+  color: #b91c1c;
+}
+/* Borde izquierdo rojo como marca clara de inactivo. */
+.products-table tbody tr.prod-row--inactive td:first-child {
+  box-shadow: inset 3px 0 0 #dc2626;
+}
+/* El nombre también en rojo para que resalte. */
+.products-table tbody tr.prod-row--inactive .prod-name {
+  color: #b91c1c;
+}
+
+.prod-th-right { text-align: right; }
+.prod-th-center { text-align: center; }
+.prod-th-num { text-align: center; width: 48px; }
+.prod-td-num {
+  text-align: center;
+  color: #94a3b8;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.prod-td-muted { color: #64748b; font-variant-numeric: tabular-nums; }
+
+.prod-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.prod-icon { font-size: 1.2rem; flex-shrink: 0; }
+
+.prod-name {
+  font-weight: 700;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prod-kit-badge {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #7c3aed;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 999px;
+  padding: 2px 8px;
+  text-transform: uppercase;
+}
+
+.prod-price {
+  font-weight: 800;
+  color: #047857;
+  font-variant-numeric: tabular-nums;
+}
+
+.prod-cat-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* Acciones por fila */
+.prod-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.prod-action {
+  min-height: 42px;
+  padding: 6px 16px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.prod-action--edit {
+  color: #1d4ed8;
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+.prod-action--edit:hover { background: #dbeafe; }
+
+.prod-action--delete {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+.prod-action--delete:hover { background: #fee2e2; }
+
+/* ===== PAGINACIÓN DEL CATÁLOGO ===== */
+.prod-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 12px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+  flex-wrap: wrap;
+}
+
+.prod-page-btn {
+  min-height: 42px;
+  padding: 8px 18px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.12s;
+  touch-action: manipulation;
+}
+
+.prod-page-btn:hover:not(:disabled) { background: #dbeafe; }
+
+.prod-page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.prod-page-info {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
 }
