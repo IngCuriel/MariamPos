@@ -1097,25 +1097,7 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                         </div>
                       </div>
                     </div>
-
-                    <div className="product-modal-form-group">
-                      <label htmlFor="unit">Unidad de medida</label>
-                      <select
-                        id="unit"
-                        name="unit"
-                        value={unitId}
-                        onChange={(e) => setUnitId(e.target.value)}
-                      >
-                        <option value="">Sin unidad</option>
-                        {units.map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.name} ({u.abbreviation})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="product-modal-form-row">
+                    <div className="product-modal-form-row-3">
                       <div className="product-modal-form-group">
                         <label htmlFor="price">
                           Precio Base (1{" "}
@@ -1184,6 +1166,22 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                         {errors.cost && (
                           <span className="product-modal-error-message">{errors.cost}</span>
                         )}
+                      </div>
+                      <div className="product-modal-form-group">
+                        <label htmlFor="unit">Unidad de medida</label>
+                        <select
+                          id="unit"
+                          name="unit"
+                          value={unitId}
+                          onChange={(e) => setUnitId(e.target.value)}
+                        >
+                          <option value="">Sin unidad</option>
+                          {units.map((u) => (
+                            <option key={u.id} value={u.id}>
+                              {u.name} ({u.abbreviation})
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
 

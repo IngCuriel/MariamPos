@@ -41,6 +41,7 @@
   padding: 0 1.5rem;
   background: #f9fafb;
   border-bottom: 2px solid #e5e7eb;
+  height: 40px;
 }
 
 .product-modal-tab-btn {
@@ -149,6 +150,12 @@
 .product-modal-form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.product-modal-form-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 1rem;
 }
 
