@@ -4,6 +4,7 @@ import { getProductsByCategoryId } from "../../api/products";
 import type { Category, Product } from "../../types";
 import "../../styles/pages/sales/categoryProductModal.css";
 import { IoCloseCircleOutline, IoArrowBack } from "react-icons/io5";
+import { isOpenPrice } from "../../utils/openPrice";
 
 interface CategoryProductModalProps {
   onClose: () => void;
@@ -232,11 +233,17 @@ const CategoryProductModal: React.FC<CategoryProductModalProps> = ({
                       >
                         {product.name}
                       </div>
-                      <div className="product-card-modal-price">
-                        {product.price.toLocaleString("es-MX", {
-                          style: "currency",
-                          currency: "MXN",
-                        })}
+                      <div
+                        className={`product-card-modal-price ${
+                          isOpenPrice(product) ? "product-card-modal-price--open" : ""
+                        }`}
+                      >
+                        {isOpenPrice(product)
+                          ? "Precio abierto"
+                          : product.price.toLocaleString("es-MX", {
+                              style: "currency",
+                              currency: "MXN",
+                            })}
                       </div>
                     </button>
                   ))}

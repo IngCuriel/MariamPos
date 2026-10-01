@@ -285,6 +285,11 @@ model Sale {
   // Relación con créditos (si la venta generó un crédito)
   credit ClientCredit?
 
+  // Reversiones: una venta se cancela a lo sumo una vez (1:1) y puede tener
+  // varias devoluciones parciales en el tiempo (1:N). La venta nunca se elimina.
+  cancellation SaleCancellation?
+  returns      SaleReturn[]
+
   @@index([folio])
   @@index([syncStatus])
   @@index([shiftId])
@@ -299,6 +304,15 @@ model SaleDetail {
   unitAbbrev  String? // Unidad de medida congelada al momento de la venta (ej: "kg")
   createdAt   DateTime @default(now())
 
+  // Cantidad ya devuelta de este renglón, en la MISMA unidad que `quantity`
+  // (unidad de venta/presentación). Se incrementa en cada devolución.
+  returnedQuantity Float @default(0)
+
+  // Cantidad del renglón expresada en UNIDAD BASE del producto.
+  // Producto simple: igual a `quantity`. Presentación: quantity * unidades que
+  // contiene la presentación. Permite mover inventario en unidad base.
+  baseUnitQuantity Float?
+
   // Relación con Sale
   saleId Int
   sale   Sale @relation(fields: [saleId], references: [id])
@@ -306,6 +320,9 @@ model SaleDetail {
   // Relación con Product
   productId Int
   product   Product @relation(fields: [productId], references: [id])
+
+  // Auditoría de devoluciones de este renglón
+  returnLines SaleReturnLine[]
 
   @@index([saleId])
   @@index([productId])
@@ -425,6 +442,10 @@ model CashRegisterShift {
 
   // Relación con abonos a créditos recibidos en el turno
   creditPayments CreditPayment[]
+
+  // Reversiones ejecutadas contra este turno (turno activo donde se cancela/devuelve)
+  saleCancellations SaleCancellation[]
+  saleReturns       SaleReturn[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -942,4 +963,114 @@ model AccountPayable {
   @@index([purchaseId])
   @@index([status])
   @@index([dueDate])
+}
+
+// ============================================================
+// ↩️ MÓDULO DE CANCELACIONES Y DEVOLUCIONES
+// ============================================================
+
+// ------------------------------------------------------------
+// Clasificación del motivo de una reversión.
+// ESTANDAR: el producto regresa a existencias (si trackInventory=true).
+// MERMA: caducidad/defecto; no regresa a existencias.
+// ------------------------------------------------------------
+enum SaleReversalReasonType {
+  ESTANDAR
+  MERMA
+}
+
+// ------------------------------------------------------------
+// Bitácora de cancelación (una venta se cancela a lo sumo una vez).
+// La venta original nunca se elimina.
+// ------------------------------------------------------------
+model SaleCancellation {
+  id Int @id @default(autoincrement())
+
+  // Venta original (1:1)
+  saleId Int  @unique
+  sale   Sale @relation(fields: [saleId], references: [id])
+
+  // Motivo y clasificación
+  reason     String
+  reasonType SaleReversalReasonType @default(ESTANDAR)
+
+  // Auditoría
+  createdBy    String? // cajera que ejecutó
+  branch       String? // sucursal
+  cashRegister String? // caja donde se ejecutó
+
+  // Turno ACTIVO donde se ejecutó (no el de la venta original)
+  shiftId Int?
+  shift   CashRegisterShift? @relation(fields: [shiftId], references: [id])
+
+  // Efecto monetario (referencia al movimiento generado, si hubo)
+  cashMovementId Int? // null si no hubo salida de efectivo
+  refundedAmount Float @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([saleId])
+  @@index([shiftId])
+  @@index([createdAt])
+}
+
+// ------------------------------------------------------------
+// Bitácora de devolución (1:N: pueden existir varias devoluciones parciales).
+// ------------------------------------------------------------
+model SaleReturn {
+  id Int @id @default(autoincrement())
+
+  // Venta original (1:N)
+  saleId Int
+  sale   Sale @relation(fields: [saleId], references: [id])
+
+  reason     String
+  reasonType SaleReversalReasonType @default(ESTANDAR)
+
+  createdBy    String?
+  branch       String?
+  cashRegister String?
+
+  // Turno ACTIVO donde se ejecutó la devolución
+  shiftId Int?
+  shift   CashRegisterShift? @relation(fields: [shiftId], references: [id])
+
+  cashMovementId Int?
+  refundedAmount Float @default(0) // suma de subtotales devueltos en efectivo
+
+  lines SaleReturnLine[]
+
+  createdAt DateTime @default(now())
+
+  @@index([saleId])
+  @@index([shiftId])
+  @@index([createdAt])
+}
+
+// ------------------------------------------------------------
+// Línea de devolución (renglón devuelto en una operación).
+// ------------------------------------------------------------
+model SaleReturnLine {
+  id Int @id @default(autoincrement())
+
+  saleReturnId Int
+  saleReturn   SaleReturn @relation(fields: [saleReturnId], references: [id], onDelete: Cascade)
+
+  // Renglón original devuelto
+  saleDetailId Int
+  saleDetail   SaleDetail @relation(fields: [saleDetailId], references: [id])
+
+  // Cantidad devuelta en esta operación, en unidad de venta del renglón
+  quantity Float
+
+  // Cantidad equivalente en unidad base (auditoría del movimiento de inventario)
+  baseUnitQuantity Float
+
+  // Subtotal devuelto de esta línea (quantity * price del renglón)
+  subTotal Float
+
+  createdAt DateTime @default(now())
+
+  @@index([saleReturnId])
+  @@index([saleDetailId])
 }

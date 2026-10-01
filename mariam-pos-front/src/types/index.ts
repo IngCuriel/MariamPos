@@ -2,6 +2,18 @@
 
 export type ViewType = 'main' | 'help' | 'pos' | 'products' | 'catalog' | 'categories' | 'sales' |'client' | 'report' | 'inventory' | 'users' | 'shift-history' | 'cash-movements-history' | 'copies' | 'containers' | 'kit' | 'suppliers' | 'purchases' | 'account-payables';
 
+// Tipos de venta soportados por un producto.
+// - "Pieza": venta por unidad con cantidad editable.
+// - "Granel": venta por peso/volumen (cantidad fraccionaria).
+// - "PrecioAbierto": precio capturado al momento de la venta, cantidad fija 1.
+// Se mantiene `string` en la unión por compatibilidad: el formulario de alta/edición
+// usa un estado transitorio (p. ej. "" sin seleccionar) y persiste valores de texto libres.
+export type SaleType = 'Pieza' | 'Granel' | 'PrecioAbierto';
+
+// Alias tolerante usado en los contratos de datos (Product, carrito, detalles),
+// donde el valor puede llegar como texto libre desde el backend o estados de UI.
+export type SaleTypeValue = SaleType | (string & {});
+
 // Representa una presentación de un producto (ej: 1 pieza, 1 cono, 1 six)
 export interface ProductPresentation {
   id?: number; // ID opcional para presentaciones existentes
@@ -36,7 +48,7 @@ export interface Product {
   code: string | null; // Opcional para permitir códigos generados automáticamente
   name: string;
   status: number;
-  saleType: string;
+  saleType: SaleTypeValue; // "Pieza" | "Granel" | "PrecioAbierto" (texto libre tolerado)
   price: number; // Precio base (compatibilidad hacia atrás)
   cost: number;
   icon: string;
@@ -172,6 +184,9 @@ export interface SaleDetail {
   productName: string;
   subTotal: number;
   unitAbbrev?: string | null; // Unidad de medida congelada al momento de la venta
+  saleType?: SaleTypeValue; // Tipo de venta de la línea ("PrecioAbierto" para precio capturado)
+  basePrice?: number; // Precio unitario base congelado (precio capturado en Precio Abierto)
+  returnedQuantity?: number; // Cantidad ya devuelta del renglón (misma unidad que `quantity`); disponible = quantity - returnedQuantity
   saleId: number;
   productId: number;
   product: Product;
@@ -645,6 +660,119 @@ export interface AccountPayablesSummary {
     balance: number;
     count: number;
   };
+}
+
+// ============================================================
+// 🔄 MÓDULO DE CANCELACIONES Y DEVOLUCIONES
+// ============================================================
+
+// Clasificación del motivo de reversión.
+// - "merma": el producto no regresa a existencias (caducidad/defecto).
+// - "estandar": el producto regresa a existencias (si trackInventory = true).
+export type SaleReversalReasonType = 'merma' | 'estandar';
+
+// Bitácora de una cancelación de venta (registro de auditoría inmutable).
+export interface SaleCancellation {
+  id: number;
+  saleId: number;
+  reason: string;
+  reasonType: SaleReversalReasonType;
+  createdBy?: string | null; // cajera que ejecutó
+  branch?: string | null; // sucursal
+  cashRegister?: string | null; // caja donde se ejecutó
+  shiftId?: number | null; // turno activo donde se ejecutó
+  cashMovementId?: number | null; // movimiento de efectivo generado (si hubo)
+  refundedAmount: number; // monto devuelto en efectivo (0 si no hubo)
+  createdAt: Date;
+}
+
+// Línea devuelta dentro de una devolución (auditoría por renglón).
+export interface SaleReturnLine {
+  id: number;
+  saleReturnId: number;
+  saleDetailId: number;
+  quantity: number; // cantidad devuelta en unidad de venta del renglón
+  baseUnitQuantity: number; // cantidad equivalente en unidad base
+  subTotal: number; // subtotal devuelto de esta línea
+  createdAt: Date;
+}
+
+// Bitácora de una devolución parcial (registro de auditoría inmutable).
+export interface SaleReturn {
+  id: number;
+  saleId: number;
+  reason: string;
+  reasonType: SaleReversalReasonType;
+  createdBy?: string | null;
+  branch?: string | null;
+  cashRegister?: string | null;
+  shiftId?: number | null;
+  cashMovementId?: number | null;
+  refundedAmount: number; // suma de subtotales devueltos en efectivo
+  lines: SaleReturnLine[];
+  createdAt: Date;
+}
+
+// Comprobante de cancelación o devolución (Req 10).
+export interface ReversalReceipt {
+  type: 'CANCELACION' | 'DEVOLUCION'; // identifica claramente la operación (Req 10.3)
+  originalFolio: string | null;
+  dateTime: string; // ISO
+  cashier: string | null;
+  branch: string | null;
+  cashRegister: string | null;
+  reason: string;
+  reasonType: SaleReversalReasonType;
+  refundedAmount: number; // monto devuelto en efectivo (0 si no hubo)
+  lines?: Array<{ productName: string; quantity: number; subTotal: number }>; // solo devolución
+}
+
+// Request de cancelación: POST /sales/:id/cancel
+export interface CancelSaleRequest {
+  reason: string; // obligatorio, no vacío (Req 3.1)
+  reasonType: SaleReversalReasonType; // clasificación (Req 3.5, 3.7)
+  createdBy?: string; // cajera que ejecuta (auditoría)
+  branch?: string; // si no viene, se toma de la venta
+  cashRegister?: string; // caja donde se ejecuta (para resolver turno activo)
+  // Cómo se devuelve el dinero al cliente al cancelar (lo decide la cajera):
+  // "efectivo" → salida de efectivo de la caja; "transferencia" → se devuelve
+  // por fuera (no toca la caja); "none" → no se devuelve dinero.
+  refundMethod?: "efectivo" | "transferencia" | "none";
+}
+
+// Response de cancelación (201)
+export interface CancelSaleResponse {
+  sale: Sale; // con status = "Cancelada"
+  cancellation: SaleCancellation;
+  cashMovement: CashMovement | null; // null si no hubo salida de efectivo
+  inventoryMovements: InventoryMovement[]; // solo trackInventory = true + estándar
+  receipt: ReversalReceipt; // comprobante (Req 10.1)
+}
+
+// Request de devolución: POST /sales/:id/return
+export interface ReturnSaleRequest {
+  reason: string; // obligatorio (Req 3.2)
+  reasonType: SaleReversalReasonType;
+  createdBy?: string;
+  branch?: string;
+  cashRegister?: string;
+  refundsCash?: boolean; // (compat) si se devuelve dinero físico en efectivo
+  // Cómo se devuelve el dinero al cliente: "efectivo" (sale de la caja),
+  // "transferencia" (por fuera) o "none" (no se devuelve).
+  refundMethod?: "efectivo" | "transferencia" | "none";
+  lines: Array<{
+    saleDetailId: number; // renglón de la venta
+    quantity: number; // cantidad a devolver (en unidad de venta del renglón)
+  }>;
+}
+
+// Response de devolución (201)
+export interface ReturnSaleResponse {
+  sale: Sale; // status "Parcialmente Devuelta" | "Devuelta"
+  return: SaleReturn; // con lines
+  cashMovement: CashMovement | null;
+  inventoryMovements: InventoryMovement[];
+  receipt: ReversalReceipt; // comprobante (Req 10.2)
 }
 
 // ============================================================

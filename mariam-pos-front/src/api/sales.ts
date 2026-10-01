@@ -9,6 +9,15 @@ export const getSales = async (): Promise<Sale[]> => {
   return data;
 };
 
+// Obtiene una venta completa (con sus detalles) por id: GET /sales/:id
+// Necesaria para abrir CancelSaleModal/ReturnSaleModal desde listados ligeros
+// (p. ej. ShiftSummary.sales) que no incluyen `details`.
+export const getSaleById = async (saleId: number): Promise<Sale> => {
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.get<Sale>(`/sales/${saleId}`);
+  return data;
+};
+
 export const getSalesByDateRange = async (startDate:string, endDate:string, cashRegister?: string): Promise<Sale[]> => {
   const params = new URLSearchParams({
     startDate,
@@ -25,6 +34,19 @@ export const getSalesByDateRange = async (startDate:string, endDate:string, cash
 export const createSale = async (sale: Omit<Sale, "id" | 'details' | 'createdAt'>): Promise<Sale> => {
   const clientAxios = await getAxiosClient();
   const { data } = await clientAxios.post<Sale>("/sales", sale);
+  return data;
+};
+
+// Corrige el método de pago de una venta (solo métodos simples). PATCH /sales/:id/payment-method
+export const updateSalePaymentMethod = async (
+  saleId: number,
+  paymentMethod: string
+): Promise<Sale> => {
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.patch<Sale>(
+    `/sales/${saleId}/payment-method`,
+    { paymentMethod }
+  );
   return data;
 };
  

@@ -4,7 +4,7 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f9fafb;
+  background: #f3f4f6;
   overflow: hidden;
 }
 
@@ -15,68 +15,147 @@
 .movements-content {
   flex: 1;
   overflow: hidden;
-  padding: 1rem;
+  padding: 0.75rem 1rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.6rem;
   min-height: 0;
 }
 
-/* ===== FILTROS ===== */
+/* ===== BARRA DE CONTROLES (totales + filtros en una fila compacta) ===== */
+.cash-movements-history-page .controls-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0.6rem 0.85rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  flex-shrink: 0;
+}
+
+/* ===== RESUMEN DE TOTALES (chips compactos) ===== */
+.cash-movements-history-page .totals-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.cash-movements-history-page .total-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: #f9fafb;
+  white-space: nowrap;
+  line-height: 1.1;
+}
+
+.cash-movements-history-page .total-item.entrada {
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+}
+
+.cash-movements-history-page .total-item.salida {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.cash-movements-history-page .total-item.count {
+  border-color: #e5e7eb;
+  background: #f3f4f6;
+}
+
+.cash-movements-history-page .total-label {
+  font-size: 0.72rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.cash-movements-history-page .total-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.cash-movements-history-page .total-item.entrada .total-value {
+  color: #047857;
+}
+
+.cash-movements-history-page .total-item.salida .total-value {
+  color: #b91c1c;
+}
+
+/* ===== FILTROS (compactos, en línea) ===== */
 .cash-movements-history-page .filters-section {
-  margin-bottom: 0;
-  padding: 12px 25px;
-  border-bottom: 2px solid #e5e7eb;
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr auto;
-  gap: 15px;
-  align-items: end;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
   flex-shrink: 0;
 }
 
 .cash-movements-history-page .filter-group {
-  margin-bottom: 0;
   display: flex;
   flex-direction: column;
+  gap: 0.2rem;
+  margin: 0;
 }
 
 .cash-movements-history-page .filter-label {
-  display: block;
-  font-size: 1rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  color: #374151;
-  margin-bottom: 8px;
+  color: #6b7280;
+  margin: 0;
+  white-space: nowrap;
 }
 
-.cash-movements-history-page .datepicker-input-large {
+.cash-movements-history-page .datepicker-input-large,
+.cash-movements-history-page .cash-register-select-large {
   width: 100%;
-  padding: 12px 15px;
-  font-size: 1.1rem;
-  border: 2px solid #d1d5db;
-  border-radius: 8px;
+  min-width: 130px;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.85rem;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
   background: white;
   cursor: pointer;
-  transition: border-color 0.2s;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.cash-movements-history-page .datepicker-input-large:focus {
+.cash-movements-history-page .datepicker-input-large:focus,
+.cash-movements-history-page .cash-register-select-large:focus {
   outline: none;
   border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
+}
+
+.cash-movements-history-page .cash-register-select-large:hover {
+  border-color: #9ca3af;
 }
 
 .cash-movements-history-page .refresh-btn-large {
-  padding: 12px 20px;
+  padding: 0.45rem 0.9rem;
   background: #3b82f6;
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 1rem;
+  border-radius: 7px;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.15s;
   white-space: nowrap;
   height: fit-content;
 }
@@ -90,97 +169,15 @@
   cursor: not-allowed;
 }
 
-.cash-movements-history-page .cash-register-select-large {
-  width: 100%;
-  padding: 12px 15px;
-  border: 2px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 1.1rem;
-  background: white;
-  cursor: pointer;
-  transition: border-color 0.2s;
-}
-
-.cash-movements-history-page .cash-register-select-large:hover {
-  border-color: #667eea;
-}
-
-.cash-movements-history-page .cash-register-select-large:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.cash-register-select:hover {
-  border-color: #3b82f6;
-}
-
-.cash-register-select:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-/* ===== RESUMEN DE TOTALES ===== */
-.cash-movements-history-page .totals-summary {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
-  flex-shrink: 0;
-}
-
-.cash-movements-history-page .total-item {
-  background: white;
-  padding: 12px;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.cash-movements-history-page .total-item.entrada {
-  border-color: #059669;
-  background: linear-gradient(135deg, #d1fae5 0%, #ecfdf5 100%);
-}
-
-.cash-movements-history-page .total-item.salida {
-  border-color: #dc2626;
-  background: linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%);
-}
-
-.cash-movements-history-page .total-item.neto {
-  border-color: #3b82f6;
-  background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%);
-}
-
-.cash-movements-history-page .total-item.count {
-  border-color: #6b7280;
-  background: linear-gradient(135deg, #f3f4f6 0%, #ffffff 100%);
-}
-
-.cash-movements-history-page .total-label {
-  font-size: 0.8rem;
-  color: #6b7280;
-  font-weight: 600;
-}
-
-.cash-movements-history-page .total-value {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #1f2937;
-}
-
 /* ===== TABLA ===== */
 .cash-movements-history-page .table-wrapper {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   overflow: auto;
   flex: 1;
   min-height: 0;
-  max-height: 100%;
 }
 
 .cash-movements-history-page .movements-table {
@@ -189,49 +186,75 @@
 }
 
 .cash-movements-history-page .movements-table thead {
-  background: #f3f4f6;
+  background: #f8fafc;
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
 .cash-movements-history-page .movements-table th {
-  padding: 0.875rem 1rem;
+  padding: 0.55rem 0.85rem;
   text-align: left;
-  font-size: 1rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  color: #1f2937;
+  color: #475569;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 2px solid #e5e7eb;
+  letter-spacing: 0.4px;
+  border-bottom: 1px solid #e5e7eb;
   white-space: nowrap;
 }
 
 .cash-movements-history-page .movements-table td {
-  padding: 0.875rem 1rem;
-  font-size: 1rem;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.85rem;
   font-weight: 500;
   color: #374151;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.cash-movements-history-page .movements-table tbody tr {
+  transition: background 0.12s;
 }
 
 .cash-movements-history-page .movements-table tbody tr:hover {
-  background: #f9fafb;
+  background: #f8fafc;
 }
 
-.cash-movements-history-page .movements-table tbody tr.movement-row.entrada {
-  background: #f0fdf4;
+/* Franja izquierda sutil por tipo (más pro que colorear toda la fila) */
+.cash-movements-history-page .movements-table tbody tr.movement-row td:first-child {
+  border-left: 3px solid transparent;
 }
 
-.cash-movements-history-page .movements-table tbody tr.movement-row.salida {
-  background: #fef2f2;
+.cash-movements-history-page .movements-table tbody tr.movement-row.entrada td:first-child {
+  border-left-color: #10b981;
+}
+
+.cash-movements-history-page .movements-table tbody tr.movement-row.salida td:first-child {
+  border-left-color: #ef4444;
+}
+
+.cash-movements-history-page .reason-cell {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.cash-movements-history-page .notes-cell {
+  color: #6b7280;
+  max-width: 260px;
+}
+
+.cash-movements-history-page .shift-cell {
+  font-variant-numeric: tabular-nums;
+  color: #6b7280;
 }
 
 .cash-movements-history-page .type-badge {
-  display: inline-block;
-  padding: 0.375rem 0.625rem;
-  border-radius: 6px;
-  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -246,52 +269,212 @@
   color: #991b1b;
 }
 
+.cash-movements-history-page .amount-cell {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ===== SCROLLBAR BONITO ===== */
+.cash-movements-history-page .table-wrapper::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.cash-movements-history-page .table-wrapper::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 8px;
+}
+
+.cash-movements-history-page .table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+  border: 2px solid #f1f5f9;
+}
+
+.cash-movements-history-page .table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.cash-movements-history-page .table-wrapper {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
 /* ===== ESTADOS ===== */
 .cash-movements-history-page .loading-state,
 .cash-movements-history-page .empty-state {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 3rem;
+  padding: 2.5rem;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  flex: 1;
+  min-height: 0;
 }
 
 .cash-movements-history-page .loading-state p,
 .cash-movements-history-page .empty-state p {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   color: #6b7280;
 }
 
 /* ===== RESPONSIVE ===== */
-@media (max-width: 1200px) {
-  .cash-movements-history-page .movements-table th {
-    font-size: 0.95rem;
-    padding: 0.75rem 0.875rem;
+@media (max-width: 900px) {
+  .cash-movements-history-page .controls-bar {
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  .cash-movements-history-page .movements-table td {
-    font-size: 0.95rem;
-    padding: 0.75rem 0.875rem;
+  .cash-movements-history-page .totals-summary {
+    justify-content: space-between;
+  }
+
+  .cash-movements-history-page .total-item {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .cash-movements-history-page .filters-section {
+    width: 100%;
+  }
+
+  .cash-movements-history-page .filter-group {
+    flex: 1 1 140px;
   }
 }
 
 @media (max-width: 768px) {
-  .cash-movements-history-page .filters-section {
-    grid-template-columns: 1fr;
-  }
-
-  .cash-movements-history-page .totals-summary {
-    grid-template-columns: 1fr;
-  }
-
   .cash-movements-history-page .table-wrapper {
     overflow-x: auto;
   }
 
   .cash-movements-history-page .movements-table {
-    min-width: 1000px;
+    min-width: 900px;
   }
 }
 
+@media (max-width: 560px) {
+  .cash-movements-history-page .totals-summary {
+    flex-direction: column;
+  }
+
+  .cash-movements-history-page .total-item {
+    justify-content: space-between;
+  }
+
+  .cash-movements-history-page .filter-group {
+    flex-basis: 100%;
+  }
+}
+
+/* ===== COLUMNA DE CHECKBOX ===== */
+.cash-movements-history-page .check-col {
+  width: 38px;
+  text-align: center;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.cash-movements-history-page .check-col input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+.cash-movements-history-page .movements-table tbody tr.movement-row {
+  cursor: pointer;
+}
+
+.cash-movements-history-page .movements-table tbody tr.movement-row.selected {
+  background: #eef2ff;
+}
+
+.cash-movements-history-page .movements-table tbody tr.movement-row.selected:hover {
+  background: #e0e7ff;
+}
+
+/* ===== BARRA DE RESUMEN DE SELECCIÓN ===== */
+.cash-movements-history-page .selection-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.9rem;
+  background: #111827;
+  color: #f9fafb;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  flex-shrink: 0;
+}
+
+.cash-movements-history-page .sel-count {
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.cash-movements-history-page .sel-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.cash-movements-history-page .sel-chip {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 7px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.cash-movements-history-page .sel-chip.entrada {
+  background: rgba(16, 185, 129, 0.18);
+  color: #6ee7b7;
+}
+
+.cash-movements-history-page .sel-chip.salida {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+
+.cash-movements-history-page .sel-chip.neto {
+  background: #ffffff;
+  color: #111827;
+  font-weight: 700;
+}
+
+.cash-movements-history-page .sel-clear-btn {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #f9fafb;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.12s;
+  white-space: nowrap;
+}
+
+.cash-movements-history-page .sel-clear-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 560px) {
+  .cash-movements-history-page .selection-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cash-movements-history-page .sel-clear-btn {
+    width: 100%;
+  }
+}

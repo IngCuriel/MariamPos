@@ -48,6 +48,7 @@ import unitsRouter from "./routes/units.js";
 import clientsRouter from "./routes/clients.js"; 
 import productsRouter from "./routes/products.js";
 import salesRouter from "./routes/sales.js";
+import returnsRouter from "./routes/returns.js";
 import inventoryRouter from "./routes/inventory.js";
 import cashRegisterRouter from "./routes/cashRegister.js";
 import usersRouter from "./routes/users.js";
@@ -73,6 +74,7 @@ app.use("/api/units", unitsRouter);
 app.use("/api/clients", clientsRouter); 
 app.use("/api/products", productsRouter); 
 app.use("/api/sales", salesRouter); 
+app.use("/api", returnsRouter); // reversiones: /api/sales/:id/cancel|return|reversals, /api/returns
 app.use("/api/inventory", inventoryRouter);
 app.use("/api/cash-register", cashRegisterRouter);
 app.use("/api/users", usersRouter);

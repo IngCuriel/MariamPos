@@ -612,6 +612,19 @@
   white-space: nowrap;
 }
 
+/* Open-price ("Precio Abierto") products have no catalog price; show a badge
+   instead of a misleading "$0.00". The price is captured at sale time. */
+.sales-list-open-price {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #b45309;
+  background: #fef3c7;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
 @media (min-width: 768px) {
   .sales-cards {
     grid-template-columns: repeat(auto-fill, 160px);

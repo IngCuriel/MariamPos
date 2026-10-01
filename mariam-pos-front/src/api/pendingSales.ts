@@ -1,4 +1,5 @@
 import { getAxiosClient } from "./axiosClient";
+import type { SaleTypeValue } from "../types";
 
 export interface PendingSaleDetail {
   id?: number;
@@ -14,8 +15,8 @@ export interface PendingSaleDetail {
     unitId?: number | null;
     unit?: { id: number; name: string; abbreviation: string } | null;
   };
-  saleType?: string;
-  basePrice?: number;
+  saleType?: SaleTypeValue; // "PrecioAbierto" para líneas de precio capturado
+  basePrice?: number; // Precio capturado preservado en la venta pendiente
 }
 
 export interface PendingSale {

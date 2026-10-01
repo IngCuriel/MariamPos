@@ -28,20 +28,20 @@ const Footer:React.FC<FooterProps>= ({
   return (
     <footer className="pos-footer">
         <div className="column left">
-            <button className="btn touch-btn print-last" onClick={showPendingCarts}> 🖨 Cargar Pendiente</button>
+            <button className="btn touch-btn print-last" onClick={showPendingCarts}> 🖨 Cargar V</button>
             <button 
                 className="btn touch-btn pending" 
                 onClick={onSaleToPending}
                 disabled={cartLength === 0}
             >
-                🕓 Poner Pendiente
+                🕓 V Pendiente
             </button>
             <DaySalesModal onClose={onFocusSearch}/>
             <button
                 className="btn touch-btn dept-sales"
                 onClick={() => setShowDeptSales(true)}
             >
-                🏢 Ventas x Depto
+                🏢 Ventas x D
             </button>
             <DepartmentSalesModal
                 isOpen={showDeptSales}

@@ -31,3 +31,32 @@ export const BREAKPOINTS = {
   tablet: '768px',
   desktop: '1024px',
 } as const;
+
+// ============================================================
+// 🔄 CANCELACIONES Y DEVOLUCIONES
+// ============================================================
+
+// Motivos sugeridos de cancelación (Req 3.3). Se muestran como botones de un clic.
+export const CANCEL_REASONS = [
+  'Error de captura',
+  'Producto equivocado',
+  'Cliente se arrepintió',
+  'Cobro duplicado',
+  'Precio incorrecto',
+  'Prueba / capacitación',
+] as const;
+
+// Motivos sugeridos de devolución (Req 3.4). Se muestran como botones de un clic.
+export const RETURN_REASONS = [
+  'Producto caducado',
+  'Producto defectuoso / dañado',
+  'Producto equivocado',
+  'Cliente insatisfecho',
+  'No era lo que esperaba',
+] as const;
+
+// Motivos clasificados como merma (Req 3.5): el producto no regresa a existencias.
+export const MERMA_REASONS = [
+  'Producto caducado',
+  'Producto defectuoso / dañado',
+] as const;

@@ -1,5 +1,43 @@
 import prisma from "../utils/prisma.js";
 
+/**
+ * Computes the base-unit quantity for a sale detail line.
+ *
+ * When the line comes from a product presentation (e.g. a "Bulto" that
+ * contains 20 kg), the quantity must be expressed in the product's base unit
+ * so inventory can later be moved in base units on returns/cancellations.
+ *
+ * The presentation multiplier (units contained per presentation) is read from
+ * the detail payload. The following field names are accepted, in order:
+ * `baseUnitQuantity` (already computed by the client), `presentationQuantity`,
+ * or `presentationUnits`.
+ *
+ * - If `baseUnitQuantity` is provided and valid, it is used as-is.
+ * - Else if a presentation multiplier > 1 is provided: quantity * multiplier.
+ * - Otherwise (simple product / historical sale): falls back to quantity.
+ *
+ * @param {object} detail - The incoming sale detail payload.
+ * @returns {number} The quantity expressed in the product's base unit.
+ */
+export const computeBaseUnitQuantity = (detail) => {
+  const quantity = Number(detail?.quantity) || 0;
+
+  const explicitBase = Number(detail?.baseUnitQuantity);
+  if (Number.isFinite(explicitBase) && explicitBase > 0) {
+    return explicitBase;
+  }
+
+  const multiplier = Number(
+    detail?.presentationQuantity ?? detail?.presentationUnits
+  );
+  if (Number.isFinite(multiplier) && multiplier > 1) {
+    return quantity * multiplier;
+  }
+
+  // Simple product or historical sale without presentation data.
+  return quantity;
+};
+
 export const getSales = async (req, res) => {
   const sales = await prisma.sale.findMany({
     orderBy: { createdAt: "desc" },
@@ -80,6 +118,7 @@ export const createSales = async (req, res) => {
             productName: d.productName,
             subTotal: d.subTotal,
             unitAbbrev: d.unitAbbrev || null, // Unidad congelada al momento de la venta
+            baseUnitQuantity: computeBaseUnitQuantity(d), // Cantidad en unidad base (para devoluciones/cancelaciones)
           })),
         },
       },
@@ -94,6 +133,97 @@ export const createSales = async (req, res) => {
   } catch (error) {
     console.error("Error al registrar la venta:", error);
     res.status(500).json({ error: "Error al registrar la venta" });
+  }
+};
+
+// Métodos simples admitidos para la corrección de pago. Los textos coinciden
+// con los que `cashRegisterController` reconoce al recalcular los totales del
+// turno (efectivo / tarjeta / transferencia), de modo que el corte cuadre sin
+// lógica adicional.
+const SIMPLE_PAYMENT_METHODS = {
+  efectivo: "Efectivo",
+  tarjeta: "Tarjeta",
+  transferencia: "Transferencia",
+  regalo: "Regalo",
+};
+
+/**
+ * Corrige el método de pago de una venta (solo métodos simples).
+ *
+ * Caso de uso: la venta se cobró con tarjeta/transferencia pero quedó
+ * registrada como efectivo (o viceversa). Como los totales del turno se
+ * RECALCULAN dinámicamente desde `shift.sales` (ver getShiftSummary/closeShift),
+ * basta con actualizar `Sale.paymentMethod`: el corte se reajusta solo.
+ *
+ * Reglas:
+ * - La venta debe existir (404) y no estar "Cancelada" (409).
+ * - El nuevo método debe ser efectivo | tarjeta | transferencia (400).
+ * - El turno asociado a la venta debe estar OPEN; si está cerrado/cancelado o
+ *   la venta no tiene turno, se rechaza (409) para no alterar un corte ya hecho.
+ * - No se permite corregir ventas con pago mixto por esta vía (400), porque
+ *   requiere editar montos por porción (fuera de alcance).
+ */
+export const updateSalePaymentMethod = async (req, res) => {
+  try {
+    const saleId = parseInt(req.params.id, 10);
+    const { paymentMethod } = req.body ?? {};
+
+    if (!Number.isInteger(saleId)) {
+      return res.status(400).json({ error: "Id de venta inválido" });
+    }
+
+    const key = String(paymentMethod || "").trim().toLowerCase();
+    const normalized = SIMPLE_PAYMENT_METHODS[key];
+    if (!normalized) {
+      return res.status(400).json({
+        error:
+          "Método de pago inválido. Usa efectivo, tarjeta, transferencia o regalo.",
+      });
+    }
+
+    const sale = await prisma.sale.findUnique({
+      where: { id: saleId },
+      include: { shift: true },
+    });
+
+    if (!sale) {
+      return res.status(404).json({ error: "Venta no encontrada" });
+    }
+
+    if (sale.status === "Cancelada") {
+      return res
+        .status(409)
+        .json({ error: "No se puede modificar una venta cancelada" });
+    }
+
+    // No corregir pagos mixtos por esta vía (requiere editar montos).
+    if ((sale.paymentMethod || "").toLowerCase().includes("mixto")) {
+      return res.status(400).json({
+        error:
+          "No se puede corregir un pago mixto desde aquí. Edita los montos por porción.",
+      });
+    }
+
+    // Solo turnos abiertos: cambiar el método reacomoda el corte del turno.
+    if (!sale.shift || sale.shift.status !== "OPEN") {
+      return res.status(409).json({
+        error:
+          "Solo se puede corregir el método de pago de ventas de un turno abierto.",
+      });
+    }
+
+    const updated = await prisma.sale.update({
+      where: { id: saleId },
+      data: { paymentMethod: normalized },
+      include: { details: { include: { product: true } } },
+    });
+
+    return res.status(200).json(updated);
+  } catch (error) {
+    console.error("Error al corregir el método de pago:", error);
+    return res
+      .status(500)
+      .json({ error: "Error al corregir el método de pago" });
   }
 };
 
@@ -189,15 +319,36 @@ export const getSalesSummary = async (req, res) => {
     where.cashRegister = cashRegister;
   }
 
+  // Excluir ventas canceladas del resumen (Req 8.4)
+  where.status = { not: "Cancelada" };
+
   try {
+    // Conteo: solo ventas no canceladas
     const totalVentas = await prisma.sale.count({ where });
-    const totalDinero = await prisma.sale.aggregate({
-      _sum: { total: true },
+
+    // Ingreso neto: sumar netSubTotal por renglón sobre las ventas no
+    // canceladas, en lugar de Sale.total (que no refleja devoluciones
+    // parciales). netSubTotal = subTotal * ((quantity - returnedQuantity)/quantity)
+    // (Req 8.5, 8.6)
+    const sales = await prisma.sale.findMany({
       where,
+      include: { details: true },
     });
+
+    let totalDinero = 0;
+    sales.forEach((sale) => {
+      sale.details.forEach((detail) => {
+        const quantity = detail.quantity || 0;
+        if (quantity > 0) {
+          const netQuantity = quantity - (detail.returnedQuantity || 0);
+          totalDinero += detail.subTotal * (netQuantity / quantity);
+        }
+      });
+    });
+
     res.json({
       totalVentas,
-      totalDinero: totalDinero._sum.total || 0,
+      totalDinero,
     });
   } catch (error) {
     res.status(500).json({ error: "Error al obtener resumen de ventas" });
@@ -237,49 +388,46 @@ export const getDailySales = async (req, res) => {
     if (cashRegister) {
       where.cashRegister = cashRegister;
     }
-    
-    // Construir la consulta SQL con filtros
-    const startDate = where.createdAt?.gte || new Date(0);
-    const endDate = where.createdAt?.lte || new Date();
-    
-    let query;
-    if (cashRegister) {
-      query = prisma.$queryRaw`
-        SELECT 
-          createdAt as date,
-          SUM(total) AS total
-        FROM Sale
-        WHERE "createdAt" >= ${startDate}
-          AND "createdAt" <= ${endDate}
-          AND "cashRegister" = ${cashRegister}
-        GROUP BY createdAt
-        ORDER BY date DESC;
-      `;
-    } else {
-      query = prisma.$queryRaw`
-        SELECT 
-          createdAt as date,
-          SUM(total) AS total
-        FROM Sale
-        WHERE "createdAt" >= ${startDate}
-          AND "createdAt" <= ${endDate}
-        GROUP BY createdAt
-        ORDER BY date DESC;
-      `;
-    }
-    
-    const dailySales = await query;
-    console.log('dailySales', dailySales)
-    const result = dailySales.reduce((acc, sale) => {
-              const dateOnly = new Date(sale.date).toLocaleDateString('en-CA'); // 'YYYY-MM-DD'
-              const existing = acc.find(r => r.date === dateOnly);
-              if (existing) {
-                existing.total += sale.total;
-              } else {
-                acc.push({ date: dateOnly, total: sale.total });
-              }
-              return acc;
-            }, []);
+
+    // Excluir ventas canceladas del reporte diario (Req 8.4).
+    // En Prisma, `status: { not: "Cancelada" }` conserva las ventas con
+    // status null o "Pagado" (equivalente a `status IS NULL OR status <> 'Cancelada'`).
+    where.status = { not: "Cancelada" };
+
+    // Se reemplaza el $queryRaw (que sumaba Sale.total y no reflejaba
+    // devoluciones parciales) por findMany + agrupación en JS, para calcular
+    // el ingreso neto por renglón igual que getSalesSummary (Req 8.5, 8.6).
+    // netSubTotal = subTotal * ((quantity - returnedQuantity)/quantity),
+    // 0 cuando quantity es 0.
+    const sales = await prisma.sale.findMany({
+      where,
+      include: { details: true },
+    });
+
+    const result = sales.reduce((acc, sale) => {
+      const dateOnly = new Date(sale.createdAt).toLocaleDateString('en-CA'); // 'YYYY-MM-DD'
+
+      let netTotal = 0;
+      sale.details.forEach((detail) => {
+        const quantity = detail.quantity || 0;
+        if (quantity > 0) {
+          const netQuantity = quantity - (detail.returnedQuantity || 0);
+          netTotal += detail.subTotal * (netQuantity / quantity);
+        }
+      });
+
+      const existing = acc.find(r => r.date === dateOnly);
+      if (existing) {
+        existing.total += netTotal;
+      } else {
+        acc.push({ date: dateOnly, total: netTotal });
+      }
+      return acc;
+    }, []);
+
+    // Mantener el orden descendente por fecha (como el ORDER BY date DESC original)
+    result.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+
    res.json(result);
    } catch (error) {
     console.error("Error al obtener ventas diarias:", error);
@@ -316,20 +464,21 @@ export const getTopProducts = async (req, res) => {
     
     // Construir el where para los detalles de venta
     const detailWhere = { ...where };
-    
-    // Agregar filtro de caja si se especifica
-    if (cashRegister) {
-      detailWhere.sale = {
-        cashRegister: cashRegister
-      };
-    }
-    
+
+    // Filtrar por la venta asociada: excluir ventas canceladas (Req 8.3)
+    // y aplicar el filtro de caja si se especifica.
+    detailWhere.sale = {
+      status: { not: "Cancelada" },
+      ...(cashRegister ? { cashRegister } : {}),
+    };
+
     // Obtener todos los detalles de venta
     const allDetails = await prisma.saleDetail.findMany({
       where: detailWhere,
       select: {
         productName: true,
         quantity: true,
+        returnedQuantity: true,
       },
     });
 
@@ -345,10 +494,13 @@ export const getTopProducts = async (req, res) => {
         normalizedName = 'Producto no registrado';
       }
       
+      // Cantidad neta: descontar lo ya devuelto por renglón (Req 8.5)
+      const netQuantity = (detail.quantity || 0) - (detail.returnedQuantity || 0);
+
       if (productMap.has(normalizedName)) {
-        productMap.set(normalizedName, productMap.get(normalizedName) + detail.quantity);
+        productMap.set(normalizedName, productMap.get(normalizedName) + netQuantity);
       } else {
-        productMap.set(normalizedName, detail.quantity);
+        productMap.set(normalizedName, netQuantity);
       }
     });
 
@@ -399,6 +551,9 @@ export const getSalesByPaymentMethod = async (req, res) => {
     if (cashRegister) {
       where.cashRegister = cashRegister;
     }
+
+    // Excluir ventas canceladas por consistencia del ingreso neto (Req 8.6)
+    where.status = { not: "Cancelada" };
 
     // Obtener todas las ventas para poder agrupar los mixtos manualmente
     const sales = await prisma.sale.findMany({
@@ -480,6 +635,9 @@ export const getSalesByCategory = async (req, res) => {
       where.cashRegister = cashRegister;
     }
 
+    // Excluir ventas canceladas (Req 8.1)
+    where.status = { not: "Cancelada" };
+
     const sales = await prisma.sale.findMany({
       where,
       include: {
@@ -495,14 +653,18 @@ export const getSalesByCategory = async (req, res) => {
       }
     });
 
-    // Agrupar por categoría
+    // Agrupar por categoría usando cantidad neta y subtotal neto por renglón.
+    // netSubTotal = subTotal * ((quantity - returnedQuantity)/quantity) (Req 8.5)
     const categoryMap = new Map();
     sales.forEach(sale => {
       sale.details.forEach(detail => {
         const categoryName = detail.product?.category?.name || 'Sin categoría';
+        const quantity = detail.quantity || 0;
+        const netQuantity = quantity - (detail.returnedQuantity || 0);
+        const netSubTotal = quantity > 0 ? detail.subTotal * (netQuantity / quantity) : 0;
         const current = categoryMap.get(categoryName) || { categoryName, total: 0, quantity: 0 };
-        current.total += detail.subTotal;
-        current.quantity += detail.quantity;
+        current.total += netSubTotal;
+        current.quantity += netQuantity;
         categoryMap.set(categoryName, current);
       });
     });
@@ -546,6 +708,9 @@ export const getSalesByDepartment = async (req, res) => {
       where.cashRegister = cashRegister;
     }
 
+    // Excluir ventas canceladas (Req 8.2)
+    where.status = { not: "Cancelada" };
+
     const sales = await prisma.sale.findMany({
       where,
       include: {
@@ -575,6 +740,11 @@ export const getSalesByDepartment = async (req, res) => {
         const name = dept?.name || "Sin departamento";
         const icon = dept?.icon || null;
 
+        // Cantidad neta y subtotal neto por renglón (Req 8.5)
+        const quantity = detail.quantity || 0;
+        const netQuantity = quantity - (detail.returnedQuantity || 0);
+        const netSubTotal = quantity > 0 ? detail.subTotal * (netQuantity / quantity) : 0;
+
         const current =
           deptMap.get(key) || {
             departmentId: dept?.id || null,
@@ -584,12 +754,12 @@ export const getSalesByDepartment = async (req, res) => {
             quantity: 0,
             items: 0,
           };
-        current.total += detail.subTotal;
-        current.quantity += detail.quantity;
+        current.total += netSubTotal;
+        current.quantity += netQuantity;
         current.items += 1;
         deptMap.set(key, current);
 
-        granTotal += detail.subTotal;
+        granTotal += netSubTotal;
       });
     });
 
@@ -640,6 +810,9 @@ export const getSalesByClient = async (req, res) => {
     if (cashRegister) {
       where.cashRegister = cashRegister;
     }
+
+    // Excluir ventas canceladas por coherencia del ingreso neto (Req 8.6)
+    where.status = { not: "Cancelada" };
 
     const salesByClient = await prisma.sale.groupBy({
       by: ['clientName'],

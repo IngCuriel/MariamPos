@@ -37,6 +37,8 @@ export default function CashMovementsHistoryPage({
   const [loading, setLoading] = useState(false);
   const [selectedCashRegister, setSelectedCashRegister] = useState<string>("all");
   const [availableCashRegisters, setAvailableCashRegisters] = useState<string[]>([]);
+  // Ids de movimientos seleccionados para sumar su total (selección manual).
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
   const loadCashRegisters = useCallback(async () => {
     try {
@@ -87,6 +89,12 @@ export default function CashMovementsHistoryPage({
     });
   };
 
+  // Al cambiar la lista de movimientos (filtros/fecha), limpiar la selección
+  // para no arrastrar ids que ya no están en la tabla.
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [movements]);
+
   // Calcular totales (sin neto)
   const totals = movements.reduce(
     (acc, movement) => {
@@ -100,6 +108,45 @@ export default function CashMovementsHistoryPage({
     { totalEntradas: 0, totalSalidas: 0 }
   );
 
+  // --- Selección de movimientos ---
+  const toggleOne = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const allSelected =
+    movements.length > 0 && selectedIds.size === movements.length;
+
+  const toggleAll = () => {
+    setSelectedIds((prev) =>
+      prev.size === movements.length
+        ? new Set()
+        : new Set(movements.map((m) => m.id))
+    );
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  // Total de lo seleccionado (desglosado por tipo + neto + cantidad).
+  const selectedTotals = movements.reduce(
+    (acc, m) => {
+      if (!selectedIds.has(m.id)) return acc;
+      acc.count += 1;
+      if (m.type === "ENTRADA") acc.entradas += m.amount;
+      else acc.salidas += m.amount;
+      return acc;
+    },
+    { count: 0, entradas: 0, salidas: 0 }
+  );
+  const selectedNeto = selectedTotals.entradas - selectedTotals.salidas;
+
+  const currency = (n: number) =>
+    n.toLocaleString("es-MX", { style: "currency", currency: "MXN" });
+
   return (
     <div className="cash-movements-history-page">
       <Header
@@ -110,7 +157,9 @@ export default function CashMovementsHistoryPage({
       />
 
       <div className="movements-content">
-        {/* Resumen de totales - ARRIBA */}
+        {/* Barra de controles compacta: totales (izq) + filtros (der) */}
+        <div className="controls-bar">
+        {/* Resumen de totales */}
         <div className="totals-summary">
           <div className="total-item entrada">
             <span className="total-label">💰 Total Entradas:</span>
@@ -183,6 +232,7 @@ export default function CashMovementsHistoryPage({
             </button>
           </div>
         </div>
+        </div>
 
         {/* Tabla de movimientos */}
         {loading ? (
@@ -194,6 +244,14 @@ export default function CashMovementsHistoryPage({
             <table className="movements-table">
               <thead>
                 <tr>
+                  <th className="check-col">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={toggleAll}
+                      title="Seleccionar todos"
+                    />
+                  </th>
                   <th>Fecha/Hora</th>
                   <th>Tipo</th>
                   <th>Monto</th>
@@ -208,8 +266,18 @@ export default function CashMovementsHistoryPage({
                 {movements.map((movement) => (
                   <tr
                     key={movement.id}
-                    className={`movement-row ${movement.type.toLowerCase()}`}
+                    className={`movement-row ${movement.type.toLowerCase()} ${
+                      selectedIds.has(movement.id) ? "selected" : ""
+                    }`}
+                    onClick={() => toggleOne(movement.id)}
                   >
+                    <td className="check-col" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(movement.id)}
+                        onChange={() => toggleOne(movement.id)}
+                      />
+                    </td>
                     <td className="date-cell">{formatDate(movement.createdAt)}</td>
                     <td className="type-cell">
                       <span
@@ -244,10 +312,10 @@ export default function CashMovementsHistoryPage({
                       {movement.shift?.cashierName || movement.createdBy || "Anónimo"}
                     </td>
                     <td className="shift-cell">
-                      {movement.shift?.shiftNumber 
-                        ? `#${movement.shift.shiftNumber}` 
-                        : movement.shiftId 
-                        ? `#${movement.shiftId}` 
+                      {movement.shift?.id
+                        ? `#${movement.shift.id}`
+                        : movement.shiftId
+                        ? `#${movement.shiftId}`
                         : "-"}
                     </td>
                     <td className="notes-cell">
@@ -261,6 +329,34 @@ export default function CashMovementsHistoryPage({
         ) : (
           <div className="empty-state">
             <p>No se encontraron movimientos en el rango de fechas seleccionado</p>
+          </div>
+        )}
+
+        {/* Barra de resumen de selección (aparece al seleccionar) */}
+        {selectedTotals.count > 0 && (
+          <div className="selection-bar">
+            <span className="sel-count">
+              {selectedTotals.count}{" "}
+              {selectedTotals.count === 1 ? "seleccionado" : "seleccionados"}
+            </span>
+            <div className="sel-totals">
+              {selectedTotals.entradas > 0 && (
+                <span className="sel-chip entrada">
+                  Entradas: {currency(selectedTotals.entradas)}
+                </span>
+              )}
+              {selectedTotals.salidas > 0 && (
+                <span className="sel-chip salida">
+                  Salidas: {currency(selectedTotals.salidas)}
+                </span>
+              )}
+              <span className="sel-chip neto">
+                Total: {currency(selectedNeto)}
+              </span>
+            </div>
+            <button className="sel-clear-btn" onClick={clearSelection}>
+              ✕ Limpiar selección
+            </button>
           </div>
         )}
       </div>

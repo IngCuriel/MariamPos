@@ -1,7 +1,22 @@
 import { useEffect, useState } from "react";
 import Header from "../../components/Header";
-import type { CashRegisterShift, ShiftSummary, CashMovement } from "../../types/index";
-import { getShiftsByDateRange, getShiftSummary, getCashMovementsByShift } from "../../api/cashRegister";
+import type {
+  CashRegisterShift,
+  ShiftSummary,
+  CashMovement,
+  Sale,
+  SaleCancellation,
+  SaleReturn,
+  ReversalReceipt,
+  CancelSaleResponse,
+  ReturnSaleResponse,
+} from "../../types/index";
+import { getShiftsByDateRange, getShiftSummary, getCashMovementsByShift, getShiftById } from "../../api/cashRegister";
+import { getSaleById, updateSalePaymentMethod } from "../../api/sales";
+import { getSaleReversals } from "../../api/returns";
+import CancelSaleModal from "./CancelSaleModal";
+import ReturnSaleModal from "./ReturnSaleModal";
+import CancellationReturnReceipt from "./CancellationReturnReceipt";
 import DatePicker, { registerLocale } from "react-datepicker";
 import { es } from "date-fns/locale/es";
 import "react-datepicker/dist/react-datepicker.css";
@@ -20,6 +35,11 @@ export default function ShiftHistoryPage({
   const [selectedShift, setSelectedShift] = useState<CashRegisterShift | null>(null);
   const [shiftSummary, setShiftSummary] = useState<ShiftSummary | null>(null);
   const [cashMovements, setCashMovements] = useState<CashMovement[]>([]);
+  // Ventas del turno seleccionado (con sus details), para las acciones de
+  // Cancelar / Devolver. Se puebla tanto para turnos ABIERTOS (vía getShiftById)
+  // como CERRADOS (vía getShiftSummary), de modo que las acciones estén
+  // disponibles sin importar el estado del turno.
+  const [shiftSales, setShiftSales] = useState<Sale[]>([]);
   const [shifts, setShifts] = useState<CashRegisterShift[]>([]);
   const [startDate, setStartDate] = useState<Date>(
     new Date(new Date().setDate(new Date().getDate() /*- 7*/))
@@ -27,6 +47,285 @@ export default function ShiftHistoryPage({
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(false);
   const [filterStatus, _setFilterStatus] = useState<string>("");
+
+  // --- Cancelaciones / Devoluciones (tarea 12.1) ---
+  // Venta completa (con details) cargada vía getSaleById para abrir un modal.
+  const [actionSale, setActionSale] = useState<Sale | null>(null);
+  // Modal activo para la venta cargada: "cancel" | "return" | null.
+  const [activeModal, setActiveModal] = useState<"cancel" | "return" | null>(null);
+  // Carga en curso de la venta completa antes de abrir el modal.
+  const [loadingSaleId, setLoadingSaleId] = useState<number | null>(null);
+  // Comprobante a imprimir tras una cancelación/devolución exitosa (Req 10).
+  const [reversalReceipt, setReversalReceipt] = useState<ReversalReceipt | null>(null);
+
+  // Carga la venta completa (con details) y abre el modal indicado.
+  // Los listados del resumen de turno son ligeros (sin details), por eso se
+  // consulta GET /sales/:id antes de abrir, necesario para la devolución (Req 2.1).
+  const openSaleAction = async (saleId: number, modal: "cancel" | "return") => {
+    try {
+      setLoadingSaleId(saleId);
+      // Si la venta del turno ya trae sus details (caso getShiftById), se usa
+      // directamente; si no (listados ligeros), se consulta GET /sales/:id.
+      const local = shiftSales.find((s) => s.id === saleId);
+      const fullSale =
+        local && Array.isArray(local.details) && local.details.length > 0
+          ? local
+          : await getSaleById(saleId);
+      if (!fullSale || !fullSale.id) {
+        throw new Error("Venta no encontrada");
+      }
+      setActionSale(fullSale);
+      setActiveModal(modal);
+    } catch (error) {
+      console.error("Error al cargar la venta:", error);
+      Swal.fire({
+        icon: "error",
+        title: "No se pudo cargar la venta",
+        text: "Intenta de nuevo.",
+        confirmButtonText: "Entendido",
+      });
+    } finally {
+      setLoadingSaleId(null);
+    }
+  };
+
+  const closeSaleAction = () => {
+    setActiveModal(null);
+    setActionSale(null);
+  };
+
+  // Cerrar el modal de detalle del turno con ESC (solo si no hay otro modal
+  // de acción abierto encima).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && selectedShift && !activeModal && !reversalReceipt) {
+        setSelectedShift(null);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedShift, activeModal, reversalReceipt]);
+
+  // Refresca los datos del turno seleccionado tras una reversión exitosa, para
+  // que los estados de las ventas (Cancelada / Devuelta) se actualicen en la UI.
+  const refreshSelectedShift = async () => {
+    if (!selectedShift) return;
+    try {
+      const movements = await getCashMovementsByShift(selectedShift.id);
+      setCashMovements(movements);
+    } catch (error) {
+      console.error("Error al recargar movimientos:", error);
+    }
+    if (selectedShift.status !== "OPEN") {
+      try {
+        const summary = await getShiftSummary(selectedShift.id);
+        setShiftSummary(summary);
+        setShiftSales((summary.sales as unknown as Sale[]) ?? []);
+        if (summary.cashMovements) setCashMovements(summary.cashMovements);
+      } catch (error) {
+        console.error("Error al recargar resumen:", error);
+      }
+    } else {
+      // Turno abierto: recargar sus ventas para reflejar el nuevo estado
+      // (Cancelada / Parcialmente Devuelta / Devuelta) tras la reversión.
+      try {
+        const fullShift = await getShiftById(selectedShift.id);
+        setShiftSales(fullShift.sales ?? []);
+      } catch (error) {
+        console.error("Error al recargar ventas del turno:", error);
+      }
+    }
+    // Refrescar también el listado de turnos (totales por método de pago).
+    fetchShifts();
+  };
+
+  // Éxito de cancelación: cierra el modal, muestra el comprobante y refresca.
+  const handleCancelSuccess = (response: CancelSaleResponse) => {
+    closeSaleAction();
+    setReversalReceipt(response.receipt);
+    refreshSelectedShift();
+  };
+
+  // Éxito de devolución: cierra el modal, muestra el comprobante y refresca.
+  const handleReturnSuccess = (response: ReturnSaleResponse) => {
+    closeSaleAction();
+    setReversalReceipt(response.receipt);
+    refreshSelectedShift();
+  };
+
+  // Muestra las reversiones (cancelación / devoluciones) asociadas a una venta
+  // consultando GET /sales/:id/reversals (Req 9.4).
+  const showReversals = async (saleId: number, folio?: string) => {
+    // Usar el folio solo si no está vacío; si no, caer al id numérico.
+    const saleLabel = folio && folio.trim() ? folio.trim() : `#${saleId}`;
+    try {
+      setLoadingSaleId(saleId);
+      const data = await getSaleReversals(saleId);
+      const sale = data as (Sale & {
+        cancellation?: SaleCancellation | null;
+        returns?: SaleReturn[];
+      });
+      const cancellation = sale?.cancellation ?? null;
+      const returns = sale?.returns ?? [];
+
+      const fmt = (iso?: string | Date) =>
+        iso
+          ? new Date(iso).toLocaleString("es-MX", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "N/D";
+
+      if (!cancellation && returns.length === 0) {
+        Swal.fire({
+          icon: "info",
+          title: `Reversiones de ${saleLabel}`,
+          text: "Esta venta no tiene cancelaciones ni devoluciones registradas.",
+          confirmButtonText: "Cerrar",
+        });
+        return;
+      }
+
+      // Infiere cómo se devolvió el dinero a partir de los datos guardados:
+      // - con movimiento de efectivo (cashMovementId) → Efectivo (salió de caja)
+      // - sin movimiento pero con monto > 0 → Transferencia / por fuera
+      // - monto 0 → no se devolvió dinero
+      const refundMethodLabel = (rec: {
+        cashMovementId?: number | null;
+        refundedAmount?: number;
+      }) => {
+        const amount = rec.refundedAmount ?? 0;
+        if (rec.cashMovementId) return "💵 Efectivo (salió de caja)";
+        if (amount > 0) return "🏦 Transferencia / por fuera (no afectó caja)";
+        return "🚫 No se devolvió dinero";
+      };
+
+      // Cómo se aplicó al inventario (clasificación del motivo).
+      const inventoryLabel = (reasonType?: string) =>
+        reasonType === "merma"
+          ? "🗑️ Merma (no regresó a existencias)"
+          : "📦 Regresó a existencias";
+
+      const cancelHtml = cancellation
+        ? `
+          <div style="padding:12px;border:1px solid #fecaca;background:#fef2f2;border-radius:8px;margin-bottom:10px;">
+            <p style="margin:2px 0;font-weight:600;color:#b91c1c;">🚫 Cancelación</p>
+            <p style="margin:2px 0;">Motivo: ${cancellation.reason ?? "N/D"}</p>
+            <p style="margin:2px 0;">Fecha: ${fmt(cancellation.createdAt)}</p>
+            <p style="margin:2px 0;">Cajera: ${cancellation.createdBy ?? "N/D"}</p>
+            <p style="margin:2px 0;">Devolución del dinero: ${refundMethodLabel(cancellation)}</p>
+            <p style="margin:2px 0;">Inventario: ${inventoryLabel(cancellation.reasonType)}</p>
+            <p style="margin:2px 0;font-weight:600;">Monto devuelto: $${(cancellation.refundedAmount ?? 0).toFixed(2)}</p>
+          </div>`
+        : "";
+
+      const returnsHtml = returns.length
+        ? returns
+            .map((r) => {
+              const lines = (r.lines ?? []) as Array<{
+                quantity: number;
+                subTotal: number;
+                saleDetail?: { productName?: string | null };
+              }>;
+              const linesHtml = lines.length
+                ? `<div style="margin:6px 0 2px;padding:8px;background:white;border:1px solid #dbeafe;border-radius:6px;">
+                     <p style="margin:0 0 4px;font-weight:600;color:#374151;">Productos devueltos:</p>
+                     ${lines
+                       .map(
+                         (l) =>
+                           `<div style="display:flex;justify-content:space-between;gap:8px;margin:1px 0;">
+                              <span>${l.saleDetail?.productName ?? "Producto"} × ${l.quantity}</span>
+                              <span style="font-weight:600;">$${(l.subTotal ?? 0).toFixed(2)}</span>
+                            </div>`
+                       )
+                       .join("")}
+                   </div>`
+                : "";
+              return `
+          <div style="padding:12px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:8px;margin-bottom:10px;">
+            <p style="margin:2px 0;font-weight:600;color:#1d4ed8;">↩️ Devolución</p>
+            <p style="margin:2px 0;">Motivo: ${r.reason ?? "N/D"}</p>
+            <p style="margin:2px 0;">Fecha: ${fmt(r.createdAt)}</p>
+            <p style="margin:2px 0;">Cajera: ${r.createdBy ?? "N/D"}</p>
+            <p style="margin:2px 0;">Devolución del dinero: ${refundMethodLabel(r)}</p>
+            <p style="margin:2px 0;">Inventario: ${inventoryLabel(r.reasonType)}</p>
+            ${linesHtml}
+            <p style="margin:4px 0 2px;font-weight:600;">Monto devuelto: $${(r.refundedAmount ?? 0).toFixed(2)}</p>
+          </div>`;
+            })
+            .join("")
+        : "";
+
+      Swal.fire({
+        title: `Reversiones de ${saleLabel}`,
+        html: `<div style="text-align:left;font-size:0.9rem;">${cancelHtml}${returnsHtml}</div>`,
+        width: "560px",
+        showConfirmButton: true,
+        confirmButtonText: "Cerrar",
+      });
+    } catch (error) {
+      console.error("Error al cargar reversiones:", error);
+      Swal.fire({
+        icon: "error",
+        title: "No se pudieron cargar las reversiones",
+        text: "Intenta de nuevo.",
+        confirmButtonText: "Entendido",
+      });
+    } finally {
+      setLoadingSaleId(null);
+    }
+  };
+
+  // Corregir el método de pago de una venta (solo métodos simples, turno abierto).
+  // Útil cuando se cobró con tarjeta/transferencia pero quedó como efectivo.
+  const correctPayment = async (saleId: number, folio?: string) => {
+    // Usar el folio solo si no está vacío; si no, caer al id numérico.
+    const saleLabel = folio && folio.trim() ? folio.trim() : `#${saleId}`;
+    const { value: method } = await Swal.fire<string>({
+      title: `Corregir método de pago - ${saleLabel}`,
+      input: "radio",
+      inputOptions: {
+        Efectivo: "💵 Efectivo",
+        Tarjeta: "💳 Tarjeta",
+        Transferencia: "🏦 Transferencia",
+        Regalo: "🎁 Regalo",
+      },
+      inputValidator: (v) => (!v ? "Selecciona un método de pago" : undefined),
+      showCancelButton: true,
+      confirmButtonText: "Guardar",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (!method) return;
+
+    try {
+      setLoadingSaleId(saleId);
+      await updateSalePaymentMethod(saleId, method);
+      Swal.fire({
+        icon: "success",
+        title: "Método actualizado",
+        text: `El pago de la venta ${saleLabel} ahora es ${method}.`,
+        timer: 1800,
+        showConfirmButton: false,
+      });
+      await refreshSelectedShift();
+    } catch (error: any) {
+      const data = error?.response?.data;
+      Swal.fire({
+        icon: "warning",
+        title: "No se pudo corregir el pago",
+        text:
+          data?.error ||
+          "Revisa que la venta no esté cancelada y que su turno esté abierto.",
+        confirmButtonText: "Entendido",
+      });
+    } finally {
+      setLoadingSaleId(null);
+    }
+  };
 
   useEffect(() => {
     fetchShifts();
@@ -78,21 +377,34 @@ export default function ShiftHistoryPage({
       setCashMovements([]);
     }
     
-    // Si el turno está abierto, no intentar cargar el resumen completo
+    // Si el turno está abierto, no se calcula el resumen de cierre (no aplica),
+    // pero sí cargamos sus ventas (con details) para habilitar Cancelar/Devolver.
     if (shift.status === "OPEN") {
       setShiftSummary(null);
+      try {
+        const fullShift = await getShiftById(shift.id);
+        setShiftSales(fullShift.sales ?? []);
+      } catch (error) {
+        console.error("Error al cargar ventas del turno:", error);
+        setShiftSales([]);
+      }
       return;
     }
-    
+
     try {
       const summary = await getShiftSummary(shift.id);
       setShiftSummary(summary);
+      // Las ventas del summary alimentan las acciones de reversión para turnos
+      // cerrados. (Están tipadas de forma ligera en ShiftSummary, por eso el
+      // cast; traen al menos id/folio/total/paymentMethod/status/createdAt.)
+      setShiftSales((summary.sales as unknown as Sale[]) ?? []);
       if (summary.cashMovements) {
         setCashMovements(summary.cashMovements);
       }
     } catch (error) {
       console.error("Error al cargar resumen:", error);
       setShiftSummary(null);
+      setShiftSales([]);
     }
   };
 
@@ -155,141 +467,6 @@ export default function ShiftHistoryPage({
     return shift.sales
       .filter((sale) => sale.paymentMethod && sale.paymentMethod.toLowerCase().includes("regalo"))
       .reduce((sum, sale) => sum + (sale.total || 0), 0);
-  };
-
-  // Función para mostrar modal con folios del turno
-  const showFoliosModal = (shift: CashRegisterShift, summary: ShiftSummary | null) => {
-    const sales = summary?.sales || [];
-    
-    if (sales.length === 0) {
-      Swal.fire({
-        icon: "info",
-        title: "Sin ventas",
-        text: "Este turno no tiene ventas registradas",
-        confirmButtonText: "Cerrar",
-        confirmButtonColor: "#3b82f6",
-      });
-      return;
-    }
-
-    const isMobile = window.innerWidth < 768;
-
-    Swal.fire({
-      title: `📋 Folios del Turno #${shift.id}`,
-      html: `
-        <div style="text-align: left; margin-top: 15px; font-size: 1.05rem; max-width: 100%;">
-          <p style="font-weight: 600; margin-bottom: 12px; font-size: 1rem; color: #1f2937;">
-            Total: ${sales.length} ${sales.length === 1 ? 'venta' : 'ventas'}
-          </p>
-          <div style="max-height: 500px; overflow-y: auto; overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb;">
-            <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
-              <thead style="position: sticky; top: 0; background: #f3f4f6; z-index: 10;">
-                <tr style="border-bottom: 2px solid #d1d5db;">
-                  <th style="padding: 12px 8px; text-align: left; font-weight: 600; color: #374151; white-space: nowrap;">Folio</th>
-                  <th style="padding: 12px 8px; text-align: left; font-weight: 600; color: #374151; white-space: nowrap;">Fecha/Hora</th>
-                  <th style="padding: 12px 8px; text-align: left; font-weight: 600; color: #374151; white-space: nowrap;">Cliente</th>
-                  <th style="padding: 12px 8px; text-align: left; font-weight: 600; color: #374151; white-space: nowrap;">Método Pago</th>
-                  <th style="padding: 12px 8px; text-align: right; font-weight: 600; color: #374151; white-space: nowrap;">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${sales
-                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                  .map((sale) => {
-                    const saleDate = new Date(sale.createdAt);
-                    const dateStr = saleDate.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                    const timeStr = saleDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-                    const paymentMethod = sale.paymentMethod || 'No especificado';
-                    const methodLower = paymentMethod.toLowerCase();
-                    const clientName = sale.clientName || 'Cliente General';
-                    const folio = sale.folio || sale.id.toString();
-                    
-                    // Determinar método de pago y color
-                    let methodDisplay = '';
-                    let methodColor = '#6b7280';
-                    
-                    if (methodLower.includes('mixto')) {
-                      const cashMatch = paymentMethod.match(/efectivo[:\s]*\$?([\d.]+)/i);
-                      const cardMatch = paymentMethod.match(/tarjeta[:\s]*\$?([\d.]+)/i);
-                      const cashAmount = cashMatch ? parseFloat(cashMatch[1]) : 0;
-                      const cardAmount = cardMatch ? parseFloat(cardMatch[1]) : 0;
-                      methodDisplay = '💵 Efectivo: $' + cashAmount.toFixed(2) + '<br>💳 Tarjeta: $' + cardAmount.toFixed(2);
-                      methodColor = '#8b5cf6';
-                    } else if (methodLower.includes('efectivo') || methodLower === 'cash') {
-                      methodDisplay = '💵 Efectivo';
-                      methodColor = '#059669';
-                    } else if (methodLower.includes('tarjeta') || methodLower.includes('card')) {
-                      methodDisplay = '💳 Tarjeta';
-                      methodColor = '#3b82f6';
-                    } else if (methodLower.includes('transferencia') || methodLower.includes('transfer')) {
-                      methodDisplay = '🏦 Transferencia';
-                      methodColor = '#8b5cf6';
-                    } else if (methodLower.includes('regalo')) {
-                      methodDisplay = '🎁 Regalo';
-                      methodColor = '#f59e0b';
-                    } else {
-                      const shortMethod = paymentMethod.length > 25 ? paymentMethod.substring(0, 25) + '...' : paymentMethod;
-                      methodDisplay = '📝 ' + shortMethod;
-                    }
-                    
-                    return `
-                      <tr style="border-bottom: 1px solid #e5e7eb; transition: background-color 0.2s;" 
-                          onmouseover="this.style.backgroundColor='#f3f4f6'" 
-                          onmouseout="this.style.backgroundColor='transparent'">
-                        <td style="padding: 10px 8px; color: #1f2937; font-weight: 600;">${folio}</td>
-                        <td style="padding: 10px 8px; color: #6b7280; white-space: nowrap;">
-                          <div style="font-size: 0.85rem;">${dateStr}</div>
-                          <div style="font-size: 0.8rem; color: #9ca3af;">${timeStr}</div>
-                        </td>
-                        <td style="padding: 10px 8px; color: #374151; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${clientName}">${clientName}</td>
-                        <td style="padding: 10px 8px; color: ${methodColor}; font-size: 0.85rem; font-weight: 500; line-height: 1.4;">
-                          ${methodDisplay}
-                        </td>
-                        <td style="padding: 10px 8px; text-align: right; color: #059669; font-weight: 600; white-space: nowrap;">
-                          $${sale.total.toFixed(2)}
-                        </td>
-                      </tr>
-                    `;
-                  }).join('')}
-              </tbody>
-              <tfoot style="background: #f3f4f6; border-top: 2px solid #d1d5db;">
-                <tr>
-                  <td colspan="4" style="padding: 12px 8px; text-align: right; font-weight: 700; color: #1f2937;">
-                    Total General:
-                  </td>
-                  <td style="padding: 12px 8px; text-align: right; font-weight: 700; color: #059669; font-size: 1rem;">
-                    $${summary?.statistics?.totalAmount?.toFixed(2) || sales.reduce((sum, s) => sum + s.total, 0).toFixed(2)}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-          <style>
-            /* Scrollbar personalizado para la tabla */
-            div[style*="max-height: 500px"]::-webkit-scrollbar {
-              width: 8px;
-              height: 8px;
-            }
-            div[style*="max-height: 500px"]::-webkit-scrollbar-track {
-              background: #f1f1f1;
-              border-radius: 4px;
-            }
-            div[style*="max-height: 500px"]::-webkit-scrollbar-thumb {
-              background: #888;
-              border-radius: 4px;
-            }
-            div[style*="max-height: 500px"]::-webkit-scrollbar-thumb:hover {
-              background: #555;
-            }
-          </style>
-        </div>
-      `,
-      width: isMobile ? "95%" : "900px",
-      showConfirmButton: false,
-      showCloseButton: true,
-      allowOutsideClick: true,
-      allowEscapeKey: true,
-    });
   };
 
   return (
@@ -432,46 +609,65 @@ export default function ShiftHistoryPage({
               </div>
             )}
           </div>
+        </div>
+      </div>
 
-          {/* Columna derecha - Detalles del turno */}
-          {selectedShift ? (
-            <div className="shift-details-section">
-              <h2 className="details-title">Detalles del Turno</h2>
-              
+      {/* Modal grande con el detalle del turno seleccionado */}
+      {selectedShift && (
+        <div
+          className="shift-detail-overlay"
+          onClick={() => setSelectedShift(null)}
+        >
+          <div
+            className="shift-detail-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="shift-detail-modal-header">
+              <h2 className="details-title">
+                Detalle del Turno #{selectedShift.id}
+              </h2>
+              <button
+                className="shift-detail-close"
+                onClick={() => setSelectedShift(null)}
+                title="Cerrar (ESC)"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="shift-detail-modal-body">
               {/* Información básica */}
               <div className="details-card">
                 <h3 className="card-title">Información General</h3>
                 <div className="info-grid">
-                  <div className="info-item">
-                    <span className="info-label">Turno:</span>
-                    <span className="info-value">#{selectedShift.id}</span>
-                  </div>
+                  {/* Fila 1: Estado · Fecha Inicio · Fecha Cierre */}
                   <div className="info-item">
                     <span className="info-label">Estado:</span>
                     <span className="info-value">{getStatusBadge(selectedShift.status)}</span>
                   </div>
                   <div className="info-item">
-                    <span className="info-label">Cajero:</span>
-                    <span className="info-value">{selectedShift.cashierName || "Anónimo"}</span>
+                    <span className="info-label">Fecha Inicio:</span>
+                    <span className="info-value">{formatDate(selectedShift.startTime)}</span>
                   </div>
                   <div className="info-item">
-                    <span className="info-label">Sucursal:</span>
-                    <span className="info-value">{selectedShift.branch}</span>
+                    <span className="info-label">Fecha Cierre:</span>
+                    <span className="info-value">
+                      {selectedShift.endTime ? formatDate(selectedShift.endTime) : "—"}
+                    </span>
+                  </div>
+                  {/* Fila 2: Cajero · Caja · Sucursal */}
+                  <div className="info-item">
+                    <span className="info-label">Cajero:</span>
+                    <span className="info-value">{selectedShift.cashierName || "Anónimo"}</span>
                   </div>
                   <div className="info-item">
                     <span className="info-label">Caja:</span>
                     <span className="info-value">{selectedShift.cashRegister}</span>
                   </div>
                   <div className="info-item">
-                    <span className="info-label">Fecha Inicio:</span>
-                    <span className="info-value">{formatDate(selectedShift.startTime)}</span>
+                    <span className="info-label">Sucursal:</span>
+                    <span className="info-value">{selectedShift.branch}</span>
                   </div>
-                  {selectedShift.endTime && (
-                    <div className="info-item">
-                      <span className="info-label">Fecha Cierre:</span>
-                      <span className="info-value">{formatDate(selectedShift.endTime)}</span>
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -714,45 +910,248 @@ export default function ShiftHistoryPage({
                 </div>
               )}
 
-              {/* Botón para ver folios del turno */}
-              <div className="details-card" style={{ marginTop: "20px" }}>
-                <button
-                  onClick={() => showFoliosModal(selectedShift, shiftSummary)}
-                  style={{
-                    width: "100%",
-                    padding: "14px 20px",
-                    backgroundColor: "#3b82f6",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "8px",
-                    fontSize: "1rem",
-                    fontWeight: "600",
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "#2563eb";
-                    e.currentTarget.style.transform = "translateY(-2px)";
-                    e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "#3b82f6";
-                    e.currentTarget.style.transform = "translateY(0)";
-                    e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.1)";
-                  }}
-                >
-                  📋 Ver Folios del Turno
-                </button>
-              </div>
+              {/* Ventas del turno con acciones de Cancelar / Devolver (Req 1.5, 2.1, 9.4).
+                  Disponible tanto para turnos abiertos como cerrados. Esta sección
+                  unifica el listado de ventas (folio, fecha, cliente, total) con las
+                  acciones de reversión; reemplaza al antiguo modal "Ver Folios". */}
+              {shiftSales.length > 0 && (
+                <div className="details-card">
+                  <h3 className="card-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span>🧾 Ventas del Turno ({shiftSales.length})</span>
+                    <span style={{ color: "#059669", fontWeight: 700 }}>
+                      Total: ${shiftSales.reduce((sum, s) => sum + (s.total || 0), 0).toFixed(2)}
+                    </span>
+                  </h3>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px", maxHeight: "340px", overflowY: "auto" }}>
+                    {[...shiftSales]
+                      .sort(
+                        (a, b) =>
+                          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                      )
+                      .map((sale) => {
+                        const isCancelled = sale.status === "Cancelada";
+                        const isLoadingThis = loadingSaleId === sale.id;
+                        const folioLabel = sale.folio || `#${sale.id}`;
+                        return (
+                          <div
+                            key={sale.id}
+                            style={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              gap: "6px",
+                              padding: "0.5rem 0.65rem",
+                              border: "1px solid #e5e7eb",
+                              borderRadius: "7px",
+                              backgroundColor: "white",
+                            }}
+                          >
+                            <div style={{ minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontWeight: 600,
+                                  color: "#1f2937",
+                                  fontSize: "0.9rem",
+                                }}
+                              >
+                                {folioLabel} · ${sale.total.toFixed(2)}
+                              </div>
+                              <div style={{ fontSize: "0.75rem", color: "#9ca3af", marginTop: "1px" }}>
+                                {formatDate(sale.createdAt)}
+                                {sale.clientName ? ` · ${sale.clientName}` : ""}
+                              </div>
+                              <div style={{ fontSize: "0.78rem", color: "#6b7280" }}>
+                                {sale.paymentMethod || "No especificado"}
+                                {sale.status ? (
+                                  <span
+                                    style={{
+                                      marginLeft: "8px",
+                                      padding: "1px 8px",
+                                      borderRadius: "999px",
+                                      fontSize: "0.72rem",
+                                      fontWeight: 600,
+                                      color: isCancelled ? "#b91c1c" : "#047857",
+                                      backgroundColor: isCancelled ? "#fee2e2" : "#d1fae5",
+                                    }}
+                                  >
+                                    {sale.status}
+                                  </span>
+                                ) : null}
+                              </div>
+                            </div>
+
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: "6px",
+                                flexShrink: 0,
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              <button
+                                onClick={() => openSaleAction(sale.id, "cancel")}
+                                disabled={isCancelled || isLoadingThis}
+                                title={
+                                  isCancelled
+                                    ? "La venta ya está cancelada"
+                                    : "Cancelar venta"
+                                }
+                                style={{
+                                  padding: "6px 12px",
+                                  fontSize: "0.8rem",
+                                  fontWeight: 600,
+                                  borderRadius: "6px",
+                                  border: "1px solid #fca5a5",
+                                  backgroundColor: isCancelled ? "#f3f4f6" : "#fef2f2",
+                                  color: isCancelled ? "#9ca3af" : "#b91c1c",
+                                  cursor:
+                                    isCancelled || isLoadingThis
+                                      ? "not-allowed"
+                                      : "pointer",
+                                }}
+                              >
+                                🚫 Cancelar
+                              </button>
+                              <button
+                                onClick={() => openSaleAction(sale.id, "return")}
+                                disabled={isCancelled || isLoadingThis}
+                                title={
+                                  isCancelled
+                                    ? "No se puede devolver una venta cancelada"
+                                    : "Devolver productos"
+                                }
+                                style={{
+                                  padding: "6px 12px",
+                                  fontSize: "0.8rem",
+                                  fontWeight: 600,
+                                  borderRadius: "6px",
+                                  border: "1px solid #93c5fd",
+                                  backgroundColor: isCancelled ? "#f3f4f6" : "#eff6ff",
+                                  color: isCancelled ? "#9ca3af" : "#1d4ed8",
+                                  cursor:
+                                    isCancelled || isLoadingThis
+                                      ? "not-allowed"
+                                      : "pointer",
+                                }}
+                              >
+                                ↩️ Devolver
+                              </button>
+                              <button
+                                onClick={() => showReversals(sale.id, sale.folio)}
+                                disabled={isLoadingThis}
+                                title="Ver reversiones asociadas"
+                                style={{
+                                  padding: "6px 12px",
+                                  fontSize: "0.8rem",
+                                  fontWeight: 600,
+                                  borderRadius: "6px",
+                                  border: "1px solid #d1d5db",
+                                  backgroundColor: "white",
+                                  color: "#374151",
+                                  cursor: isLoadingThis ? "not-allowed" : "pointer",
+                                }}
+                              >
+                                🔎 Ver reversiones
+                              </button>
+                              {/* Corregir pago: solo turno abierto, venta no cancelada
+                                  y método simple (no mixto). */}
+                              {selectedShift?.status === "OPEN" &&
+                                !isCancelled &&
+                                !(sale.paymentMethod || "")
+                                  .toLowerCase()
+                                  .includes("mixto") && (
+                                  <button
+                                    onClick={() => correctPayment(sale.id, sale.folio)}
+                                    disabled={isLoadingThis}
+                                    title="Corregir método de pago"
+                                    style={{
+                                      padding: "6px 12px",
+                                      fontSize: "0.8rem",
+                                      fontWeight: 600,
+                                      borderRadius: "6px",
+                                      border: "1px solid #fcd34d",
+                                      backgroundColor: "#fffbeb",
+                                      color: "#b45309",
+                                      cursor: isLoadingThis
+                                        ? "not-allowed"
+                                        : "pointer",
+                                    }}
+                                  >
+                                    ✏️ Corregir pago
+                                  </button>
+                                )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="no-selection">
-              <p>Selecciona un turno para ver sus detalles</p>
-            </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Modal de cancelación de venta (Req 1.x) */}
+      {activeModal === "cancel" && actionSale && (
+        <CancelSaleModal
+          sale={actionSale}
+          onClose={closeSaleAction}
+          onSuccess={handleCancelSuccess}
+          createdBy={selectedShift?.cashierName ?? actionSale.createdBy}
+        />
+      )}
+
+      {/* Modal de devolución parcial (Req 2.x) */}
+      {activeModal === "return" && actionSale && (
+        <ReturnSaleModal
+          sale={actionSale}
+          onClose={closeSaleAction}
+          onSuccess={handleReturnSuccess}
+          cashRegister={selectedShift?.cashRegister ?? actionSale.cashRegister}
+          createdBy={selectedShift?.cashierName ?? actionSale.createdBy}
+        />
+      )}
+
+      {/* Comprobante de cancelación / devolución, imprimible (Req 10) */}
+      {reversalReceipt && (
+        <div className="modal-overlay">
+          <div
+            className="modal-container"
+            style={{
+              maxWidth: "420px",
+              width: "95%",
+              maxHeight: "95vh",
+              overflowY: "auto",
+              padding: "16px",
+            }}
+          >
+            <div id="reversal-receipt-print">
+              <CancellationReturnReceipt receipt={reversalReceipt} />
+            </div>
+            <div
+              className="payment-modal-actions no-print"
+              style={{ marginTop: "16px" }}
+            >
+              <button
+                className="cancel-btn-payment"
+                onClick={() => setReversalReceipt(null)}
+                style={{ fontSize: "0.9rem", padding: "10px 20px" }}
+              >
+                Cerrar
+              </button>
+              <button
+                className="confirm-btn"
+                onClick={() => window.print()}
+                style={{ fontSize: "0.9rem", padding: "10px 20px" }}
+              >
+                🖨 Imprimir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

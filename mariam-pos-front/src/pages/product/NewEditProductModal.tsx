@@ -15,6 +15,11 @@ import { previewNextCode, suggestPrefix, createCodePrefix } from "../../api/code
 import { getUnits } from "../../api/units";
 import type { CodePreview, UnitOfMeasure } from "../../types/index";
 import CategorySelect from "../../components/CategorySelect";
+import {
+  OPEN_PRICE_SALE_TYPE,
+  buildOpenPriceProduct,
+  validateOpenPriceProduct,
+} from "../../utils/openPrice";
 
 interface NewEditProductModalProps {
   isOpen: boolean;
@@ -87,10 +92,17 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
   // 👇 Refs para todos los inputs importantes
   const inputRefs = useRef<(HTMLInputElement | HTMLTextAreaElement | null)[]>([]);
   
+  // Recargar categorías y unidades CADA VEZ que se abre el modal. El modal no
+  // se desmonta (solo cambia isOpen), por eso no basta con cargar al montar:
+  // si el usuario crea una unidad/categoría nueva en su catálogo y vuelve a
+  // abrir el formulario, debe ver los datos frescos sin salir del módulo.
   useEffect(() => {
-    fetchCategories();
-    fetchUnits();
-  }, []);
+    if (isOpen) {
+      fetchCategories();
+      fetchUnits();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const fetchCategories = async () => {
     try {
@@ -113,6 +125,38 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
 
   // Consultar el preview del código automático al cambiar la categoría (solo producto nuevo).
   const isNewProduct = !product || product.id === 0;
+
+  // Producto de Precio Abierto: el precio no vive en el catálogo, se captura al
+  // momento de la venta. Cuando este flag está activo, el formulario oculta los
+  // campos de precio base, costo, presentaciones, precio escalonado, promoción e
+  // inventario (son excluyentes con este tipo de venta).
+  const isOpenPrice = saleType === OPEN_PRICE_SALE_TYPE;
+
+  // Cambio de tipo de venta. Para "Pieza" y "Granel" el comportamiento no
+  // cambia (solo actualiza el saleType). Al cambiar a "Precio Abierto" se
+  // limpian las secciones incompatibles (precio escalonado, promoción,
+  // inventario) y se restaura la presentación base, para que no se guarden
+  // configuraciones contradictorias (Req 2.5).
+  const handleSaleTypeChange = (value: string) => {
+    setSaleType(value);
+    if (value === OPEN_PRICE_SALE_TYPE) {
+      setPricingMode("simple");
+      setPriceTiers([]);
+      setIsPromo(false);
+      setPromoPrice(0);
+      setPromoEndsAt("");
+      setTrackInventory(false);
+      // Restaurar la presentación base (1 pieza) descartando presentaciones extra.
+      setPresentations([
+        {
+          name: "Pieza",
+          quantity: 1,
+          unitPrice: 0,
+          isDefault: true,
+        },
+      ]);
+    }
+  };
 
   const loadCodePreview = async (categoryId: string) => {
     if (!categoryId) {
@@ -413,6 +457,26 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
     // En modo automático el código lo genera el backend, no se exige aquí.
     if (!(autoCode && isNewProduct) && !formData.code.trim())
       newErrors.code = "Codigo es requerido";
+
+    // Precio Abierto: solo se exigen nombre y categoría. El precio y el costo
+    // no viven en el catálogo (se capturan en la venta), por lo que NO se
+    // exige price>0 ni cost>0, y se omiten las validaciones de presentaciones,
+    // tramos, promoción e inventario (Req 1.5, 1.6).
+    if (isOpenPrice) {
+      if (
+        !validateOpenPriceProduct({
+          name: formData.name,
+          categoryId: formData.category,
+        })
+      ) {
+        if (!formData.name.trim()) newErrors.name = "El nombre es requerido";
+        if (!formData.category.trim())
+          newErrors.category = "La categoria es requerida";
+      }
+      setErrors(newErrors);
+      return Object.keys(newErrors).length === 0;
+    }
+
     if (!formData.name.trim()) newErrors.name = "El nombre es requerido";
     
     if (pricingMode === "tiered") {
@@ -534,50 +598,79 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
         (p.isDefault || p.quantity === 1) ? { ...p, name: selectedUnitName } : p
       );
 
-      const productToSave: Omit<Product, "createdAt"> = {
-        id: formData.id,
-        // En modo automático (producto nuevo con prefijo) se manda vacío:
-        // el backend genera el código y reserva el consecutivo al guardar.
-        code: autoCode && isNewProduct ? "" : formData.code.trim(),
-        name: formData.name.trim(),
-        status: status,
-        saleType: saleType,
-        price: basePrice, // Precio base para compatibilidad
-        cost: Number(formData.cost),
-        icon: '',
-        description: formData.description.trim(),
-        categoryId: formData.category,
-        category: categories.find((cat) => cat.id === formData.category),
-        unitId: unitId ? Number(unitId) : null, // Unidad de medida opcional
-        pricingMode,
-        priceTiers: pricingMode === "tiered" ? priceTiers : [],
-        isPromo,
-        promoPrice: isPromo ? Number(promoPrice) : null,
-        // La promo vale hasta el FIN del día elegido (23:59:59), no la medianoche
-        // del inicio, para que "válida hasta el 30" incluya todo el día 30.
-        promoEndsAt:
-          isPromo && promoEndsAt
-            ? (() => {
-                const [y, m, d] = promoEndsAt.split("-").map(Number);
-                return new Date(y, m - 1, d, 23, 59, 59, 999).toISOString();
-              })()
-            : null,
-        // En modo tiered no se usan presentaciones.
-        presentations:
-          pricingMode === "tiered"
-            ? undefined
-            : presentationsToSave.length > 1
-            ? presentationsToSave
-            : undefined,
-        inventory: trackInventory ? {
-          id: 0,
-          productId: formData.id,
-          trackInventory: trackInventory,
-          currentStock: initialStock,
-          minStock: minStock,
-        } : undefined,
-        trackInventory: trackInventory
-      };
+      // Campos de identidad comunes a cualquier tipo de producto.
+      const code = autoCode && isNewProduct ? "" : formData.code.trim();
+      const selectedCategory = categories.find(
+        (cat) => cat.id === formData.category
+      );
+
+      let productToSave: Omit<Product, "createdAt">;
+
+      if (isOpenPrice) {
+        // Precio Abierto: normalizar con buildOpenPriceProduct para persistir
+        // price=0, cost=0, saleType="PrecioAbierto", pricingMode="simple",
+        // priceTiers=[], isPromo=false, promoPrice=0, presentations=undefined y
+        // trackInventory=false, conservando la identidad del producto
+        // (Req 1.4, 2.5).
+        productToSave = buildOpenPriceProduct({
+          id: formData.id,
+          code,
+          name: formData.name.trim(),
+          status,
+          icon: "",
+          description: formData.description.trim(),
+          categoryId: formData.category,
+          category: selectedCategory,
+          unitId: unitId ? Number(unitId) : null,
+          promoEndsAt: null,
+          inventory: undefined,
+        }) as Omit<Product, "createdAt">;
+      } else {
+        productToSave = {
+          id: formData.id,
+          // En modo automático (producto nuevo con prefijo) se manda vacío:
+          // el backend genera el código y reserva el consecutivo al guardar.
+          code,
+          name: formData.name.trim(),
+          status: status,
+          saleType: saleType,
+          price: basePrice, // Precio base para compatibilidad
+          cost: Number(formData.cost),
+          icon: '',
+          description: formData.description.trim(),
+          categoryId: formData.category,
+          category: selectedCategory,
+          unitId: unitId ? Number(unitId) : null, // Unidad de medida opcional
+          pricingMode,
+          priceTiers: pricingMode === "tiered" ? priceTiers : [],
+          isPromo,
+          promoPrice: isPromo ? Number(promoPrice) : null,
+          // La promo vale hasta el FIN del día elegido (23:59:59), no la medianoche
+          // del inicio, para que "válida hasta el 30" incluya todo el día 30.
+          promoEndsAt:
+            isPromo && promoEndsAt
+              ? (() => {
+                  const [y, m, d] = promoEndsAt.split("-").map(Number);
+                  return new Date(y, m - 1, d, 23, 59, 59, 999).toISOString();
+                })()
+              : null,
+          // En modo tiered no se usan presentaciones.
+          presentations:
+            pricingMode === "tiered"
+              ? undefined
+              : presentationsToSave.length > 1
+              ? presentationsToSave
+              : undefined,
+          inventory: trackInventory ? {
+            id: 0,
+            productId: formData.id,
+            trackInventory: trackInventory,
+            currentStock: initialStock,
+            minStock: minStock,
+          } : undefined,
+          trackInventory: trackInventory
+        };
+      }
       
       // Guardar el producto (esperar a que termine)
       try {
@@ -1080,7 +1173,7 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                               name="saleType"
                               value="Pieza"
                               checked={saleType === "Pieza"}
-                              onChange={(e) => setSaleType(e.target.value)}
+                              onChange={(e) => handleSaleTypeChange(e.target.value)}
                             />
                             Por pieza
                           </label>
@@ -1090,13 +1183,32 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                               name="saleType"
                               value="Granel"
                               checked={saleType === "Granel"}
-                              onChange={(e) => setSaleType(e.target.value)}
+                              onChange={(e) => handleSaleTypeChange(e.target.value)}
                             />
                             A granel
+                          </label>
+                          <label>
+                            <input
+                              type="radio"
+                              name="saleType"
+                              value={OPEN_PRICE_SALE_TYPE}
+                              checked={isOpenPrice}
+                              onChange={(e) => handleSaleTypeChange(e.target.value)}
+                            />
+                            Precio Abierto
                           </label>
                         </div>
                       </div>
                     </div>
+                    {isOpenPrice ? (
+                      /* Precio Abierto: el precio y el costo no se definen en el
+                         catálogo, se capturan al momento de la venta. */
+                      <div className="product-modal-form-group">
+                        <p className="product-modal-open-price-legend">
+                          El precio se definirá al momento de la venta
+                        </p>
+                      </div>
+                    ) : (
                     <div className="product-modal-form-row-3">
                       <div className="product-modal-form-group">
                         <label htmlFor="price">
@@ -1184,8 +1296,10 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                         </select>
                       </div>
                     </div>
+                    )}
 
-                    {/* Promoción */}
+                    {/* Promoción: no aplica a Precio Abierto */}
+                    {!isOpenPrice && (
                     <div className="promo-box">
                       <label className="promo-toggle">
                         <input
@@ -1241,9 +1355,12 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                         </div>
                       )}
                     </div>
+                    )}
                   </div>
 
-                  {/* Columna derecha - Modo de precio */}
+                  {/* Columna derecha - Modo de precio (presentaciones / tiered).
+                      No aplica a Precio Abierto: el precio se captura en la venta. */}
+                  {!isOpenPrice && (
                   <div className="product-modal-form-right">
                     {/* Selector de modo: presentaciones (simple) o precio escalonado (tiered) */}
                     <div className="ptier-mode">
@@ -1571,6 +1688,7 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                     </div>
                     )}
                   </div>
+                  )}
                 </div>
                 <div className="product-modal-form-actions">
                   <Button
@@ -1591,7 +1709,8 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
          {activeTab === "avanzado" && (
             <div className="product-modal-tab-content">
               <form onSubmit={handleSubmit} className="product-modal-form">
-                    {/* Sección de Control de Inventario */}
+                    {/* Control de inventario: no aplica a Precio Abierto. */}
+                    {!isOpenPrice && (
                     <div className="product-modal-inventory-section">
                       <div className="product-modal-inventory-toggle-card">
                         <div className="product-modal-toggle-header">
@@ -1682,6 +1801,7 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                         )}
                       </div>
                     </div>
+                    )}
 
                     {/* Sección de Generación de Etiquetas */}
                     <div className="product-modal-label-section">

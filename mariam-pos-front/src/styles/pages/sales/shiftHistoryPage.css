@@ -1,537 +1,750 @@
 .shift-history-page {
   width: 100%;
-  min-height: 100vh;
-  background: #f9fafb;
-  padding: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f3f4f6;
+  overflow: hidden;
 }
 
 .shift-history-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 20px 30px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
 }
 
 .shift-history-container {
-  max-width: 1800px;
-  margin: 0 auto;
-  padding: 30px;
+  flex: 1;
+  min-height: 0;
+  padding: 0.75rem 1rem 1rem;
+  overflow: hidden;
 }
 
-/* Resumen de totales */
-.totals-summary {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
+/* ===== CONTENIDO: lista a pantalla completa (una sola columna) ===== */
+.shift-history-content {
+  display: block;
+  height: 100%;
+  min-height: 0;
 }
 
-.total-item {
+/* ===== LISTA DE TURNOS (ocupa todo el ancho/alto) ===== */
+.shift-history-page .shifts-list-section {
   background: white;
-  padding: 12px;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0.85rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.7rem;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.total-label {
-  font-size: 0.8rem;
+/* ===== RESUMEN DE TOTALES (chips compactos) ===== */
+.shift-history-page .totals-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.shift-history-page .total-item {
+  flex: 1 1 auto;
+  min-width: 110px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.shift-history-page .total-label {
+  font-size: 0.68rem;
   color: #6b7280;
   font-weight: 600;
+  white-space: nowrap;
 }
 
-.total-value {
-  font-size: 1.2rem;
+.shift-history-page .total-value {
+  font-size: 0.95rem;
   font-weight: 700;
 }
 
-.total-value.cash {
+.shift-history-page .total-value.cash {
   color: #059669;
 }
 
-.total-value.cards {
+.shift-history-page .total-value.cards {
   color: #3b82f6;
 }
 
-.total-value.regalo {
+.shift-history-page .total-value.regalo {
   color: #f59e0b;
 }
 
-.total-value.shifts {
+.shift-history-page .total-value.shifts {
   color: #667eea;
 }
 
-/* Contenido principal */
-.shift-history-content {
-  display: grid;
-  grid-template-columns: 1fr 1.2fr;
-  gap: 30px;
-  align-items: start;
+/* ===== FILTROS (compactos, en línea) ===== */
+.shift-history-page .filters-section {
+  margin: 0;
+  padding: 0 0 0.6rem;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: flex-end;
 }
 
-/* Mantener dos columnas en tablets y pantallas grandes */
-@media (min-width: 769px) {
-  .shift-history-content {
-    grid-template-columns: 1fr 1.2fr;
-  }
+.shift-history-page .filter-group {
+  flex: 1 1 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0;
 }
 
-/* Sección de lista de turnos */
-.shifts-list-section {
-  background: white;
-  border-radius: 12px;
-  padding: 25px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.filters-section {
-  margin-bottom: 25px;
-  padding-bottom: 20px;
-  border-bottom: 2px solid #e5e7eb;
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr auto;
-  gap: 15px;
-  align-items: end;
-}
-
-.filter-group {
-  margin-bottom: 0;
-}
-
-.filter-label {
+.shift-history-page .filter-label {
   display: block;
-  font-size: 1rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  color: #374151;
-  margin-bottom: 8px;
+  color: #6b7280;
+  margin: 0;
 }
 
-.datepicker-input-large {
+.shift-history-page .datepicker-input-large {
   width: 100%;
-  padding: 12px 15px;
-  font-size: 1.1rem;
-  border: 2px solid #d1d5db;
-  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.85rem;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
   background: white;
   cursor: pointer;
-  transition: border-color 0.2s;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.datepicker-input-large:focus {
+.shift-history-page .datepicker-input-large:focus {
   outline: none;
   border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
 }
 
-.filter-info {
-  margin-top: 0;
-  font-size: 1rem;
+.shift-history-page .filter-info {
+  margin: 0;
+  font-size: 0.8rem;
   color: #6b7280;
   display: flex;
   align-items: center;
-  padding-bottom: 8px;
 }
 
-.filter-info strong {
+.shift-history-page .filter-info strong {
   color: #374151;
-  font-size: 1.1rem;
-  margin-left: 5px;
+  font-size: 0.85rem;
+  margin-left: 4px;
 }
 
-/* Tabla de turnos */
-.table-wrapper {
-  max-height: 600px;
-  overflow-y: auto;
+/* ===== TABLA DE TURNOS ===== */
+.shift-history-page .table-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
 }
 
-.shifts-table {
+.shift-history-page .shifts-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 1rem;
+  font-size: 0.85rem;
 }
 
-.shifts-table thead {
-  background: #f3f4f6;
+.shift-history-page .shifts-table thead {
+  background: #f8fafc;
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
-.shifts-table th {
-  padding: 15px 12px;
+.shift-history-page .shifts-table th {
+  padding: 0.55rem 0.7rem;
   text-align: left;
   font-weight: 700;
-  font-size: 1rem;
-  color: #374151;
-  border-bottom: 2px solid #d1d5db;
-}
-
-.shifts-table tbody tr {
-  cursor: pointer;
-  transition: background-color 0.2s;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #475569;
   border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
 }
 
-.shifts-table tbody tr:hover {
-  background-color: #f9fafb;
+.shift-history-page .shifts-table tbody tr {
+  cursor: pointer;
+  transition: background-color 0.12s;
+  border-bottom: 1px solid #f1f5f9;
 }
 
-.shifts-table tbody tr.selected {
-  background-color: #dbeafe;
-  border-left: 4px solid #3b82f6;
+.shift-history-page .shifts-table tbody tr:hover {
+  background-color: #f8fafc;
 }
 
-.shifts-table td {
-  padding: 15px 12px;
-  font-size: 1rem;
+.shift-history-page .shifts-table tbody tr.selected {
+  background-color: #eef2ff;
+  box-shadow: inset 3px 0 0 #667eea;
 }
 
-.folio-cell {
+.shift-history-page .shifts-table td {
+  padding: 0.5rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+.shift-history-page .folio-cell {
   font-weight: 700;
   color: #1f2937;
+  font-variant-numeric: tabular-nums;
 }
 
-.date-cell {
+.shift-history-page .date-cell {
   color: #6b7280;
-  font-size: 0.95rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
 }
 
-.cashier-cell {
+.shift-history-page .cashier-cell {
   color: #374151;
   font-weight: 500;
 }
 
-.status-cell {
-  font-size: 0.95rem;
+.shift-history-page .status-cell {
+  font-size: 0.8rem;
 }
 
-.total-cell {
+.shift-history-page .total-cell {
   font-weight: 700;
   color: #059669;
-  font-size: 1.05rem;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Estados */
-.loading-state,
-.empty-state,
-.no-selection {
+/* ===== ESTADOS ===== */
+.shift-history-page .loading-state,
+.shift-history-page .empty-state,
+.shift-history-page .no-selection {
   text-align: center;
-  padding: 60px 20px;
+  padding: 2.5rem 1rem;
   color: #6b7280;
-  font-size: 1.1rem;
+  font-size: 0.9rem;
 }
 
-/* Sección de detalles */
-.shift-details-section {
+.shift-history-page .no-selection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: white;
-  border-radius: 12px;
-  padding: 15px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  max-height: calc(100vh - 200px);
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+  height: 100%;
+}
+
+/* ===== COLUMNA DERECHA: detalles del turno ===== */
+.shift-history-page .shift-details-section {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0.85rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  min-height: 0;
   overflow-y: auto;
 }
 
-.details-title {
-  font-size: 1.3rem;
+.shift-history-page .details-title {
+  font-size: 1.05rem;
   font-weight: 700;
   color: #1f2937;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
+  margin: 0 0 0.6rem;
+  padding-bottom: 0.4rem;
   border-bottom: 2px solid #667eea;
 }
 
-.details-card {
-  margin-bottom: 12px;
-  padding: 12px;
+.shift-history-page .details-card {
+  margin-bottom: 0.6rem;
+  padding: 0.7rem 0.8rem;
   background: #f9fafb;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
 }
 
-.card-title {
-  font-size: 1rem;
+.shift-history-page .card-title {
+  font-size: 0.8rem;
   font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 10px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid #d1d5db;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #475569;
+  margin: 0 0 0.5rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-.closing-title {
+.shift-history-page .closing-title {
   color: #059669;
-  border-bottom-color: #059669;
+  border-bottom-color: #a7f3d0;
 }
 
-/* Grid de información */
-.info-grid {
+/* ===== GRID DE INFORMACIÓN ===== */
+.shift-history-page .info-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 0.9rem;
 }
 
-.info-item {
+.shift-history-page .info-item {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 0.1rem;
 }
 
-.info-label {
-  font-size: 0.75rem;
+.shift-history-page .info-label {
+  font-size: 0.68rem;
   color: #6b7280;
   font-weight: 600;
 }
 
-.info-value {
-  font-size: 0.9rem;
+.shift-history-page .info-value {
+  font-size: 0.85rem;
   color: #1f2937;
   font-weight: 600;
 }
 
-/* Métodos de pago */
-.payment-methods-grid {
+/* ===== MÉTODOS DE PAGO ===== */
+.shift-history-page .payment-methods-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 15px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
 }
 
-.payment-method-item {
+.shift-history-page .payment-method-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px;
+  padding: 0.5rem 0.7rem;
   background: white;
-  border-radius: 8px;
+  border-radius: 7px;
   border: 1px solid #e5e7eb;
 }
 
-.payment-label {
-  font-size: 1.1rem;
+.shift-history-page .payment-label {
+  font-size: 0.82rem;
   font-weight: 600;
   color: #374151;
 }
 
-.payment-value {
-  font-size: 1.3rem;
+.shift-history-page .payment-value {
+  font-size: 0.95rem;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
-.payment-value.cash {
+.shift-history-page .payment-value.cash {
   color: #059669;
 }
 
-.payment-value.card {
+.shift-history-page .payment-value.card {
   color: #3b82f6;
 }
 
-.payment-value.transfer {
+.shift-history-page .payment-value.transfer {
   color: #8b5cf6;
 }
 
-.payment-value.regalo {
+.shift-history-page .payment-value.regalo {
   color: #f59e0b;
 }
 
-.payment-value.other {
+.shift-history-page .payment-value.other {
   color: #6b7280;
 }
 
-/* Cierre de turno */
-.closing-card {
-  background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%);
-  border: 2px solid #3b82f6;
+/* ===== CIERRE DE TURNO ===== */
+.shift-history-page .closing-card {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
 }
 
-.closing-details {
+.shift-history-page .closing-details {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 0.5rem;
 }
 
-.closing-item {
+.shift-history-page .closing-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px;
+  padding: 0.5rem 0.7rem;
   background: white;
-  border-radius: 8px;
+  border-radius: 7px;
   border: 1px solid #e5e7eb;
 }
 
-.closing-item.highlight {
-  background: #fef3c7;
-  border-color: #f59e0b;
+.shift-history-page .closing-item.highlight {
+  background: #fffbeb;
+  border-color: #fcd34d;
 }
 
-.closing-item.difference {
-  background: #dbeafe;
-  border: 2px solid #3b82f6;
-  padding: 20px;
+.shift-history-page .closing-item.difference {
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  padding: 0.6rem 0.7rem;
 }
 
-.closing-label {
-  font-size: 1.1rem;
+.shift-history-page .closing-label {
+  font-size: 0.82rem;
   font-weight: 600;
   color: #374151;
 }
 
-.closing-value {
-  font-size: 1.3rem;
+.shift-history-page .closing-value {
+  font-size: 0.95rem;
   font-weight: 700;
   color: #1f2937;
+  font-variant-numeric: tabular-nums;
 }
 
-.closing-value.expected {
+.shift-history-page .closing-value.expected {
   color: #1e40af;
 }
 
-.closing-value.final {
+.shift-history-page .closing-value.final {
   color: #059669;
 }
 
-/* Movimientos */
-.movements-list {
+/* ===== MOVIMIENTOS ===== */
+.shift-history-page .movements-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  max-height: 400px;
+  gap: 0.4rem;
+  max-height: 240px;
   overflow-y: auto;
 }
 
-.movement-item {
+.shift-history-page .movement-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px;
+  padding: 0.5rem 0.7rem;
   background: white;
-  border-radius: 8px;
+  border-radius: 7px;
   border: 1px solid #e5e7eb;
 }
 
-.movement-details {
+.shift-history-page .movement-details {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 5px;
+  gap: 0.15rem;
 }
 
-.movement-reason {
-  font-size: 0.95rem;
+.shift-history-page .movement-reason {
+  font-size: 0.82rem;
   color: #6b7280;
 }
 
-.movement-date {
-  font-size: 0.85rem;
+.shift-history-page .movement-date {
+  font-size: 0.72rem;
   color: #9ca3af;
 }
 
-/* Resumen */
-.summary-grid {
+/* ===== RESUMEN ===== */
+.shift-history-page .summary-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
 }
 
-.summary-item {
+.shift-history-page .summary-item {
   display: flex;
   flex-direction: column;
-  /*gap: 8px;*/
-  /*padding: 15px;*/
+  gap: 0.1rem;
+  padding: 0.5rem 0.7rem;
   background: white;
-  border-radius: 8px;
+  border-radius: 7px;
   border: 1px solid #e5e7eb;
 }
 
-.summary-label {
-  font-size: 0.95rem;
+.shift-history-page .summary-label {
+  font-size: 0.72rem;
   color: #6b7280;
   font-weight: 600;
 }
 
-.summary-value {
-  font-size: 1.3rem;
+.shift-history-page .summary-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1f2937;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== NOTAS ===== */
+.shift-history-page .notes-text {
+  font-size: 0.85rem;
+  color: #374151;
+  line-height: 1.5;
+  padding: 0.6rem 0.7rem;
+  background: white;
+  border-radius: 7px;
+  border: 1px solid #e5e7eb;
+  margin: 0;
+}
+
+/* ===== SCROLLBAR BONITO ===== */
+.shift-history-page .table-wrapper::-webkit-scrollbar,
+.shift-history-page .shift-details-section::-webkit-scrollbar,
+.shift-history-page .movements-list::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+.shift-history-page .table-wrapper::-webkit-scrollbar-track,
+.shift-history-page .shift-details-section::-webkit-scrollbar-track,
+.shift-history-page .movements-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 8px;
+}
+
+.shift-history-page .table-wrapper::-webkit-scrollbar-thumb,
+.shift-history-page .shift-details-section::-webkit-scrollbar-thumb,
+.shift-history-page .movements-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+  border: 2px solid #f1f5f9;
+}
+
+.shift-history-page .table-wrapper::-webkit-scrollbar-thumb:hover,
+.shift-history-page .shift-details-section::-webkit-scrollbar-thumb:hover,
+.shift-history-page .movements-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.shift-history-page .table-wrapper,
+.shift-history-page .shift-details-section,
+.shift-history-page .movements-list {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1024px) {
+  .shift-history-page .info-grid,
+  .shift-history-page .payment-methods-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .shift-history-container {
+    overflow: auto;
+  }
+
+  .shift-history-content {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .shift-history-page .shifts-list-section,
+  .shift-history-page .shift-details-section {
+    overflow: visible;
+    max-height: none;
+  }
+
+  .shift-history-page .table-wrapper {
+    max-height: 360px;
+  }
+
+  .shift-history-page .filter-group {
+    flex-basis: 100%;
+  }
+
+  .shift-history-page .info-grid,
+  .shift-history-page .payment-methods-grid,
+  .shift-history-page .summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== MODAL GRANDE DE DETALLE DEL TURNO ===== */
+.shift-detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 1000;
+  animation: shiftDetailFade 0.15s ease-out;
+}
+
+@keyframes shiftDetailFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.shift-detail-modal {
+  background: #f9fafb;
+  width: 100%;
+  max-width: 960px;
+  max-height: 90vh;
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: shiftDetailPop 0.18s ease-out;
+}
+
+@keyframes shiftDetailPop {
+  from { transform: translateY(8px) scale(0.99); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.shift-detail-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.1rem;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.shift-detail-modal-header .details-title {
+  margin: 0;
+  padding: 0;
+  border: none;
+  font-size: 1.1rem;
   font-weight: 700;
   color: #1f2937;
 }
 
-/* Notas */
-.notes-text {
-  font-size: 1rem;
-  color: #374151;
-  line-height: 1.6;
-  padding: 15px;
-  background: white;
+.shift-detail-close {
+  width: 32px;
+  height: 32px;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s;
 }
 
-/* Responsive */
-/* Tablets y pantallas medianas - mantener dos columnas */
-@media (max-width: 1024px) {
-  .totals-summary {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .filters-section {
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-  }
-
-  .filter-info {
-    grid-column: 1 / -1;
-    margin-top: 10px;
-  }
+.shift-detail-close:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #b91c1c;
 }
 
-/* Solo en móviles - apilar en una columna */
+.shift-detail-modal-body {
+  padding: 1rem 1.1rem 1.1rem;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* Dentro del modal, info y métodos de pago aprovechan más columnas */
+.shift-detail-modal-body .info-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.shift-detail-modal-body .payment-methods-grid,
+.shift-detail-modal-body .summary-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.shift-detail-modal-body::-webkit-scrollbar {
+  width: 9px;
+}
+
+.shift-detail-modal-body::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 8px;
+}
+
+.shift-detail-modal-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+  border: 2px solid #f1f5f9;
+}
+
+.shift-detail-modal-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
 @media (max-width: 768px) {
-  .shift-history-content {
-    grid-template-columns: 1fr;
+  .shift-detail-overlay {
+    padding: 0.5rem;
   }
 
-  .shift-details-section {
-    max-height: none;
+  .shift-detail-modal {
+    max-height: 95vh;
   }
 
-  .shift-history-container {
-    padding: 15px;
-  }
-
-  .totals-summary {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-  }
-
-  .total-item {
-    padding: 10px;
-  }
-
-  .total-label {
-    font-size: 0.75rem;
-  }
-
-  .total-value {
-    font-size: 1rem;
-  }
-
-  .filters-section {
-    grid-template-columns: 1fr;
-    gap: 15px;
-  }
-
-  .filter-info {
-    grid-column: 1;
-    margin-top: 0;
-  }
-
-  .info-grid,
-  .payment-methods-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .summary-grid {
+  .shift-detail-modal-body .info-grid,
+  .shift-detail-modal-body .payment-methods-grid,
+  .shift-detail-modal-body .summary-grid {
     grid-template-columns: 1fr;
   }
 }
 
+/* Impresión del comprobante de cancelación / devolución (tarea 12.1, Req 10).
+   El comprobante vive dentro del árbol de React (#root), no como hijo directo
+   de body, por eso se usa `visibility` (que atraviesa el árbol) en lugar de
+   `display:none`. Se oculta todo, se reexpone solo el comprobante y se lo saca
+   del flujo con fondo blanco opaco para que no quede sobre el overlay oscuro. */
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+    box-shadow: none !important;
+  }
+
+  #reversal-receipt-print,
+  #reversal-receipt-print * {
+    visibility: visible !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Sacar el comprobante del modal y fijarlo a la hoja, con fondo blanco. */
+  #reversal-receipt-print {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    z-index: 99999 !important;
+  }
+
+  /* El overlay oscuro no debe pintarse sobre la hoja. */
+  .modal-overlay {
+    background: #ffffff !important;
+  }
+
+  /* Ocultar controles (botones Cerrar / Imprimir). */
+  .no-print {
+    display: none !important;
+  }
+}

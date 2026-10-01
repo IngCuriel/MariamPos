@@ -267,6 +267,19 @@
   flex-shrink: 0;
 }
 
+/* Open-price ("Precio Abierto") products have no catalog price; the price box
+   itself becomes an amber badge (single line) instead of showing a misleading
+   "$0.00". The price is captured at sale time. */
+.product-card-modal-price--open {
+  color: #b45309;
+  background: #fef3c7;
+  font-size: 0.8rem;
+  padding: 0.2rem 0.4rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* La descripción se oculta en las cards compactas para no crecer de alto. */
 .product-card-modal-description {
   display: none;

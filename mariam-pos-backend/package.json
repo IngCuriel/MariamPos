@@ -5,7 +5,7 @@
   "main": "src/index.mjs",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
     "dev": "nodemon src/index.mjs",
     "start": "node src/index.mjs",
     "prisma:generate": "prisma generate",
@@ -28,7 +28,9 @@
   },
   "devDependencies": {
     "@prisma/client": "^6.17.1",
+    "fast-check": "^4.10.2",
     "nodemon": "^3.1.10",
-    "prisma": "^6.17.1"
+    "prisma": "^6.17.1",
+    "vitest": "^5.0.3"
   }
 }

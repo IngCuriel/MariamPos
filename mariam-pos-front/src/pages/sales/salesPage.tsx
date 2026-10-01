@@ -22,6 +22,8 @@ import Swal from "sweetalert2";
 import { ProductComunModal } from "./ProductComunModal";
 import { PresentationModal } from "./PresentationModal";
 import { TieredQuantityModal, resolveTierUnitPrice } from "./TieredQuantityModal";
+import { OpenPriceModal } from "./OpenPriceModal";
+import { isOpenPrice, buildOpenPriceCartLine, tryUpdateQuantity, toPendingDetail, fromPendingDetail, buildSaleDetail } from "../../utils/openPrice";
 import PriceCheckModal from "./PriceCheckModal";
 import PromotionsModal from "./PromotionsModal";
 import SavePendingModal from "./SavePendingModal";
@@ -649,6 +651,26 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
     let selectedPresentation: ProductPresentation | undefined;
     let presentationQuantity = 1;
 
+    // 💲 Producto de Precio Abierto: pedir el precio en un modal y agregar una
+    // línea independiente (qty 1). Debe evaluarse ANTES de tiered/presentaciones/granel.
+    if (isOpenPrice(product)) {
+      const result = await OpenPriceModal(product);
+      if (!result) {
+        // Cancelado: no se agrega, se limpia la búsqueda y se devuelve el foco.
+        setSearch("");
+        inputRef.current?.focus();
+        return;
+      }
+      // Línea independiente: no se busca ni se fusiona por id (Req 4.3).
+      const openPriceLine = buildOpenPriceCartLine(product, result.precio) as ItemCart;
+      setCart((prev) => [...prev, openPriceLine]);
+      playAddProductSound();
+      setSearch("");
+      setProducts([]);
+      setTimeout(() => inputRef.current?.focus(), 100);
+      return;
+    }
+
     // 🔢 Producto con precio escalonado (tiered): pedir cantidad y aplicar el
     // precio del tramo. Flujo independiente de presentaciones/granel.
     if (product.pricingMode === "tiered" && product.priceTiers && product.priceTiers.length > 0) {
@@ -1008,6 +1030,12 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         }
 
         if (isSameItem) {
+          // Precio Abierto: la cantidad es inmutable en 1. tryUpdateQuantity
+          // garantiza que estas líneas nunca se modifiquen (Req 4.2).
+          if (isOpenPrice(item)) {
+            return tryUpdateQuantity(item, change);
+          }
+
           // Solo permitir actualizar cantidad para productos "Pieza" sin presentaciones
           // o productos con presentaciones que no sean granel
           const isPieza = item.saleType?.toLowerCase() === 'pieza';
@@ -1091,6 +1119,14 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       };
 
       const details: SaleDetailInput[] = cart.map((item) => {
+        // Precio Abierto: nombre real del producto + saleType propagado, con
+        // cantidad 1 y subtotal = precio capturado. Debe evaluarse ANTES de las
+        // ramas de granel/presentaciones para que no caiga en "Producto no
+        // registrado" y para que los reportes sumen por su producto real (Req 6.3).
+        if (isOpenPrice(item)) {
+          return buildSaleDetail(item);
+        }
+
         // ¿Es la presentación base? El flujo granel (precio total libre) SOLO aplica a la base.
         const isBasePres =
           !!item.selectedPresentation &&
@@ -1479,6 +1515,12 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       // Convertir el carrito a formato de detalles de venta pendiente
       console.log('details pendiente', cart)
       const details = cart.map((item) => {
+        // Open-price lines serialize to a dedicated pending detail that
+        // preserves the captured price (price = basePrice = precio, qty 1).
+        if (isOpenPrice(item)) {
+          return toPendingDetail(item);
+        }
+
         const itemPrice = item.selectedPresentation?.unitPrice || item.price;
         const itemQuantity = item.selectedPresentation
           ? (item.presentationQuantity ?? item.quantity)
@@ -1583,6 +1625,12 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
     console.log('pendiente cargar',pendingSale )
     // Convertir los detalles de la venta pendiente al formato del carrito
     const cartItems: ItemCart[] = pendingSale.details.map((detail) => {
+      // Open-price lines restore directly from the preserved captured price
+      // (quantity 1, saleType "PrecioAbierto") without reopening the price modal.
+      if (isOpenPrice(detail)) {
+        return fromPendingDetail(detail) as ItemCart;
+      }
+
       // Crear un producto básico con la información disponible
       // Nota: No tenemos el producto completo, solo la información del detalle
       const baseProduct: Product = {
@@ -1840,10 +1888,14 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                           {p.code && <span className="sales-list-code">{p.code}</span>}
                         </div>
                         <span className="sales-list-price">
-                          {p.price.toLocaleString("es-MX", {
-                            style: "currency",
-                            currency: "MXN",
-                          })}
+                          {isOpenPrice(p) ? (
+                            <span className="sales-list-open-price">Precio abierto</span>
+                          ) : (
+                            p.price.toLocaleString("es-MX", {
+                              style: "currency",
+                              currency: "MXN",
+                            })
+                          )}
                         </span>
                       </div>
                     ))}
@@ -1963,7 +2015,10 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                       // - No base → "2 Bultos" (cantidad de presentaciones + nombre presentación pluralizado).
                       // - Sin presentación → cantidad simple.
                       let displayQuantity: React.ReactNode;
-                      if (item.selectedPresentation && item.presentationQuantity) {
+                      if (isOpenPrice(item)) {
+                        // Precio Abierto: la cantidad siempre es 1 (no editable).
+                        displayQuantity = 1;
+                      } else if (item.selectedPresentation && item.presentationQuantity) {
                         if (isBasePresentation) {
                           displayQuantity = `${item.presentationQuantity} ${unitName}`;
                         } else {
@@ -1994,8 +2049,9 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                             )}
                           </td>
                           <td>
-                            {/* Mostrar controles de cantidad solo para productos "Pieza" sin presentaciones */}
-                            {item.saleType?.toLowerCase() === 'pieza' && !item.selectedPresentation ? (
+                            {/* Mostrar controles de cantidad solo para productos "Pieza" sin presentaciones.
+                                Precio Abierto se trata como Granel: sin controles +/- y cantidad fija 1. */}
+                            {item.saleType?.toLowerCase() === 'pieza' && !item.selectedPresentation && !isOpenPrice(item) ? (
                               <div className="quantity-controls">
                                 <button
                                   className="quantity-btn quantity-btn-minus"
