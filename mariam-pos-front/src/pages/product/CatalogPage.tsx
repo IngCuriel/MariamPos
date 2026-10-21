@@ -171,6 +171,85 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack, onCategories, onCreat
       }
   };
 
+  // Clasifica la modalidad de venta de un producto para mostrar su badge.
+  // Prioridad: Precio abierto > Escalonado > Presentaciones > Granel > Pieza.
+  // Devuelve null para el caso simple "Pieza" (no se muestra badge en ese caso).
+  const getSaleModality = (
+    p: Product
+  ): { label: string; icon: string; className: string } | null => {
+    const st = (p.saleType || "").toLowerCase();
+    if (st === "precioabierto" || st.includes("abierto"))
+      return { label: "Precio abierto", icon: "🏷️", className: "prod-modality--open" };
+    if (p.pricingMode === "tiered")
+      return { label: "Escalonado", icon: "🔢", className: "prod-modality--tiered" };
+    // Presentaciones: tiene alguna presentación distinta de la base (cantidad > 1).
+    const hasPresentations =
+      Array.isArray(p.presentations) &&
+      p.presentations.some((pr) => pr.quantity > 1);
+    if (hasPresentations)
+      return { label: "Presentaciones", icon: "📦", className: "prod-modality--pres" };
+    if (st === "granel")
+      return { label: "Granel", icon: "⚖️", className: "prod-modality--bulk" };
+    // Pieza (simple): sin badge.
+    return null;
+  };
+
+  // Muestra las presentaciones de un producto en un popup (nombre, piezas que
+  // contiene, precio unitario) y la unidad de medida base.
+  const showPresentations = (product: Product) => {
+    const unitName = product.unit?.name || "pieza";
+    const unitAbbr = product.unit?.abbreviation || "pza";
+    const presentations = (product.presentations ?? [])
+      .slice()
+      .sort((a, b) => a.quantity - b.quantity);
+
+    const rowsHtml = presentations
+      .map((p) => {
+        const isBase = p.quantity === 1 || p.isDefault;
+        return `
+          <tr style="border-bottom:1px solid #eef2f7;">
+            <td style="padding:8px 10px;text-align:left;font-weight:600;color:#1f2937;">
+              ${p.name}${isBase ? ' <span style="font-size:0.7rem;color:#2563eb;font-weight:700;">(base)</span>' : ""}
+            </td>
+            <td style="padding:8px 10px;text-align:center;color:#374151;">
+              ${p.quantity} ${unitAbbr}
+            </td>
+            <td style="padding:8px 10px;text-align:right;font-weight:700;color:#047857;">
+              $${Number(p.unitPrice).toFixed(2)}
+            </td>
+          </tr>`;
+      })
+      .join("");
+
+    Swal.fire({
+      title: product.name,
+      html: `
+        <div style="text-align:left;font-size:0.9rem;">
+          <p style="margin:0 0 10px;color:#6b7280;">
+            Unidad de medida: <strong style="color:#374151;">${unitName} (${unitAbbr})</strong>
+          </p>
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="background:#f1f5f9;">
+                <th style="padding:8px 10px;text-align:left;font-size:0.75rem;text-transform:uppercase;color:#475569;">Presentación</th>
+                <th style="padding:8px 10px;text-align:center;font-size:0.75rem;text-transform:uppercase;color:#475569;">Contiene</th>
+                <th style="padding:8px 10px;text-align:right;font-size:0.75rem;text-transform:uppercase;color:#475569;">Precio c/u</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+      `,
+      width: 480,
+      confirmButtonText: "Cerrar",
+    });
+  };
+
+  // ¿El producto tiene presentaciones (más allá de la base) para mostrar?
+  const hasPresentations = (p: Product) =>
+    Array.isArray(p.presentations) &&
+    p.presentations.some((pr) => pr.quantity > 1);
+
   // Cambiar de página (anterior/siguiente) en el catálogo paginado.
   const goToPage = (target: number) => {
     const clamped = Math.min(Math.max(1, target), totalPages);
@@ -438,7 +517,7 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack, onCategories, onCreat
             <div className="catalog-filters">
               <div className="catalog-filter-group">
                 <label htmlFor="search" className="catalog-filter-label">
-                  Buscar producto
+                  Buscar 
                 </label>
                 <input
                   type="text"
@@ -446,7 +525,7 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack, onCategories, onCreat
                   id="search"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Nombre o descripción..."
+                  placeholder="Codigo ó nombre..."
                   className="catalog-search-input"
                 />
               </div>
@@ -614,16 +693,43 @@ const CatalogPage: React.FC<CatalogPageProps> = ({ onBack, onCategories, onCreat
                       key={product.id}
                       className={product.status === 0 ? "prod-row--inactive" : ""}
                     >
-                      <td className="prod-td-num">{index + 1}</td>
+                      <td className="prod-td-num">
+                        {/* Número consecutivo global: suma el offset de la página.
+                            En modo búsqueda no hay paginación, el offset es 0. */}
+                        {(isSearching ? 0 : (page - 1) * PAGE_SIZE) + index + 1}
+                      </td>
                       <td>
                         <div className="prod-name-cell">
                           {product.icon && (
                             <span className="prod-icon">{product.icon}</span>
                           )}
-                          <span className="prod-name" title={product.name}>
-                            {product.name}
-                          </span>
+                          {hasPresentations(product) ? (
+                            <button
+                              type="button"
+                              className="prod-name prod-name--link"
+                              title="Ver presentaciones de este producto"
+                              onClick={() => showPresentations(product)}
+                            >
+                              {product.name}
+                            </button>
+                          ) : (
+                            <span className="prod-name" title={product.name}>
+                              {product.name}
+                            </span>
+                          )}
                           {product.isKit && <span className="prod-kit-badge">Kit</span>}
+                          {(() => {
+                            const m = getSaleModality(product);
+                            if (!m) return null;
+                            return (
+                              <span
+                                className={`prod-modality-badge ${m.className}`}
+                                title={`Modalidad de venta: ${m.label}`}
+                              >
+                                {m.icon} {m.label}
+                              </span>
+                            );
+                          })()}
                         </div>
                       </td>
                       <td className="prod-td-muted">{product.code || "—"}</td>

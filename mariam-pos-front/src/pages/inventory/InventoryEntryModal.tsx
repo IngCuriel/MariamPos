@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import Button from "../../components/Button";
-import Card from "../../components/Card";
 import type { Inventory } from "../../types";
 import { createInventoryMovement } from "../../api/inventory";
 import Swal from "sweetalert2";
@@ -24,7 +22,16 @@ const InventoryEntryModal: React.FC<InventoryEntryModalProps> = ({
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
+  // Factor de la presentación elegida: 1 = pieza (base); 24 = reja, etc.
+  const [unitFactor, setUnitFactor] = useState(1);
   const quantityRef = useRef<HTMLInputElement>(null);
+
+  // Presentaciones del producto (solo las que agrupan más de 1 pieza).
+  const packPresentations = (inventory.product?.presentations ?? []).filter(
+    (p) => p.quantity > 1
+  );
+  // Piezas reales que se darán de entrada (cantidad × factor de presentación).
+  const basePieces = (quantity || 0) * unitFactor;
 
   useEffect(() => {
     if (isOpen) {
@@ -32,6 +39,7 @@ const InventoryEntryModal: React.FC<InventoryEntryModalProps> = ({
       setReason("Compra");
       setReference("");
       setNotes("");
+      setUnitFactor(1);
       setTimeout(() => {
         quantityRef.current?.focus();
         quantityRef.current?.select();
@@ -55,14 +63,25 @@ const InventoryEntryModal: React.FC<InventoryEntryModalProps> = ({
     try {
       const branch = localStorage.getItem('sucursal') || undefined;
       const cashRegister = localStorage.getItem('caja') || undefined;
-      
+
+      // Si se eligió una presentación, dejar constancia en las notas y mover
+      // el inventario SIEMPRE en piezas (unidad base).
+      const presName = packPresentations.find(
+        (p) => p.quantity === unitFactor
+      )?.name;
+      const packNote =
+        unitFactor > 1 && presName
+          ? `Entrada por presentación: ${quantity} ${presName} × ${unitFactor} = ${basePieces} pza`
+          : "";
+      const finalNotes = [notes.trim(), packNote].filter(Boolean).join(" — ");
+
       await createInventoryMovement({
         productId: inventory.productId,
         type: "ENTRADA",
-        quantity,
+        quantity: basePieces,
         reason,
         reference: reference.trim() || undefined,
-        notes: notes.trim() || undefined,
+        notes: finalNotes || undefined,
         branch,
         cashRegister,
       });
@@ -70,7 +89,10 @@ const InventoryEntryModal: React.FC<InventoryEntryModalProps> = ({
       Swal.fire({
         icon: "success",
         title: "Entrada registrada",
-        text: `Se agregaron ${quantity} unidades al inventario`,
+        text:
+          unitFactor > 1
+            ? `Se agregaron ${basePieces} piezas (${quantity} ${presName}) al inventario`
+            : `Se agregaron ${basePieces} unidades al inventario`,
         timer: 2000,
         showConfirmButton: false,
       });
@@ -92,27 +114,51 @@ const InventoryEntryModal: React.FC<InventoryEntryModalProps> = ({
 
   return (
     <div className="modal-overlay">
-      <div className="modal-container-inventory">
-        <Card className="modal-card">
-          <div className="modal-header">
-            <h2>➕ Entrada de Inventario</h2>
-            <button className="close-btn" onClick={onClose}>
-              ×
-            </button>
+      <div className="inv-modal">
+        <div className="inv-modal-header">
+          <h2>➕ Entrada de Inventario</h2>
+          <button className="inv-modal-close" onClick={onClose} title="Cerrar">
+            ×
+          </button>
+        </div>
+
+        <div className="inv-modal-body">
+          {/* Datos del producto en una fila compacta */}
+          <div className="inv-modal-product">
+            <span className="inv-modal-product-name">
+              {inventory.product?.name}
+            </span>
+            <span className="inv-modal-product-meta">
+              Código: {inventory.product?.code || "—"} · Stock actual:{" "}
+              <strong>{inventory.currentStock}</strong>
+            </span>
           </div>
 
-          <div className="modal-content">
-            <div className="product-info">
-              <h3>{inventory.product?.name}</h3>
-              <p>Código: {inventory.product?.code}</p>
-              <p>
-                Stock actual: <strong>{inventory.currentStock}</strong>
-              </p>
-            </div>
+          <form onSubmit={handleSubmit} className="inv-form">
+            {/* Presentación: solo si el producto tiene presentaciones mayores a 1 */}
+            {packPresentations.length > 0 && (
+              <div className="inv-field">
+                <label htmlFor="presentation">Dar entrada por</label>
+                <select
+                  id="presentation"
+                  value={unitFactor}
+                  onChange={(e) => setUnitFactor(Number(e.target.value))}
+                >
+                  <option value={1}>Pieza (unidad base)</option>
+                  {packPresentations.map((p) => (
+                    <option key={p.id ?? p.name} value={p.quantity}>
+                      {p.name} ({p.quantity} pza)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-            <form onSubmit={handleSubmit} className="inventory-form">
-              <div className="form-group">
-                <label htmlFor="quantity">Cantidad *</label>
+            <div className="inv-form-row">
+              <div className="inv-field">
+                <label htmlFor="quantity">
+                  Cantidad * {unitFactor > 1 ? "(en presentación)" : ""}
+                </label>
                 <input
                   ref={quantityRef}
                   type="number"
@@ -125,8 +171,7 @@ const InventoryEntryModal: React.FC<InventoryEntryModalProps> = ({
                   placeholder="Ej: 10"
                 />
               </div>
-
-              <div className="form-group">
+              <div className="inv-field">
                 <label htmlFor="reason">Motivo</label>
                 <select
                   id="reason"
@@ -140,54 +185,59 @@ const InventoryEntryModal: React.FC<InventoryEntryModalProps> = ({
                   <option value="Otro">Otro</option>
                 </select>
               </div>
+            </div>
 
-              <div className="form-group">
-                <label htmlFor="reference">Referencia (opcional)</label>
-                <input
-                  type="text"
-                  id="reference"
-                  value={reference}
-                  onChange={(e) => setReference(e.target.value)}
-                  placeholder="Ej: Factura #123, Orden #456"
-                />
-              </div>
+            <div className="inv-field">
+              <label htmlFor="reference">Referencia (opcional)</label>
+              <input
+                type="text"
+                id="reference"
+                value={reference}
+                onChange={(e) => setReference(e.target.value)}
+                placeholder="Ej: Factura #123, Orden #456"
+              />
+            </div>
 
-              <div className="form-group">
-                <label htmlFor="notes">Notas (opcional)</label>
-                <textarea
-                  id="notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={3}
-                  placeholder="Notas adicionales..."
-                />
-              </div>
+            <div className="inv-field">
+              <label htmlFor="notes">Notas (opcional)</label>
+              <textarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={2}
+                placeholder="Notas adicionales..."
+              />
+            </div>
 
-              <div className="form-preview">
-                <p>
-                  <strong>Stock después de la entrada:</strong>{" "}
-                  <span className="stock-preview">
-                    {inventory.currentStock + quantity}
-                  </span>
-                </p>
-              </div>
+            {/* Resultado */}
+            <div className="inv-preview inv-preview--add">
+              <span>
+                {unitFactor > 1
+                  ? `Entran ${basePieces} pza (${quantity || 0} × ${unitFactor})`
+                  : "Stock después de la entrada"}
+              </span>
+              <strong>{inventory.currentStock + basePieces}</strong>
+            </div>
 
-              <div className="form-actions">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={onClose}
-                  disabled={loading}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit" variant="success" disabled={loading}>
-                  {loading ? "Guardando..." : "Registrar Entrada"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </Card>
+            <div className="inv-form-actions">
+              <button
+                type="button"
+                className="inv-btn inv-btn--ghost"
+                onClick={onClose}
+                disabled={loading}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="inv-btn inv-btn--success"
+                disabled={loading}
+              >
+                {loading ? "Guardando..." : "Registrar entrada"}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

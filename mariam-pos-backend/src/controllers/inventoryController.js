@@ -52,7 +52,10 @@ export const getInventory = async (req, res) => {
     // 4. Considerar virtualización en el frontend para renderizado
     let allInventory = await prisma.inventory.findMany({
       where,
-      include: { product: true },
+      // Incluir las presentaciones del producto para poder descomponer el
+      // stock (en unidad base/pieza) en sus presentaciones (p. ej. rejas) y
+      // para dar entradas por presentación.
+      include: { product: { include: { presentations: true } } },
     });
 
     // Aplicar filtro de stock bajo si es necesario (comparación entre campos)
@@ -317,6 +320,123 @@ export const toggleInventoryTracking = async (req, res) => {
     res.json(updatedProduct);
   } catch (error) {
     console.error("Error toggleInventoryTracking:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+};
+
+// ============================================================
+// 📌 PRODUCTOS DE UN DEPARTAMENTO (para el asistente de inventario inicial)
+// Devuelve todos los productos cuyas categorías pertenecen al departamento,
+// con su estado de inventario actual (trackInventory y currentStock).
+// ============================================================
+export const getProductsByDepartmentForInventory = async (req, res) => {
+  try {
+    const { departmentId } = req.params;
+    if (!departmentId) {
+      return res.status(400).json({ error: "departmentId es requerido" });
+    }
+
+    const products = await prisma.product.findMany({
+      where: {
+        isKit: false,
+        category: { departmentId: String(departmentId) },
+      },
+      include: {
+        category: true,
+        inventory: true,
+        presentations: true,
+      },
+      orderBy: { name: "asc" },
+    });
+
+    res.json(products);
+  } catch (error) {
+    console.error("Error getProductsByDepartmentForInventory:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+};
+
+// ============================================================
+// 📌 INVENTARIO INICIAL EN LOTE
+// Recibe una lista de { productId, currentStock, minStock? }. Para cada uno:
+//  - activa trackInventory = true en el producto,
+//  - establece el stock (upsert de Inventory a valor absoluto),
+//  - registra un movimiento AJUSTE "Inventario inicial" para el Kardex.
+// Todo dentro de una transacción (todo o nada).
+// ============================================================
+export const batchInitialInventory = async (req, res) => {
+  try {
+    const { items, branch, cashRegister, createdBy } = req.body ?? {};
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res
+        .status(400)
+        .json({ error: "Se requiere al menos un producto" });
+    }
+
+    // Normalizar y validar entradas.
+    const normalized = items
+      .map((it) => ({
+        productId: Number(it?.productId),
+        currentStock: Number(it?.currentStock) || 0,
+        minStock: Number(it?.minStock) || 0,
+      }))
+      .filter((it) => Number.isInteger(it.productId));
+
+    if (normalized.length === 0) {
+      return res.status(400).json({ error: "Productos inválidos" });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const updated = [];
+      for (const it of normalized) {
+        // 1) Activar trackInventory en el producto.
+        await tx.product.update({
+          where: { id: it.productId },
+          data: { trackInventory: true },
+        });
+
+        // 2) Establecer el stock (upsert a valor absoluto).
+        await tx.inventory.upsert({
+          where: { productId: it.productId },
+          create: {
+            productId: it.productId,
+            currentStock: it.currentStock,
+            minStock: it.minStock,
+            trackInventory: true,
+            branch: branch ?? null,
+            lastMovementDate: new Date(),
+          },
+          update: {
+            currentStock: it.currentStock,
+            minStock: it.minStock,
+            trackInventory: true,
+            lastMovementDate: new Date(),
+          },
+        });
+
+        // 3) Movimiento AJUSTE para el Kardex (valor absoluto).
+        await tx.inventoryMovement.create({
+          data: {
+            productId: it.productId,
+            type: "AJUSTE",
+            quantity: it.currentStock,
+            reason: "Inventario inicial",
+            notes: "Captura de inventario inicial por departamento",
+            branch: branch ?? null,
+            cashRegister: cashRegister ?? null,
+            createdBy: createdBy ?? null,
+          },
+        });
+
+        updated.push(it.productId);
+      }
+      return updated;
+    });
+
+    res.json({ ok: true, count: result.length, productIds: result });
+  } catch (error) {
+    console.error("Error batchInitialInventory:", error);
     res.status(500).json({ error: "Error interno del servidor" });
   }
 };

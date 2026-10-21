@@ -115,3 +115,32 @@ export const toggleInventoryTracking = async (
   return data;
 };
 
+
+// Productos de un departamento para el asistente de inventario inicial.
+export const getProductsByDepartmentForInventory = async (
+  departmentId: string
+): Promise<Product[]> => {
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.get<Product[]>(
+    `/inventory/by-department/${departmentId}`
+  );
+  return data;
+};
+
+// Guardado en lote del inventario inicial.
+export interface InitialInventoryItem {
+  productId: number;
+  currentStock: number;
+  minStock?: number;
+}
+
+export const saveInitialInventoryBatch = async (payload: {
+  items: InitialInventoryItem[];
+  branch?: string;
+  cashRegister?: string;
+  createdBy?: string;
+}): Promise<{ ok: boolean; count: number; productIds: number[] }> => {
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.post(`/inventory/initial-batch`, payload);
+  return data;
+};

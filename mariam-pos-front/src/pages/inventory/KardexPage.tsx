@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import Header from "../../components/Header";
 import Card from "../../components/Card";
-import Button from "../../components/Button";
 import type { InventoryMovement, Product } from "../../types";
 import { getProductMovements } from "../../api/inventory";
 import { getProductsFilters } from "../../api/products";
 import "../../styles/pages/inventory/kardex.css";
+// Reutilizamos el layout del inventario y del catálogo para unificar estilos.
+import "../../styles/pages/inventory/inventory.css";
+import "../../styles/pages/products/catalog.css";
 import Swal from "sweetalert2";
 
 interface KardexPageProps {
@@ -23,12 +25,18 @@ const KardexPage: React.FC<KardexPageProps> = ({ onBack }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [typeFilter, setTypeFilter] = useState<MovementTypeFilter>("ALL");
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
+  // Por defecto, el Kardex arranca mostrando el día de hoy (formato YYYY-MM-DD).
+  const today = new Date().toLocaleDateString("en-CA");
+  const [startDate, setStartDate] = useState<string>(today);
+  const [endDate, setEndDate] = useState<string>(today);
   
   const [products, setProducts] = useState<Product[]>([]);
   const [showProductSearch, setShowProductSearch] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Paginación (25 por página, como inventario/catálogo).
+  const PAGE_SIZE = 25;
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     if (selectedProduct) {
@@ -42,6 +50,11 @@ const KardexPage: React.FC<KardexPageProps> = ({ onBack }) => {
   useEffect(() => {
     filterMovements();
   }, [movements, selectedProduct, typeFilter]);
+
+  // Volver a la página 1 cuando cambian los resultados filtrados.
+  useEffect(() => {
+    setPage(1);
+  }, [filteredMovements.length, selectedProduct, typeFilter, startDate, endDate]);
 
   const fetchMovements = async () => {
     if (!selectedProduct) {
@@ -122,8 +135,9 @@ const KardexPage: React.FC<KardexPageProps> = ({ onBack }) => {
     setSelectedProduct(null);
     setSearchTerm("");
     setTypeFilter("ALL");
-    setStartDate("");
-    setEndDate("");
+    // Volver al rango por defecto (hoy), no a vacío.
+    setStartDate(today);
+    setEndDate(today);
     setMovements([]);
     setFilteredMovements([]);
     if (searchInputRef.current) {
@@ -204,161 +218,120 @@ const KardexPage: React.FC<KardexPageProps> = ({ onBack }) => {
   };
 
 
-  return (
-    <div className="kardex-page">
-      <Header title="📋 Kardex de Inventario" onBack={onBack} backText="← Volver" />
-      
-      <div className="kardex-container">
-        <Card className="kardex-card">
-          {/* Filtros */}
-          <div className="kardex-filters">
-            <div className="filter-row">
-              <div className="filter-group" style={{ flex: 1 }}>
-                <label>
-                  Seleccionar Producto <span style={{ color: "#dc2626" }}>*</span>
-                </label>
-                {selectedProduct ? (
-                  <div className="selected-product-display">
-                    <div className="selected-product-info">
-                      <span className="selected-product-code">{selectedProduct.code || "N/A"}</span>
-                      <span className="selected-product-name">{selectedProduct.name}</span>
-                    </div>
-                    <Button
-                      variant="secondary"
-                      size="small"
-                      onClick={clearProduct}
-                      style={{ marginLeft: "1rem" }}
-                    >
-                      ✕ Cambiar
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="search-wrapper">
-                    <input
-                      ref={searchInputRef}
-                      type="text"
-                      placeholder="Buscar por código o nombre del producto..."
-                      className="search-input"
-                      onChange={(e) => {
-                        setSearchTerm(e.target.value);
-                        searchProducts(e.target.value);
-                        setShowProductSearch(e.target.value.length > 0);
-                      }}
-                      onFocus={() => {
-                        if (searchTerm.length > 0) {
-                          setShowProductSearch(true);
-                        }
-                      }}
-                    />
-                    {showProductSearch && products.length > 0 && (
-                      <div className="product-search-dropdown">
-                        {products.map((product) => (
-                          <div
-                            key={product.id}
-                            className="product-search-item"
-                            onClick={() => handleProductSelect(product)}
-                          >
-                            <span className="product-code">{product.code || "N/A"}</span>
-                            <span className="product-name">{product.name}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+  // Movimientos de la página actual.
+  const totalPages = Math.max(1, Math.ceil(filteredMovements.length / PAGE_SIZE));
+  const pagedMovements = filteredMovements.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE
+  );
 
-              <div className="filter-group">
-                <label>Tipo de Movimiento</label>
-                <select
-                  className="filter-select"
-                  value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value as MovementTypeFilter)}
-                >
-                  <option value="ALL">Todos</option>
-                  <option value="ENTRADA">Entrada</option>
-                  <option value="SALIDA">Salida</option>
-                  <option value="AJUSTE">Ajuste</option>
-                  <option value="TRANSFERENCIA">Transferencia</option>
-                </select>
-              </div>
+  return (
+    <div className="inventory-page">
+      <Header title="📋 Kardex" onBack={onBack} backText="← Volver" />
+
+      <div className="catalog-content inventory-content">
+        {/* Filtros (mismo bloque que inventario/catálogo) */}
+        <Card className="catalog-filters-section">
+          <div className="catalog-filters">
+            <div className="catalog-filter-group" style={{ flex: 2 }}>
+              <label className="catalog-filter-label">Producto *</label>
+              {selectedProduct ? (
+                <div className="kardex-selected-product">
+                  <span className="kardex-selected-code">
+                    {selectedProduct.code || "N/A"}
+                  </span>
+                  <span className="kardex-selected-name">
+                    {selectedProduct.name}
+                  </span>
+                  <button
+                    type="button"
+                    className="kardex-change-btn"
+                    onClick={clearProduct}
+                  >
+                    ✕ Cambiar
+                  </button>
+                </div>
+              ) : (
+                <div className="search-wrapper" style={{ position: "relative", flex: 1 }}>
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Buscar por código o nombre..."
+                    className="catalog-search-input"
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      searchProducts(e.target.value);
+                      setShowProductSearch(e.target.value.length > 0);
+                    }}
+                    onFocus={() => {
+                      if (searchTerm.length > 0) setShowProductSearch(true);
+                    }}
+                  />
+                  {showProductSearch && products.length > 0 && (
+                    <div className="product-search-dropdown">
+                      {products.map((product) => (
+                        <div
+                          key={product.id}
+                          className="product-search-item"
+                          onClick={() => handleProductSelect(product)}
+                        >
+                          <span className="product-code">
+                            {product.code || "N/A"}
+                          </span>
+                          <span className="product-name">{product.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            <div className="filter-row">
-              <div className="filter-group">
-                <label>Fecha Inicio</label>
-                <input
-                  type="date"
-                  className="filter-input"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
-              </div>
+            <div className="catalog-filter-group">
+              <label className="catalog-filter-label">Tipo</label>
+              <select
+                className="catalog-category-select"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value as MovementTypeFilter)}
+              >
+                <option value="ALL">Todos</option>
+                <option value="ENTRADA">Entrada</option>
+                <option value="SALIDA">Salida</option>
+                <option value="AJUSTE">Ajuste</option>
+                <option value="TRANSFERENCIA">Transferencia</option>
+              </select>
+            </div>
 
-              <div className="filter-group">
-                <label>Fecha Fin</label>
-                <input
-                  type="date"
-                  className="filter-input"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
-              </div>
+            <div className="catalog-filter-group">
+              <label className="catalog-filter-label">Desde</label>
+              <input
+                type="date"
+                className="catalog-category-select"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
 
-              <div className="filter-group">
-                {selectedProduct && (
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    onClick={() => {
-                      setTypeFilter("ALL");
-                      setStartDate("");
-                      setEndDate("");
-                    }}
-                    style={{ marginTop: "24px" }}
-                  >
-                    🔄 Limpiar Filtros
-                  </Button>
-                )}
-              </div>
+            <div className="catalog-filter-group">
+              <label className="catalog-filter-label">Hasta</label>
+              <input
+                type="date"
+                className="catalog-category-select"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
             </div>
           </div>
+        </Card>
 
-          {/* Resumen */}
-          {selectedProduct && filteredMovements.length > 0 && (
-            <div className="kardex-summary">
-              <div className="summary-item">
-                <span className="summary-label">Total Movimientos:</span>
-                <span className="summary-value">{filteredMovements.length}</span>
-              </div>
-              <div className="summary-item">
-                <span className="summary-label">Entradas:</span>
-                <span className="summary-value movement-entrada">
-                  {filteredMovements.filter((m) => m.type === "ENTRADA").length}
-                </span>
-              </div>
-              <div className="summary-item">
-                <span className="summary-label">Salidas:</span>
-                <span className="summary-value movement-salida">
-                  {filteredMovements.filter((m) => m.type === "SALIDA").length}
-                </span>
-              </div>
-              <div className="summary-item">
-                <span className="summary-label">Ajustes:</span>
-                <span className="summary-value movement-ajuste">
-                  {filteredMovements.filter((m) => m.type === "AJUSTE").length}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Tabla de movimientos */}
-          <div className="kardex-table-container">
+        {/* Tabla de movimientos */}
+        <Card className="catalog-table-card inventory-table-card">
+          <div className="inventory-table-container">
             {!selectedProduct ? (
               <div className="no-product-selected">
                 <div className="no-product-icon">📦</div>
-                <h3>Selecciona un Producto</h3>
-                <p>Para ver el Kardex, primero debes seleccionar un producto usando el buscador arriba.</p>
+                <h3>Selecciona un producto</h3>
+                <p>Busca un producto arriba para ver su Kardex de movimientos.</p>
               </div>
             ) : loading ? (
               <div className="loading">Cargando Kardex...</div>
@@ -369,12 +342,11 @@ const KardexPage: React.FC<KardexPageProps> = ({ onBack }) => {
                   : "No hay movimientos registrados para este producto"}
               </div>
             ) : (
-              <table className="kardex-table">
+              <table className="inventory-table kardex-table">
                 <thead>
                   <tr>
+                    <th className="inv-th-num">#</th>
                     <th>Fecha/Hora</th>
-                    <th>Producto</th>
-                    <th>Código</th>
                     <th>Tipo</th>
                     <th>Cantidad</th>
                     <th>Existencia</th>
@@ -384,16 +356,18 @@ const KardexPage: React.FC<KardexPageProps> = ({ onBack }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredMovements.map((movement) => {
+                  {pagedMovements.map((movement, index) => {
                     const typeInfo = getMovementTypeLabel(movement.type);
-                    const stockAfter = calculateStockAfter(movement, filteredMovements);
+                    const stockAfter = calculateStockAfter(
+                      movement,
+                      filteredMovements
+                    );
                     return (
                       <tr key={movement.id} className={typeInfo.class}>
-                        <td>{formatDate(movement.createdAt)}</td>
-                        <td>
-                          <strong>{movement.product?.name || "Producto desconocido"}</strong>
+                        <td className="inv-td-num">
+                          {(page - 1) * PAGE_SIZE + index + 1}
                         </td>
-                        <td>{movement.product?.code || "N/A"}</td>
+                        <td>{formatDate(movement.createdAt)}</td>
                         <td>
                           <span className={`movement-type-badge ${typeInfo.class}`}>
                             {typeInfo.icon} {typeInfo.label}
@@ -416,6 +390,63 @@ const KardexPage: React.FC<KardexPageProps> = ({ onBack }) => {
             )}
           </div>
         </Card>
+
+        {/* Footer: resumen compacto + paginación */}
+        {selectedProduct && filteredMovements.length > 0 && (
+          <div className="inv-summary-bar">
+            <div className="inv-summary-stat">
+              <span className="inv-summary-label">📋 Movimientos</span>
+              <span className="inv-summary-value">
+                {filteredMovements.length}
+              </span>
+            </div>
+            <span className="inv-summary-divider" />
+            <div className="inv-summary-stat">
+              <span className="inv-summary-label">➕ Entradas</span>
+              <span className="inv-summary-value" style={{ color: "#047857" }}>
+                {filteredMovements.filter((m) => m.type === "ENTRADA").length}
+              </span>
+            </div>
+            <div className="inv-summary-stat">
+              <span className="inv-summary-label">➖ Salidas</span>
+              <span className="inv-summary-value" style={{ color: "#b91c1c" }}>
+                {filteredMovements.filter((m) => m.type === "SALIDA").length}
+              </span>
+            </div>
+
+            {/* Paginación integrada */}
+            {totalPages > 1 && (
+              <div className="inv-footer-pagination">
+                <button
+                  type="button"
+                  className="prod-page-btn"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  ← Anterior
+                </button>
+                <span className="prod-page-info">
+                  Página {page} de {totalPages}
+                </span>
+                <button
+                  type="button"
+                  className="prod-page-btn"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  Siguiente →
+                </button>
+              </div>
+            )}
+
+            <div className="inv-summary-stat inv-summary-stat--total">
+              <span className="inv-summary-label">🔧 Ajustes</span>
+              <span className="inv-summary-value" style={{ color: "#b45309" }}>
+                {filteredMovements.filter((m) => m.type === "AJUSTE").length}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

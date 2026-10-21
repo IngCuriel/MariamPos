@@ -28,13 +28,10 @@ const RUBRO_EXAMPLES: RubroExample[] = [
 ];
 
 const CODE_TIPS = [
-  "Si el producto ya tiene código de barras, escanéalo o cópialo tal cual. Es único y evita errores.",
-  "Si no tiene código de barras, arma uno con esta estructura: Departamento + Categoría + número consecutivo.",
-  "Usa 3 letras del departamento, 3 letras de la categoría y un consecutivo: ABA-REF-001, ABA-REF-002…",
-  "Así los productos quedan agrupados por departamento y categoría, y son fáciles de encontrar.",
-  "Sin espacios, sin acentos y sin caracteres raros (usa solo letras, números y guiones).",
-  "Nunca repitas un código. Cada producto debe tener el suyo.",
-  "Mantén siempre el mismo formato para que sea fácil de buscar y ordenar.",
+  "Ya tiene código de barras: escanéalo o cópialo tal cual.",
+  "Código manual: escríbelo tú mismo (letras, números y guiones; sin espacios ni acentos).",
+  "Código automático: el sistema lo genera por ti con la estructura Departamento-Categoría-Consecutivo.",
+  "Sea cual sea la opción, cada producto debe tener un código único (nunca se repite).",
 ];
 
 const NAME_TIPS = [
@@ -93,7 +90,7 @@ const ProductHelpModal: React.FC<ProductHelpModalProps> = ({ isOpen, topic, onCl
   const subtitle = isPresentation
     ? "Vende el mismo producto por caja, reja, six o cono sin duplicar productos."
     : isCode
-    ? "Arma el código por Departamento + Categoría + consecutivo para agrupar y encontrar rápido."
+    ? "Tres formas de asignarlo: escanear el del producto, escribirlo tú o generarlo automático."
     : "Un buen nombre facilita encontrar el producto y evita confusiones al vender.";
 
   const tips = isPresentation ? PRESENTATION_TIPS : isCode ? CODE_TIPS : NAME_TIPS;

@@ -1451,6 +1451,9 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
             ? item.selectedPresentation.quantity * item.presentationQuantity
             : item.quantity;
 
+          // Caja donde se ejecuta la venta (para que el Kardex la registre).
+          const cashRegister = localStorage.getItem("caja") || undefined;
+
           // Crear movimiento de inventario (SALIDA)
           await createInventoryMovement({
             productId: item.id,
@@ -1460,6 +1463,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
             reference: `Venta - ${branchName}`,
             notes: `Venta realizada en ${branchName}. Producto: ${item.name}${item.selectedPresentation ? ` (${item.presentationQuantity}x ${item.selectedPresentation.name})` : ''}`,
             branch: branchName,
+            cashRegister,
           });
         } catch (error) {
           console.error(`Error actualizando inventario para producto ${item.id} (${item.name}):`, error);

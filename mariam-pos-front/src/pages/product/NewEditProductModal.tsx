@@ -1009,24 +1009,59 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                 <div className="product-modal-form-grid">
                   {/* Columna izquierda - Información del Producto */}
                   <div className="product-modal-form-left">
-                    {/* Categoría primero: define el prefijo de código disponible */}
-                    <div className="product-modal-form-group">
-                      <label htmlFor="category">Categoría *</label>
-                      <CategorySelect
-                        categories={categories}
-                        value={formData.category}
-                        onChange={(id) =>
-                          handleInputChange({
-                            target: { name: "category", value: id },
-                          } as React.ChangeEvent<HTMLSelectElement>)
-                        }
-                        allLabel={null}
-                        placeholder="Selecciona una categoría"
-                        error={!!errors.category}
-                      />
-                      {errors.category && (
-                        <span className="product-modal-error-message">{errors.category}</span>
-                      )}
+                    {/* Categoría + Activo en una misma fila: categoría ocupa el
+                        espacio disponible y el check de Activo lo mínimo. */}
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "12px",
+                        alignItems: "flex-start",
+                      }}
+                    >
+                      {/* Categoría primero: define el prefijo de código disponible */}
+                      <div
+                        className="product-modal-form-group"
+                        style={{ flex: 1, minWidth: 0 }}
+                      >
+                        <label htmlFor="category">Categoría *</label>
+                        <CategorySelect
+                          categories={categories}
+                          value={formData.category}
+                          onChange={(id) =>
+                            handleInputChange({
+                              target: { name: "category", value: id },
+                            } as React.ChangeEvent<HTMLSelectElement>)
+                          }
+                          allLabel={null}
+                          placeholder="Selecciona una categoría"
+                          error={!!errors.category}
+                        />
+                        {errors.category && (
+                          <span className="product-modal-error-message">{errors.category}</span>
+                        )}
+                      </div>
+
+                      {/* Activo: ocupa lo mínimo, alineado con el selector */}
+                      <div
+                        className="product-modal-form-group"
+                        style={{ flex: "0 0 auto", width: "auto" }}
+                      >
+                        <label>&nbsp;</label>
+                        <label
+                          htmlFor="status"
+                          className="product-modal-checkbox-group"
+                          style={{ whiteSpace: "nowrap" }}
+                        >
+                          <input
+                            type="checkbox"
+                            id="status"
+                            name="status"
+                            checked={status === 1}
+                            onChange={() => setStatus(status === 1 ? 0 : 1)}
+                          />
+                          <span>Activo</span>
+                        </label>
+                      </div>
                     </div>
 
                     <div className="product-modal-form-group">
@@ -1082,7 +1117,7 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                       {/* Auto activado: se generará al guardar */}
                       {isNewProduct && !loadingPreview && autoCode && codePreview?.code && (
                         <span className="pcode-hint pcode-hint--ok">
-                          Se generará automático al guardar (aprox. {codePreview.code}). Si el producto
+                          Codigo generado automaticamente. Si el producto
                           tiene código de barras, toca “🏷️ Auto” para escribirlo.
                         </span>
                       )}
@@ -1093,8 +1128,7 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                         !autoCode &&
                         codePreview?.hasPrefix && (
                           <span className="pcode-hint">
-                            Escanea o escribe el código de barras. ¿Sin código? Usa “🏷️ Auto” para
-                            generarlo con el prefijo de la categoría.
+                            Escanea o escribe el código de barras. Si no tiene? clik en Generar
                           </span>
                         )}
 
@@ -1105,7 +1139,7 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                         codePreview &&
                         !codePreview.hasPrefix && (
                           <span className="pcode-hint pcode-hint--warn">
-                            Escanea o escribe el código. Si estos productos no traen código,{" "}
+                            Escanea o escribe el código. Si este producto no trae,{" "}
                             <button
                               type="button"
                               className="pcode-link"
@@ -1151,54 +1185,49 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                       )}
                     </div>
 
-                    <div className="product-modal-form-row">
-                      <div className="product-modal-form-group">
-                        <label htmlFor="status" className="product-modal-checkbox-group">
-                          <input
-                            type="checkbox"
-                            id="status"
-                            name="status"
-                            checked={status === 1}
-                            onChange={() => setStatus(status === 1 ? 0 : 1)}
-                          />
-                          <span>Activo *</span>
-                        </label>
-                      </div>
-                      <div className="product-modal-form-group">
-                        <label> Se vende </label>
-                        <div className="product-modal-radio-group">
-                          <label>
-                            <input
-                              type="radio"
-                              name="saleType"
-                              value="Pieza"
-                              checked={saleType === "Pieza"}
-                              onChange={(e) => handleSaleTypeChange(e.target.value)}
-                            />
-                            Por pieza
-                          </label>
-                          <label>
-                            <input
-                              type="radio"
-                              name="saleType"
-                              value="Granel"
-                              checked={saleType === "Granel"}
-                              onChange={(e) => handleSaleTypeChange(e.target.value)}
-                            />
-                            A granel
-                          </label>
-                          <label>
-                            <input
-                              type="radio"
-                              name="saleType"
-                              value={OPEN_PRICE_SALE_TYPE}
-                              checked={isOpenPrice}
-                              onChange={(e) => handleSaleTypeChange(e.target.value)}
-                            />
-                            Precio Abierto
-                          </label>
-                        </div>
-                      </div>
+                    {/* Fila de 4 columnas: "Se vende" | Por pieza | A granel | Precio Abierto */}
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "auto 1fr 1fr 1fr",
+                        alignItems: "center",
+                        columnGap: "12px",
+                        margin: "8px 0",
+                      }}
+                    >
+                      <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "#374151", whiteSpace: "nowrap" }}>
+                        Se vende
+                      </span>
+                      <label style={{ display: "flex", alignItems: "center", gap: "6px", margin: 0, whiteSpace: "nowrap", cursor: "pointer" }}>
+                        <input
+                          type="radio"
+                          name="saleType"
+                          value="Pieza"
+                          checked={saleType === "Pieza"}
+                          onChange={(e) => handleSaleTypeChange(e.target.value)}
+                        />
+                        Por pieza
+                      </label>
+                      <label style={{ display: "flex", alignItems: "center", gap: "6px", margin: 0, whiteSpace: "nowrap", cursor: "pointer" }}>
+                        <input
+                          type="radio"
+                          name="saleType"
+                          value="Granel"
+                          checked={saleType === "Granel"}
+                          onChange={(e) => handleSaleTypeChange(e.target.value)}
+                        />
+                        A granel
+                      </label>
+                      <label style={{ display: "flex", alignItems: "center", gap: "6px", margin: 0, whiteSpace: "nowrap", cursor: "pointer" }}>
+                        <input
+                          type="radio"
+                          name="saleType"
+                          value={OPEN_PRICE_SALE_TYPE}
+                          checked={isOpenPrice}
+                          onChange={(e) => handleSaleTypeChange(e.target.value)}
+                        />
+                        Precio Abierto
+                      </label>
                     </div>
                     {isOpenPrice ? (
                       /* Precio Abierto: el precio y el costo no se definen en el
@@ -1301,40 +1330,64 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                     {/* Promoción: no aplica a Precio Abierto */}
                     {!isOpenPrice && (
                     <div className="promo-box">
-                      <label className="promo-toggle">
-                        <input
-                          type="checkbox"
-                          checked={isPromo}
-                          onChange={() => setIsPromo(!isPromo)}
-                        />
-                        <span>🎁 Producto en promoción</span>
-                      </label>
+                      {/* Todo en una fila: check + precio promo + válida hasta */}
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          alignItems: "flex-end",
+                          gap: "16px",
+                        }}
+                      >
+                        <label
+                          className="promo-toggle"
+                          style={{ margin: 0, whiteSpace: "nowrap", alignSelf: "center" }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isPromo}
+                            onChange={() => setIsPromo(!isPromo)}
+                          />
+                          <span>🎁 En promoción</span>
+                        </label>
+
+                        {isPromo && (
+                          <>
+                            <div
+                              className="promo-field"
+                              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+                            >
+                              <label htmlFor="promoPrice">Precio de promoción *</label>
+                              <input
+                                id="promoPrice"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={promoPrice}
+                                onChange={(e) => setPromoPrice(Number(e.target.value) || 0)}
+                                onFocus={(e) => e.target.select()}
+                                className={errors.promoPrice ? "error" : ""}
+                                placeholder="0"
+                              />
+                            </div>
+                            <div
+                              className="promo-field"
+                              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+                            >
+                              <label htmlFor="promoEndsAt">Válida hasta (opcional)</label>
+                              <input
+                                id="promoEndsAt"
+                                type="date"
+                                value={promoEndsAt}
+                                onChange={(e) => setPromoEndsAt(e.target.value)}
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
 
                       {isPromo && (
-                        <div className="promo-fields">
-                          <div className="promo-field">
-                            <label htmlFor="promoPrice">Precio de promoción *</label>
-                            <input
-                              id="promoPrice"
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={promoPrice}
-                              onChange={(e) => setPromoPrice(Number(e.target.value) || 0)}
-                              onFocus={(e) => e.target.select()}
-                              className={errors.promoPrice ? "error" : ""}
-                              placeholder="0"
-                            />
-                          </div>
-                          <div className="promo-field">
-                            <label htmlFor="promoEndsAt">Válida hasta (opcional)</label>
-                            <input
-                              id="promoEndsAt"
-                              type="date"
-                              value={promoEndsAt}
-                              onChange={(e) => setPromoEndsAt(e.target.value)}
-                            />
-                          </div>
+                        <>
                           {errors.promoPrice && (
                             <span className="product-modal-error-message">{errors.promoPrice}</span>
                           )}
@@ -1352,7 +1405,7 @@ const NewEditProductModal: React.FC<NewEditProductModalProps> = ({
                             }
                             return null;
                           })()}
-                        </div>
+                        </>
                       )}
                     </div>
                     )}

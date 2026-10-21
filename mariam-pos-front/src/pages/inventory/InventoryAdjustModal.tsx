@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import Button from "../../components/Button";
-import Card from "../../components/Card";
 import type { Inventory } from "../../types";
 import { updateStock } from "../../api/inventory";
 import Swal from "sweetalert2";
@@ -100,27 +98,29 @@ const InventoryAdjustModal: React.FC<InventoryAdjustModalProps> = ({
 
   return (
     <div className="modal-overlay">
-      <div className="modal-container-inventory">
-        <Card className="modal-card">
-          <div className="modal-header">
-            <h2>🔧 Ajustar Stock</h2>
-            <button className="close-btn" onClick={onClose}>
-              ×
-            </button>
+      <div className="inv-modal">
+        <div className="inv-modal-header">
+          <h2>🔧 Ajustar Stock</h2>
+          <button className="inv-modal-close" onClick={onClose} title="Cerrar">
+            ×
+          </button>
+        </div>
+
+        <div className="inv-modal-body">
+          <div className="inv-modal-product">
+            <span className="inv-modal-product-name">
+              {inventory.product?.name}
+            </span>
+            <span className="inv-modal-product-meta">
+              Código: {inventory.product?.code || "—"} · Stock actual:{" "}
+              <strong>{inventory.currentStock}</strong>
+            </span>
           </div>
 
-          <div className="modal-content">
-            <div className="product-info">
-              <h3>{inventory.product?.name}</h3>
-              <p>Código: {inventory.product?.code}</p>
-              <p>
-                Stock actual: <strong>{inventory.currentStock}</strong>
-              </p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="inventory-form">
-              <div className="form-group">
-                <label htmlFor="newStock">Nuevo Stock *</label>
+          <form onSubmit={handleSubmit} className="inv-form">
+            <div className="inv-form-row">
+              <div className="inv-field">
+                <label htmlFor="newStock">Nuevo stock *</label>
                 <input
                   ref={stockRef}
                   type="number"
@@ -133,8 +133,7 @@ const InventoryAdjustModal: React.FC<InventoryAdjustModalProps> = ({
                   placeholder="Ej: 50"
                 />
               </div>
-
-              <div className="form-group">
+              <div className="inv-field">
                 <label htmlFor="reason">Motivo del ajuste</label>
                 <select
                   id="reason"
@@ -148,48 +147,56 @@ const InventoryAdjustModal: React.FC<InventoryAdjustModalProps> = ({
                   <option value="Otro">Otro</option>
                 </select>
               </div>
+            </div>
 
-              <div className="form-group">
-                <label htmlFor="notes">Notas (opcional)</label>
-                <textarea
-                  id="notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={3}
-                  placeholder="Explicación del ajuste..."
-                />
-              </div>
+            <div className="inv-field">
+              <label htmlFor="notes">Notas (opcional)</label>
+              <textarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={2}
+                placeholder="Explicación del ajuste..."
+              />
+            </div>
 
-              <div className="form-preview">
-                <p>
-                  <strong>Diferencia:</strong>{" "}
-                  <span className={difference >= 0 ? "stock-positive" : "stock-negative"}>
-                    {difference > 0 ? "+" : ""}
-                    {difference} unidades
-                  </span>
-                </p>
-                <p>
-                  <strong>Nuevo stock:</strong>{" "}
-                  <span className="stock-preview">{newStock}</span>
-                </p>
-              </div>
+            {/* Resultado: diferencia + nuevo stock */}
+            <div
+              className={`inv-preview ${
+                difference >= 0 ? "inv-preview--add" : "inv-preview--remove"
+              }`}
+            >
+              <span>
+                Diferencia:{" "}
+                <strong>
+                  {difference > 0 ? "+" : ""}
+                  {difference}
+                </strong>
+              </span>
+              <span>
+                Nuevo stock: <strong>{newStock}</strong>
+              </span>
+            </div>
 
-              <div className="form-actions">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={onClose}
-                  disabled={loading}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit" variant="primary" disabled={loading}>
-                  {loading ? "Guardando..." : "Aplicar Ajuste"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </Card>
+            <div className="inv-form-actions">
+              <button
+                type="button"
+                className="inv-btn inv-btn--ghost"
+                onClick={onClose}
+                disabled={loading}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="inv-btn inv-btn--primary"
+                disabled={loading}
+              >
+                {loading ? "Guardando..." : "Aplicar ajuste"}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

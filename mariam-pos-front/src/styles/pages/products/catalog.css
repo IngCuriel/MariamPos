@@ -972,6 +972,52 @@
   text-transform: uppercase;
 }
 
+/* ===== Badge de modalidad de venta ===== */
+.prod-modality-badge {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+/* 📦 Presentaciones — azul */
+.prod-modality--pres {
+  color: #1d4ed8;
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+/* 🔢 Escalonado — violeta */
+.prod-modality--tiered {
+  color: #7c3aed;
+  background: #f5f3ff;
+  border-color: #ddd6fe;
+}
+
+/* 🏷️ Precio abierto — ámbar */
+.prod-modality--open {
+  color: #b45309;
+  background: #fffbeb;
+  border-color: #fcd34d;
+}
+
+/* ⚖️ Granel — verde */
+.prod-modality--bulk {
+  color: #047857;
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+/* 🧱 Pieza — gris */
+.prod-modality--piece {
+  color: #475569;
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
 .prod-price {
   font-weight: 800;
   color: #047857;
@@ -1064,4 +1110,23 @@
   font-weight: 600;
   color: #475569;
   white-space: nowrap;
+}
+
+/* Nombre de producto clickeable (abre sus presentaciones). */
+.prod-name--link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  text-align: left;
+  color: #1d4ed8;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  transition: text-decoration-color 0.15s;
+}
+
+.prod-name--link:hover {
+  text-decoration-color: #1d4ed8;
 }
