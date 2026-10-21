@@ -231,6 +231,18 @@ export const createPurchase = async (req, res) => {
           const productId = detail.productId;
           const quantity = parseFloat(detail.quantity);
 
+          // Actualizar el costo del producto con el ÚLTIMO costo comprado.
+          // El unitCost ya viene en unidad base (precio por pieza), igual
+          // que Product.cost. Se aplica aunque el producto no maneje
+          // inventario, porque el costo es relevante para cualquier producto.
+          const newUnitCost = parseFloat(detail.unitCost);
+          if (!Number.isNaN(newUnitCost) && newUnitCost > 0) {
+            await tx.product.update({
+              where: { id: productId },
+              data: { cost: newUnitCost },
+            });
+          }
+
           // Verificar si el producto tiene inventario
           const inventory = await tx.inventory.findUnique({
             where: { productId },
@@ -248,13 +260,14 @@ export const createPurchase = async (req, res) => {
               },
             });
 
-            // Crear movimiento de inventario
+            // Crear movimiento de inventario. Usamos el id de la compra
+            // (folio interno corto) en vez del folio largo autogenerado.
             await tx.inventoryMovement.create({
               data: {
                 productId,
                 type: "ENTRADA",
                 quantity,
-                reason: `Compra ${folio}`,
+                reason: `Compra #${newPurchase.id}`,
                 branch: branch || "Sucursal Default",
                 cashRegister: cashRegister || "Caja 1",
               },

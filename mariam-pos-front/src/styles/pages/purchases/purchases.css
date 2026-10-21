@@ -1,466 +1,1410 @@
-/* ===== PÁGINA DE COMPRAS ===== */
+/* ============================================================
+   🛒 MÓDULO DE COMPRAS — unificado con Clientes / Proveedores / Catálogo
+   Reutiliza las clases catalog-* (filtros, tabla, paginación)
+   y usa clases propias pur-* para el modal, sin pisar estilos
+   globales de otras pantallas.
+   ============================================================ */
 
 .purchases-page {
   width: 100%;
-  min-height: 100vh;
-  padding: 20px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px;
   background: var(--background-light, #f5f5f5);
+  box-sizing: border-box;
 }
 
-.purchases-container {
+.purchases-page .purchases-content {
   max-width: 1400px;
   margin: 0 auto;
-}
-
-.purchases-card {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-}
-
-.purchases-header {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  gap: 16px;
+  flex-direction: column;
+  gap: 0.6rem;
+  overflow-y: auto;
+}
+
+.purchases-page .catalog-filters-section {
+  flex-shrink: 0;
+}
+
+.purchases-page .catalog-actions-group {
+  flex: 0 0 auto;
+}
+
+/* El filtro de compras tiene 3 controles (proveedor, estado, buscar)
+   más el botón; damos un poco más de aire al buscador. */
+.purchases-page .catalog-filters {
   flex-wrap: wrap;
 }
 
-.filters-section {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap; 
-}
-
-.filter-select,
-.search-input {
-  padding: 10px 12px;
-  border: 2px solid #e5e7eb;
-  border-radius: 6px;
-  font-size: 1rem;
-  transition: border-color 0.2s;
-  font-family: inherit;
-}
-
-.filter-select {
-  min-width: 200px;
-}
-
-.search-input {
-  flex: 1;
-  min-width: 250px;
-}
-
-.filter-select:focus,
-.search-input:focus {
-  outline: none;
-  border-color: #3b82f6;
-}
-
-.purchases-table-container {
-  overflow-x: auto;
-  margin-bottom: 20px;
-}
-
-.purchases-table {
-  width: 100%;
-  border-collapse: collapse;
+.pur-add-btn {
+  flex-shrink: 0;
+  padding: 0.625rem 1rem;
   font-size: 0.9rem;
-}
-
-.purchases-table thead {
-  background: #f9fafb;
-  color: #374151;
-}
-
-.purchases-table th {
-  padding: 12px 16px;
-  text-align: left;
   font-weight: 600;
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 2px solid #e5e7eb;
+  color: white;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: 2px solid #047857;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
 }
 
-.purchases-table tbody tr {
-  border-bottom: 1px solid #e5e7eb;
-  transition: background-color 0.2s ease;
+.pur-add-btn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  border-color: #065f46;
+  transform: translateY(-1px);
 }
 
-.purchases-table tbody tr:hover {
-  background-color: #f9fafb;
-}
-
-.purchases-table td {
-  padding: 16px;
-  color: #1f2937;
-}
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 12px;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.status-badge.pending {
-  background-color: #fef3c7;
-  color: #92400e;
-}
-
-.status-badge.partial {
-  background-color: #dbeafe;
-  color: #1e40af;
-}
-
-.status-badge.paid {
-  background-color: #d1fae5;
-  color: #065f46;
-}
-
-.balance-info {
-  margin-top: 4px;
-  font-size: 0.85rem;
-  color: #6b7280;
-}
-
-.balance-label {
-  font-weight: 500;
-  margin-right: 4px;
-}
-
-.balance-amount {
-  font-weight: 700;
-  color: #dc2626;
-  margin-right: 4px;
-}
-
-.balance-percentage {
-  color: #f59e0b;
-  font-weight: 600;
-}
-
-.payment-progress {
-  margin-top: 8px;
+/* ── Card de la tabla: se ajusta a su contenido, scroll interno ── */
+.pur-table-card {
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  overflow: hidden;
 }
 
-.progress-bar {
+.pur-table-container {
+  max-height: calc(100vh - 290px);
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #eef2f7;
+}
+
+.pur-table-container::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+.pur-table-container::-webkit-scrollbar-track {
+  background: #eef2f7;
+}
+
+.pur-table-container::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border: 3px solid #eef2f7;
+  border-radius: 999px;
+  min-height: 48px;
+}
+
+.pur-table-container::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* ── Tabla de compras: mismo look que catálogo/clientes ──── */
+.pur-table {
   width: 100%;
-  height: 6px;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.pur-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #f1f5f9;
+  color: #334155;
+  font-weight: 700;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-align: left;
+  padding: 12px 16px;
+  white-space: nowrap;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.pur-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+  vertical-align: middle;
+}
+
+.pur-table tbody tr {
+  min-height: 52px;
+  transition: background 0.12s;
+}
+
+.pur-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.pur-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+/* Columna de número consecutivo. */
+.pur-th-num,
+.pur-td-num {
+  width: 48px;
+  text-align: center;
+  color: #94a3b8;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pur-folio {
+  font-weight: 700;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+.pur-th-right,
+.pur-td-right {
+  text-align: right;
+}
+
+.pur-total {
+  font-weight: 800;
+  color: #047857;
+  font-variant-numeric: tabular-nums;
+}
+
+.pur-table-state {
+  padding: 40px 16px !important;
+  text-align: center !important;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+/* Saldo pendiente debajo del total. */
+.pur-balance-info {
+  margin-top: 3px;
+  font-size: 0.78rem;
+  color: #6b7280;
+  display: flex;
+  gap: 5px;
+  justify-content: flex-end;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.pur-balance-amount {
+  font-weight: 700;
+  color: #dc2626;
+  font-variant-numeric: tabular-nums;
+}
+
+.pur-balance-pct {
+  color: #d97706;
+  font-weight: 600;
+}
+
+/* Badge de estado de pago. */
+.pur-status-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pur-status-badge--pending {
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+}
+
+.pur-status-badge--partial {
+  color: #1e40af;
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+}
+
+.pur-status-badge--paid {
+  color: #047857;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+}
+
+/* Barra de progreso de pago. */
+.pur-progress {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pur-progress-bar {
+  width: 100%;
+  height: 5px;
   background: #e5e7eb;
   border-radius: 3px;
   overflow: hidden;
 }
 
-.progress-fill {
+.pur-progress-fill {
   height: 100%;
   background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
   transition: width 0.3s ease;
 }
 
-.progress-text {
-  font-size: 0.75rem;
+.pur-progress-text {
+  font-size: 0.7rem;
   color: #6b7280;
   font-weight: 600;
 }
 
-.action-buttons {
+/* Acciones por fila. */
+.pur-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.purchases-pagination {
+.pur-action {
+  min-height: 40px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pur-action--view {
+  color: #1d4ed8;
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+.pur-action--view:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.pur-action--delete {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+.pur-action--delete:hover {
+  background: #fee2e2;
+}
+
+/* ── Footer con paginación (estilo catálogo) ──────────────── */
+.pur-footer-bar {
+  flex-shrink: 0;
   display: flex;
-  justify-content: center;
   align-items: center;
-  gap: 12px;
-  margin-top: 24px;
-  padding: 16px;
-  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.5rem 0;
 }
 
-.pagination-info {
-  padding: 8px 16px;
-  background: #f9fafb;
-  border-radius: 6px;
-  font-weight: 600;
-  color: #374151;
-  font-size: 0.95rem;
-}
-
-.purchases-pagination button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.purchases-summary {
-  padding: 16px;
-  background: #f9fafb;
-  border-radius: 8px;
+/* Estados vacíos / carga. */
+.purchases-page .loading,
+.purchases-page .no-results {
   text-align: center;
-  font-weight: 600;
-  color: #374151;
-}
-
-.loading,
-.no-results {
-  text-align: center;
-  padding: 60px 20px;
+  padding: 50px 20px;
   color: #6b7280;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
 }
 
-/* Modal de Compra */
-.purchase-modal {
-  max-width: 900px;
-  max-height: 90vh;
+@media (max-width: 768px) {
+  .pur-add-btn {
+    width: 100%;
+  }
+
+  .pur-table {
+    font-size: 0.875rem;
+  }
+
+  .pur-table th,
+  .pur-table td {
+    padding: 8px 10px;
+  }
+}
+
+/* ============================================================
+   🛒 MODAL NUEVA COMPRA — moderno, compacto, limpio
+   Clases propias pur-form-* para no heredar estilos globales.
+   ============================================================ */
+
+.pur-form-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.pur-form-panel {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.22);
+  overflow: hidden;
+  width: 97%;
+  max-width: 920px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  animation: purModalPop 0.16s ease-out;
+}
+
+@keyframes purModalPop {
+  from { transform: translateY(8px) scale(0.99); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.pur-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+
+.pur-form-header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.pur-form-close {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  line-height: 1;
+  color: #64748b;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.pur-form-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.pur-form {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   overflow-y: auto;
 }
 
-.purchase-form {
-  padding: 20px;
+/* Sección compacta. */
+.pur-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.search-wrapper {
+.pur-form-section-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.pur-form-section-title .section-icon {
+  font-size: 1rem;
+}
+
+.pur-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.pur-form-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.pur-form-required {
+  color: #dc2626;
+}
+
+.pur-form-group input,
+.pur-form-group select,
+.pur-form-group textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.92rem;
+  border: 1.5px solid #d1d5db;
+  border-radius: 9px;
+  background: #fff;
+  color: #0f172a;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.pur-form-group input:focus,
+.pur-form-group select:focus,
+.pur-form-group textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.pur-form-group textarea {
+  resize: vertical;
+  min-height: 48px;
+}
+
+.pur-field-hint {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* Filas de 2 / 3 columnas. */
+.pur-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.pur-form-row--3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+/* Buscador de producto con resultados flotantes. */
+.pur-search-wrap {
   position: relative;
 }
 
-.search-results {
+.pur-search-results {
   position: absolute;
   top: 100%;
   left: 0;
   right: 0;
   background: white;
   border: 1px solid #e5e7eb;
-  border-radius: 6px;
+  border-radius: 9px;
   margin-top: 4px;
-  max-height: 200px;
+  max-height: 220px;
   overflow-y: auto;
-  z-index: 1000;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
 }
 
-.search-result-item {
-  padding: 12px;
+.pur-search-item {
+  padding: 10px 12px;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
   border-bottom: 1px solid #f3f4f6;
-  transition: background-color 0.2s;
+  transition: background-color 0.12s;
 }
 
-.search-result-item:hover {
-  background-color: #f0fdf4;
+.pur-search-item:hover {
+  background-color: #ecfdf5;
 }
 
-.search-result-item:last-child {
+.pur-search-item:last-child {
   border-bottom: none;
 }
 
-.product-code {
-  font-weight: 600;
+.pur-search-code {
+  font-weight: 700;
   color: #6b7280;
-  font-size: 0.875rem;
-  min-width: 80px;
+  font-size: 0.8rem;
+  min-width: 70px;
 }
 
-.product-name {
+.pur-search-name {
   flex: 1;
   color: #1f2937;
+  font-size: 0.9rem;
 }
 
-.product-cost {
+.pur-search-cost {
   font-weight: 700;
   color: #059669;
+  font-variant-numeric: tabular-nums;
 }
 
-.details-section {
-  margin: 24px 0;
+/* Tabla de detalle de productos. */
+.pur-details-table-wrap {
+  border: 1px solid #e5e7eb;
+  border-radius: 9px;
+  overflow: auto;
+  max-height: 260px;
 }
 
-.details-section h3 {
-  margin-bottom: 12px;
+.pur-details-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.pur-details-table thead th {
+  position: sticky;
+  top: 0;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid #e5e7eb;
+  z-index: 1;
+}
+
+.pur-details-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1f2937;
+  vertical-align: middle;
+}
+
+.pur-details-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.pur-details-table input {
+  width: 100%;
+  max-width: 100px;
+  padding: 5px 8px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 7px;
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.pur-details-table input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.pur-detail-subtotal {
+  font-weight: 700;
+  color: #047857;
+  font-variant-numeric: tabular-nums;
+}
+
+.pur-detail-remove {
+  min-height: 34px;
+  padding: 4px 10px;
+  font-size: 0.9rem;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.pur-detail-remove:hover {
+  background: #fee2e2;
+}
+
+/* Sección de pago (destacada). */
+.pur-pay-section {
+  padding: 12px 14px;
+  background: #f0fdf4;
+  border: 1px solid #a7f3d0;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pur-pay-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: white;
+  border-radius: 9px;
+  border: 1px solid #d1fae5;
+}
+
+.pur-pay-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.pur-pay-label {
+  font-weight: 600;
+  color: #374151;
+}
+
+.pur-pay-value {
+  font-weight: 700;
   color: #1f2937;
 }
 
-.details-table-container {
-  overflow-x: auto;
+.pur-pay-value--paid { color: #059669; }
+.pur-pay-value--pending { color: #dc2626; }
+.pur-pay-value--pct-paid { color: #3b82f6; }
+.pur-pay-value--pct-pending { color: #d97706; }
+
+/* Totales. */
+.pur-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background: #f8fafc;
   border: 1px solid #e5e7eb;
-  border-radius: 6px;
+  border-radius: 10px;
 }
 
-.details-table {
+.pur-total-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  color: #374151;
+}
+
+.pur-total-item--final {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #1e40af;
+  padding-top: 8px;
+  margin-top: 4px;
+  border-top: 1.5px solid #e2e8f0;
+}
+
+/* Acciones (sticky al pie). */
+.pur-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 14px 20px;
+  border-top: 1px solid #e5e7eb;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.pur-btn {
+  min-height: 44px;
+  padding: 0.55rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border-radius: 9px;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pur-btn--ghost {
+  background: #fff;
+  border-color: #d1d5db;
+  color: #374151;
+}
+.pur-btn--ghost:hover {
+  background: #f3f4f6;
+}
+
+.pur-btn--success {
+  background: #059669;
+  color: #fff;
+}
+.pur-btn--success:hover {
+  background: #047857;
+}
+
+@media (max-width: 640px) {
+  .pur-form-row,
+  .pur-form-row--3 {
+    grid-template-columns: 1fr;
+  }
+
+  .pur-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .pur-form-actions .pur-btn {
+    width: 100%;
+  }
+}
+
+/* ============================================================
+   👁️ MODAL DETALLE DE COMPRA — amplio, con productos + PDF
+   ============================================================ */
+
+.pur-detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.pur-detail-modal {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.22);
+  overflow: hidden;
+  width: 97%;
+  max-width: 980px;
+  /* Altura generosa y fija en viewport: el body (flex:1) reparte el
+     espacio y la tabla de productos crece para mostrar muchas filas. */
+  height: 90vh;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  animation: purModalPop 0.16s ease-out;
+}
+
+.pur-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+
+.pur-detail-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pur-detail-title h1 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.pur-detail-body {
+  padding: 12px 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Grid de datos generales — compacto, 4 columnas, no se encoge */
+.pur-detail-info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pur-detail-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 9px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+}
+
+.pur-detail-info-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.pur-detail-info-value {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pur-detail-section-title {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+/* Tabla de productos — protagonista: ocupa el espacio disponible */
+.pur-detail-table-wrap {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: auto;
+  flex: 1;
+  min-height: 140px;
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #eef2f7;
+}
+
+.pur-detail-table-wrap::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+.pur-detail-table-wrap::-webkit-scrollbar-track {
+  background: #eef2f7;
+}
+.pur-detail-table-wrap::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border: 3px solid #eef2f7;
+  border-radius: 999px;
+}
+
+.pur-detail-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
 }
 
-.details-table thead {
-  background: #f9fafb;
-}
-
-.details-table th {
-  padding: 10px 12px;
+.pur-detail-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
   text-align: left;
-  font-weight: 600;
-  font-size: 0.875rem;
-  border-bottom: 2px solid #e5e7eb;
-}
-
-.details-table td {
-  padding: 12px;
+  padding: 7px 12px;
   border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
 }
 
-.details-table input {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  font-size: 0.9rem;
-}
-
-.quantity-input,
-.cost-input,
-.discount-input {
-  max-width: 100px;
-}
-
-.totals-section {
-  margin: 24px 0;
-  padding: 20px;
-  background: #f9fafb;
-  border-radius: 8px;
-}
-
-.totals-display {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 2px solid #e5e7eb;
-}
-
-.total-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 0;
-  font-size: 1rem;
-}
-
-.total-item.total-final {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1e40af;
-  padding-top: 12px;
-  border-top: 2px solid #e5e7eb;
-  margin-top: 8px;
-}
-
-/* Sección de Pago */
-.payment-section {
-  margin: 24px 0;
-  padding: 20px;
-  background: #f0fdf4;
-  border-radius: 8px;
-  border: 2px solid #86efac;
-}
-
-.payment-section-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 20px 0;
-  font-size: 1.125rem;
-  font-weight: 700;
+.pur-detail-table td {
+  padding: 6px 12px;
+  border-bottom: 1px solid #f1f5f9;
   color: #1f2937;
-  padding-bottom: 12px;
-  border-bottom: 2px solid #86efac;
+  vertical-align: middle;
 }
 
-.payment-summary {
-  margin-top: 16px;
-  padding: 16px;
-  background: white;
-  border-radius: 8px;
-  border: 1px solid #d1fae5;
-}
-
-.payment-summary-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.payment-summary-item:last-child {
+.pur-detail-table tbody tr:last-child td {
   border-bottom: none;
 }
 
-.payment-label {
-  font-weight: 600;
-  color: #374151;
-  font-size: 0.95rem;
+.pur-detail-table tbody tr:hover {
+  background: #f8fafc;
 }
 
-.payment-value {
+.pur-detail-prod-name {
   font-weight: 700;
+  color: #0f172a;
+}
+
+/* Resumen de totales: alineado a la derecha, no se encoge */
+.pur-detail-summary {
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.pur-detail-summary .pur-totals {
+  width: 300px;
+  max-width: 100%;
+  padding: 8px 12px;
+  gap: 2px;
+}
+
+.pur-detail-summary .pur-total-item {
+  font-size: 0.85rem;
+}
+
+.pur-detail-summary .pur-total-item--final {
+  font-size: 1.05rem;
+  padding-top: 6px;
+  margin-top: 3px;
+}
+
+/* Notas — compactas */
+.pur-detail-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 10px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.pur-detail-notes p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #78350f;
+}
+
+/* Botón PDF */
+.pur-btn--pdf {
+  background: #dc2626;
+  color: #fff;
+}
+.pur-btn--pdf:hover {
+  background: #b91c1c;
+}
+
+@media (max-width: 720px) {
+  .pur-detail-info-grid {
+    grid-template-columns: 1fr;
+  }
+  .pur-detail-summary .pur-totals {
+    width: 100%;
+  }
+}
+
+/* ============================================================
+   🛒 MODAL NUEVA COMPRA — PANTALLA COMPLETA estilo POS
+   Columna izquierda: productos (protagonista). Derecha: datos + totales.
+   ============================================================ */
+
+.pur-pos-overlay {
+  position: fixed;
+  inset: 0;
+  background: #0f172a;
+  z-index: 1100;
+  display: flex;
+}
+
+.pur-pos {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #f1f5f9;
+  min-height: 0;
+}
+
+/* Header */
+.pur-pos-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.pur-pos-header h1 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.pur-pos-close {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.pur-pos-close:hover {
+  background: #fee2e2;
+}
+
+/* Cuerpo: 2 columnas */
+.pur-pos-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 12px;
+  padding: 12px;
+}
+
+/* ===== Columna de productos (protagonista) ===== */
+.pur-pos-main {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+/* Buscador grande */
+.pur-pos-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.pur-pos-search-icon {
+  position: absolute;
+  left: 14px;
   font-size: 1.1rem;
+  pointer-events: none;
+}
+
+.pur-pos-search input {
+  width: 100%;
+  padding: 0.8rem 1rem 0.8rem 2.6rem;
+  font-size: 1rem;
+  border: 2px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.pur-pos-search input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.pur-pos-search-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+  z-index: 20;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+}
+
+.pur-pos-search-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.12s;
+}
+
+.pur-pos-search-item:hover {
+  background-color: #ecfdf5;
+}
+
+.pur-pos-search-item:last-child {
+  border-bottom: none;
+}
+
+.pur-pos-search-code {
+  font-weight: 700;
+  color: #6b7280;
+  font-size: 0.82rem;
+  min-width: 80px;
+}
+
+.pur-pos-search-name {
+  flex: 1;
   color: #1f2937;
+  font-weight: 600;
 }
 
-.payment-value.paid {
+.pur-pos-search-pres {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.pur-pos-search-cost {
+  font-weight: 700;
   color: #059669;
+  font-variant-numeric: tabular-nums;
 }
 
-.payment-value.pending {
-  color: #dc2626;
+/* Lista de productos: ocupa todo el alto disponible */
+.pur-pos-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #eef2f7;
 }
 
-.payment-value.percentage-paid {
-  color: #3b82f6;
+.pur-pos-list::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+.pur-pos-list::-webkit-scrollbar-track {
+  background: #eef2f7;
+}
+.pur-pos-list::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border: 3px solid #eef2f7;
+  border-radius: 999px;
 }
 
-.payment-value.percentage-pending {
-  color: #f59e0b;
+.pur-pos-empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #94a3b8;
+  text-align: center;
+  padding: 40px;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .purchases-page {
-    padding: 10px;
-  }
-
-  .purchases-header {
-    flex-direction: column;
-  }
-
-  .filters-section {
-    width: 100%;
-  }
-
-  .filter-select,
-  .search-input {
-    width: 100%;
-  }
-
-  .purchases-table {
-    font-size: 0.8rem;
-  }
-
-  .purchases-table th,
-  .purchases-table td {
-    padding: 8px;
-  }
+.pur-pos-empty-icon {
+  font-size: 3rem;
 }
 
+.pur-pos-empty p {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.pur-pos-empty small {
+  max-width: 420px;
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+/* Tabla de líneas */
+.pur-pos-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.pur-pos-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-align: left;
+  padding: 9px 10px;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.pur-pos-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1f2937;
+  vertical-align: middle;
+}
+
+.pur-pos-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.pur-pos-prod {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 160px;
+}
+
+.pur-pos-prod-name {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.pur-pos-prod-code {
+  font-size: 0.74rem;
+  color: #94a3b8;
+}
+
+.pur-pos-pres-select {
+  padding: 5px 8px;
+  border: 1.5px solid #bfdbfe;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1d4ed8;
+  background: #eff6ff;
+  cursor: pointer;
+  min-width: 130px;
+}
+
+.pur-pos-pres-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.pur-pos-pres-base {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.pur-pos-input {
+  width: 92px;
+  padding: 5px 8px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 7px;
+  font-size: 0.86rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pur-pos-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.pur-pos-base-hint {
+  display: block;
+  font-size: 0.7rem;
+  color: #059669;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.pur-pos-remove {
+  min-height: 34px;
+  padding: 4px 10px;
+  font-size: 0.95rem;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.pur-pos-remove:hover {
+  background: #fee2e2;
+}
+
+/* ===== Panel derecho ===== */
+.pur-pos-side {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.pur-pos-side-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px;
+}
+
+.pur-pos-side-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Footer del panel: ajustes + totales + acciones (fijo) */
+.pur-pos-side-footer {
+  flex-shrink: 0;
+  border-top: 1px solid #e5e7eb;
+  background: #f8fafc;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pur-pos-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.pur-pos-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.pur-pos-actions .pur-btn {
+  flex: 1;
+}
+
+.pur-pos-save {
+  flex: 2 !important;
+}
+
+.pur-pos-save:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Responsive: en pantallas chicas, el panel pasa abajo */
+@media (max-width: 900px) {
+  .pur-pos-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+    overflow-y: auto;
+  }
+
+  .pur-pos-main {
+    min-height: 320px;
+  }
+
+  .pur-pos-side {
+    max-height: none;
+  }
+}

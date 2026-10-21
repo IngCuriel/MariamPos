@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Header from "../../components/Header";
 import Card from "../../components/Card";
-import Button from "../../components/Button";
 import type { AccountPayable, Supplier } from "../../types";
 import {
   getAccountPayables,
@@ -11,11 +10,15 @@ import {
 import { getSuppliers } from "../../api/suppliers";
 import PaymentModal from "./PaymentModal";
 import Swal from "sweetalert2";
+// Reutilizamos los estilos de layout del catálogo (filtros, tabla, paginación).
+import "../../styles/pages/products/catalog.css";
 import "../../styles/pages/accountPayables/accountPayables.css";
 
 interface AccountPayablesPageProps {
   onBack: () => void;
 }
+
+const ITEMS_PER_PAGE = 25;
 
 const AccountPayablesPage: React.FC<AccountPayablesPageProps> = ({ onBack }) => {
   const [accountPayables, setAccountPayables] = useState<AccountPayable[]>([]);
@@ -25,7 +28,6 @@ const AccountPayablesPage: React.FC<AccountPayablesPageProps> = ({ onBack }) => 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<AccountPayable | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(50);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [filters, setFilters] = useState({
@@ -36,8 +38,12 @@ const AccountPayablesPage: React.FC<AccountPayablesPageProps> = ({ onBack }) => 
 
   useEffect(() => {
     fetchSuppliers();
+  }, []);
+
+  useEffect(() => {
     fetchSummary();
     fetchAccountPayables();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, filters]);
 
   const fetchSuppliers = async () => {
@@ -65,7 +71,7 @@ const AccountPayablesPage: React.FC<AccountPayablesPageProps> = ({ onBack }) => 
     try {
       const response = await getAccountPayables(
         currentPage,
-        itemsPerPage,
+        ITEMS_PER_PAGE,
         filters.supplierId ? parseInt(filters.supplierId) : undefined,
         filters.status || undefined,
         filters.overdue
@@ -75,14 +81,15 @@ const AccountPayablesPage: React.FC<AccountPayablesPageProps> = ({ onBack }) => 
       setTotalPages(response.pagination.totalPages);
     } catch (error) {
       console.error("Error fetching account payables:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "No se pudieron cargar las cuentas por pagar",
-      });
+      Swal.fire({ icon: "error", title: "Error", text: "No se pudieron cargar las cuentas por pagar" });
     } finally {
       setLoading(false);
     }
+  };
+
+  const updateFilter = (patch: Partial<typeof filters>) => {
+    setCurrentPage(1);
+    setFilters((prev) => ({ ...prev, ...patch }));
   };
 
   const handlePayment = (account: AccountPayable) => {
@@ -93,11 +100,7 @@ const AccountPayablesPage: React.FC<AccountPayablesPageProps> = ({ onBack }) => 
   const handlePaymentSuccess = async () => {
     await fetchAccountPayables();
     await fetchSummary();
-    Swal.fire({
-      icon: "success",
-      title: "¡Éxito!",
-      text: "Pago registrado correctamente",
-    });
+    Swal.fire({ icon: "success", title: "¡Éxito!", text: "Pago registrado correctamente" });
   };
 
   const handleDelete = async (id: number) => {
@@ -113,11 +116,7 @@ const AccountPayablesPage: React.FC<AccountPayablesPageProps> = ({ onBack }) => 
     if (result.isConfirmed) {
       try {
         await deleteAccountPayable(id);
-        Swal.fire({
-          icon: "success",
-          title: "¡Éxito!",
-          text: "Cuenta por pagar eliminada correctamente",
-        });
+        Swal.fire({ icon: "success", title: "¡Éxito!", text: "Cuenta por pagar eliminada correctamente" });
         fetchAccountPayables();
         fetchSummary();
       } catch (error: any) {
@@ -136,213 +135,199 @@ const AccountPayablesPage: React.FC<AccountPayablesPageProps> = ({ onBack }) => 
     const today = new Date();
     const isOverdue = due < today && status !== "PAID";
 
-    const statusMap: Record<string, { label: string; class: string }> = {
-      PENDING: { label: isOverdue ? "Vencida" : "Pendiente", class: isOverdue ? "overdue" : "pending" },
-      PARTIAL: { label: isOverdue ? "Vencida (Parcial)" : "Parcial", class: isOverdue ? "overdue" : "partial" },
-      PAID: { label: "Pagada", class: "paid" },
-      OVERDUE: { label: "Vencida", class: "overdue" },
+    const statusMap: Record<string, { label: string; cls: string }> = {
+      PENDING: {
+        label: isOverdue ? "Vencida" : "Pendiente",
+        cls: isOverdue ? "ap-status-badge--overdue" : "ap-status-badge--pending",
+      },
+      PARTIAL: {
+        label: isOverdue ? "Vencida (Parcial)" : "Parcial",
+        cls: isOverdue ? "ap-status-badge--overdue" : "ap-status-badge--partial",
+      },
+      PAID: { label: "Pagada", cls: "ap-status-badge--paid" },
+      OVERDUE: { label: "Vencida", cls: "ap-status-badge--overdue" },
     };
-    return statusMap[status] || { label: status, class: "" };
+    return statusMap[status] || { label: status, cls: "" };
   };
 
   const formatDate = (date: Date | string) => {
     const d = typeof date === "string" ? new Date(date) : date;
-    return d.toLocaleDateString("es-MX", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
+    return d.toLocaleDateString("es-MX", { year: "numeric", month: "2-digit", day: "2-digit" });
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("es-MX", {
-      style: "currency",
-      currency: "MXN",
-    }).format(amount);
-  };
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(amount || 0);
 
   return (
     <div className="account-payables-page">
-      <Header title="💳 Cuentas por Pagar" onBack={onBack} backText="← Volver" />
+      <Header title="💳 Cuentas por Pagar" onBack={onBack} backText="← Volver al Menú Principal" />
 
-      <div className="account-payables-container">
+      <div className="catalog-content ap-content">
+        {/* Resumen compacto en chips */}
         {summary && (
-          <div className="summary-cards">
-            <Card className="summary-card">
-              <div className="summary-label">Total Pendiente</div>
-              <div className="summary-value">{formatCurrency(summary.total.balance)}</div>
-              <div className="summary-count">{summary.total.count} cuenta(s)</div>
-            </Card>
-            <Card className="summary-card pending">
-              <div className="summary-label">Pendientes</div>
-              <div className="summary-value">{formatCurrency(summary.pending.balance)}</div>
-              <div className="summary-count">{summary.pending.count} cuenta(s)</div>
-            </Card>
-            <Card className="summary-card partial">
-              <div className="summary-label">Parciales</div>
-              <div className="summary-value">{formatCurrency(summary.partial.balance)}</div>
-              <div className="summary-count">{summary.partial.count} cuenta(s)</div>
-            </Card>
-            <Card className="summary-card overdue">
-              <div className="summary-label">Vencidas</div>
-              <div className="summary-value">{formatCurrency(summary.overdue.balance)}</div>
-              <div className="summary-count">{summary.overdue.count} cuenta(s)</div>
-            </Card>
+          <div className="ap-summary">
+            <div className="ap-summary-chip ap-summary-chip--total">
+              <span className="ap-summary-label">Total pendiente</span>
+              <span className="ap-summary-value">{formatCurrency(summary.total.balance)}</span>
+              <span className="ap-summary-count">{summary.total.count} cuenta(s)</span>
+            </div>
+            <div className="ap-summary-chip ap-summary-chip--pending">
+              <span className="ap-summary-label">Pendientes</span>
+              <span className="ap-summary-value">{formatCurrency(summary.pending.balance)}</span>
+              <span className="ap-summary-count">{summary.pending.count} cuenta(s)</span>
+            </div>
+            <div className="ap-summary-chip ap-summary-chip--partial">
+              <span className="ap-summary-label">Parciales</span>
+              <span className="ap-summary-value">{formatCurrency(summary.partial.balance)}</span>
+              <span className="ap-summary-count">{summary.partial.count} cuenta(s)</span>
+            </div>
+            <div className="ap-summary-chip ap-summary-chip--overdue">
+              <span className="ap-summary-label">Vencidas</span>
+              <span className="ap-summary-value">{formatCurrency(summary.overdue.balance)}</span>
+              <span className="ap-summary-count">{summary.overdue.count} cuenta(s)</span>
+            </div>
           </div>
         )}
 
-        <Card className="account-payables-card">
-          <div className="account-payables-header">
-            <div className="filters-section">
+        {/* Sección de Filtros (mismo bloque que el catálogo) */}
+        <Card className="catalog-filters-section">
+          <div className="catalog-filters">
+            <div className="catalog-filter-group">
+              <label className="catalog-filter-label">Proveedor</label>
               <select
-                className="filter-select"
+                className="catalog-category-select"
                 value={filters.supplierId}
-                onChange={(e) => setFilters({ ...filters, supplierId: e.target.value })}
+                onChange={(e) => updateFilter({ supplierId: e.target.value })}
               >
-                <option value="">Todos los proveedores</option>
+                <option value="">Todos</option>
                 {suppliers.map((supplier) => (
                   <option key={supplier.id} value={supplier.id}>
                     {supplier.name}
                   </option>
                 ))}
               </select>
+            </div>
 
+            <div className="catalog-filter-group">
+              <label className="catalog-filter-label">Estado</label>
               <select
-                className="filter-select"
+                className="catalog-category-select"
                 value={filters.status}
-                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                onChange={(e) => updateFilter({ status: e.target.value })}
               >
-                <option value="">Todos los estados</option>
+                <option value="">Todos</option>
                 <option value="PENDING">Pendiente</option>
                 <option value="PARTIAL">Parcial</option>
                 <option value="OVERDUE">Vencida</option>
               </select>
+            </div>
 
-              <label className="filter-checkbox">
+            <div className="catalog-filter-group catalog-actions-group">
+              <label className="ap-filter-checkbox">
                 <input
                   type="checkbox"
                   checked={filters.overdue}
-                  onChange={(e) => setFilters({ ...filters, overdue: e.target.checked })}
+                  onChange={(e) => updateFilter({ overdue: e.target.checked })}
                 />
                 <span>Solo vencidas</span>
               </label>
             </div>
           </div>
-
-          {loading ? (
-            <div className="loading">Cargando...</div>
-          ) : accountPayables.length === 0 ? (
-            <div className="no-results">No se encontraron cuentas por pagar pendientes</div>
-          ) : (
-            <>
-              <div className="account-payables-table-container">
-                <table className="account-payables-table">
-                  <thead>
-                    <tr>
-                      <th>Proveedor</th>
-                      <th>Monto</th>
-                      <th>Pagado</th>
-                      <th>Saldo</th>
-                      <th>Vencimiento</th>
-                      <th>Estado</th>
-                      <th>Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {accountPayables.map((account) => {
-                      const statusInfo = getStatusBadge(account.status, account.dueDate);
-                      return (
-                        <tr key={account.id}>
-                          <td>
-                            <strong>{account.supplier?.name || "N/A"}</strong>
-                            {account.purchase && (
-                              <div className="purchase-info">Compra: {account.purchase.folio}</div>
-                            )}
-                          </td>
-                          <td>{formatCurrency(account.amount)}</td>
-                          <td>{formatCurrency(account.paidAmount)}</td>
-                          <td>
-                            <strong>{formatCurrency(account.balance)}</strong>
-                          </td>
-                          <td>{formatDate(account.dueDate)}</td>
-                          <td>
-                            <span className={`status-badge ${statusInfo.class}`}>
-                              {statusInfo.label}
-                            </span>
-                          </td>
-                          <td>
-                            <div className="action-buttons">
-                              <Button
-                                variant="primary"
-                                size="small"
-                                onClick={() => handlePayment(account)}
-                              >
-                                💰 Pagar
-                              </Button>
-                              <Button
-                                variant="danger"
-                                size="small"
-                                onClick={() => handleDelete(account.id)}
-                              >
-                                🗑️ Eliminar
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {totalPages > 1 && (
-                <div className="account-payables-pagination">
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    onClick={() => setCurrentPage(1)}
-                    disabled={currentPage === 1}
-                  >
-                    ⏮️ Primera
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    ◀️ Anterior
-                  </Button>
-                  <span className="pagination-info">
-                    Página {currentPage} de {totalPages}
-                  </span>
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    Siguiente ▶️
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    onClick={() => setCurrentPage(totalPages)}
-                    disabled={currentPage === totalPages}
-                  >
-                    Última ⏭️
-                  </Button>
-                </div>
-              )}
-
-              <div className="account-payables-summary">
-                <span>
-                  Mostrando {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalItems)} de {totalItems.toLocaleString('es-MX')} cuenta(s) pendiente(s)
-                </span>
-              </div>
-            </>
-          )}
         </Card>
+
+        {/* Tabla de cuentas por pagar */}
+        <Card className="catalog-table-card ap-table-card">
+          <div className="ap-table-container">
+            {loading ? (
+              <div className="loading">Cargando...</div>
+            ) : accountPayables.length === 0 ? (
+              <div className="no-results">No se encontraron cuentas por pagar pendientes</div>
+            ) : (
+              <table className="ap-table">
+                <thead>
+                  <tr>
+                    <th>Proveedor</th>
+                    <th className="ap-th-right">Monto</th>
+                    <th className="ap-th-right">Pagado</th>
+                    <th className="ap-th-right">Saldo</th>
+                    <th>Vencimiento</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {accountPayables.map((account) => {
+                    const statusInfo = getStatusBadge(account.status, account.dueDate);
+                    return (
+                      <tr key={account.id}>
+                        <td>
+                          <span className="ap-supplier-name">{account.supplier?.name || "N/A"}</span>
+                          {account.purchase && (
+                            <div className="ap-purchase-info">Compra #{account.purchase.id}</div>
+                          )}
+                        </td>
+                        <td className="ap-td-right ap-money">{formatCurrency(account.amount)}</td>
+                        <td className="ap-td-right ap-money">{formatCurrency(account.paidAmount)}</td>
+                        <td className="ap-td-right">
+                          <span className="ap-balance">{formatCurrency(account.balance)}</span>
+                        </td>
+                        <td>{formatDate(account.dueDate)}</td>
+                        <td>
+                          <span className={`ap-status-badge ${statusInfo.cls}`}>
+                            {statusInfo.label}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="ap-actions">
+                            <button
+                              type="button"
+                              className="ap-action ap-action--pay"
+                              onClick={() => handlePayment(account)}
+                            >
+                              💰 Pagar
+                            </button>
+                            <button
+                              type="button"
+                              className="ap-action ap-action--delete"
+                              onClick={() => handleDelete(account.id)}
+                            >
+                              🗑️ Eliminar
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </Card>
+
+        {/* Footer con paginación */}
+        {totalItems > 0 && (
+          <div className="ap-footer-bar">
+            <button
+              type="button"
+              className="prod-page-btn"
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              ← Anterior
+            </button>
+            <span className="prod-page-info">
+              Página {currentPage} de {totalPages} · {totalItems.toLocaleString("es-MX")} cuenta(s)
+            </span>
+            <button
+              type="button"
+              className="prod-page-btn"
+              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages || totalPages === 0}
+            >
+              Siguiente →
+            </button>
+          </div>
+        )}
       </div>
 
       {showPaymentModal && selectedAccount && (
@@ -361,4 +346,3 @@ const AccountPayablesPage: React.FC<AccountPayablesPageProps> = ({ onBack }) => 
 };
 
 export default AccountPayablesPage;
-

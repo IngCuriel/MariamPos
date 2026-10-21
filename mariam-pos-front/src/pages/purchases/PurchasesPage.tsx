@@ -1,25 +1,30 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Header from "../../components/Header";
 import Card from "../../components/Card";
-import Button from "../../components/Button";
 import type { Purchase, Supplier } from "../../types";
 import { getPurchases, deletePurchase } from "../../api/purchases";
 import { getSuppliers } from "../../api/suppliers";
 import PurchaseModal from "./PurchaseModal";
+import PurchaseDetailModal from "./PurchaseDetailModal";
 import Swal from "sweetalert2";
+// Reutilizamos los estilos de layout del catálogo (filtros, tabla, paginación)
+// para unificar el diseño con el resto de las pantallas del sistema.
+import "../../styles/pages/products/catalog.css";
 import "../../styles/pages/purchases/purchases.css";
 
 interface PurchasesPageProps {
   onBack: () => void;
 }
 
+const ITEMS_PER_PAGE = 25;
+
 const PurchasesPage: React.FC<PurchasesPageProps> = ({ onBack }) => {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [detailPurchase, setDetailPurchase] = useState<Purchase | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(50);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [filters, setFilters] = useState({
@@ -28,9 +33,15 @@ const PurchasesPage: React.FC<PurchasesPageProps> = ({ onBack }) => {
     search: "",
   });
 
+  const searchRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     fetchSuppliers();
+  }, []);
+
+  useEffect(() => {
     fetchPurchases();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, filters]);
 
   const fetchSuppliers = async () => {
@@ -47,7 +58,7 @@ const PurchasesPage: React.FC<PurchasesPageProps> = ({ onBack }) => {
     try {
       const response = await getPurchases(
         currentPage,
-        itemsPerPage,
+        ITEMS_PER_PAGE,
         filters.supplierId ? parseInt(filters.supplierId) : undefined,
         filters.paymentStatus || undefined,
         undefined,
@@ -59,23 +70,20 @@ const PurchasesPage: React.FC<PurchasesPageProps> = ({ onBack }) => {
       setTotalPages(response.pagination.totalPages);
     } catch (error) {
       console.error("Error fetching purchases:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "No se pudieron cargar las compras",
-      });
+      Swal.fire({ icon: "error", title: "Error", text: "No se pudieron cargar las compras" });
     } finally {
       setLoading(false);
     }
   };
 
+  const updateFilter = (patch: Partial<typeof filters>) => {
+    setCurrentPage(1);
+    setFilters((prev) => ({ ...prev, ...patch }));
+  };
+
   const handleSave = async () => {
     await fetchPurchases();
-    Swal.fire({
-      icon: "success",
-      title: "¡Éxito!",
-      text: "Compra registrada correctamente",
-    });
+    Swal.fire({ icon: "success", title: "¡Éxito!", text: "Compra registrada correctamente" });
   };
 
   const handleDelete = async (id: number) => {
@@ -91,11 +99,7 @@ const PurchasesPage: React.FC<PurchasesPageProps> = ({ onBack }) => {
     if (result.isConfirmed) {
       try {
         await deletePurchase(id);
-        Swal.fire({
-          icon: "success",
-          title: "¡Éxito!",
-          text: "Compra eliminada correctamente",
-        });
+        Swal.fire({ icon: "success", title: "¡Éxito!", text: "Compra eliminada correctamente" });
         fetchPurchases();
       } catch (error: any) {
         console.error("Error deleting purchase:", error);
@@ -109,246 +113,216 @@ const PurchasesPage: React.FC<PurchasesPageProps> = ({ onBack }) => {
   };
 
   const getPaymentStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; class: string }> = {
-      PENDING: { label: "Pendiente", class: "pending" },
-      PARTIAL: { label: "Parcial", class: "partial" },
-      PAID: { label: "Pagado", class: "paid" },
+    const statusMap: Record<string, { label: string; cls: string }> = {
+      PENDING: { label: "Pendiente", cls: "pur-status-badge--pending" },
+      PARTIAL: { label: "Parcial", cls: "pur-status-badge--partial" },
+      PAID: { label: "Pagado", cls: "pur-status-badge--paid" },
     };
-    return statusMap[status] || { label: status, class: "" };
+    return statusMap[status] || { label: status, cls: "" };
   };
 
   const formatDate = (date: Date | string) => {
     const d = typeof date === "string" ? new Date(date) : date;
-    return d.toLocaleDateString("es-MX", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
+    return d.toLocaleDateString("es-MX", { year: "numeric", month: "2-digit", day: "2-digit" });
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("es-MX", {
-      style: "currency",
-      currency: "MXN",
-    }).format(amount);
-  };
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(amount);
 
   return (
     <div className="purchases-page">
-      <Header title="🛒 Compras" onBack={onBack} backText="← Volver" />
+      <Header title="🛒 Compras" onBack={onBack} backText="← Volver al Menú Principal" />
 
-      <div className="purchases-container">
-        <Card className="purchases-card">
-          <div className="purchases-header">
-            <div className="filters-section">
+      <div className="catalog-content purchases-content">
+        {/* Sección de Filtros (mismo bloque que el catálogo) */}
+        <Card className="catalog-filters-section">
+          <div className="catalog-filters">
+            <div className="catalog-filter-group">
+              <label className="catalog-filter-label">Proveedor</label>
               <select
-                className="filter-select"
+                className="catalog-category-select"
                 value={filters.supplierId}
-                onChange={(e) => setFilters({ ...filters, supplierId: e.target.value })}
+                onChange={(e) => updateFilter({ supplierId: e.target.value })}
               >
-                <option value="">Todos los proveedores</option>
+                <option value="">Todos</option>
                 {suppliers.map((supplier) => (
                   <option key={supplier.id} value={supplier.id}>
                     {supplier.name}
                   </option>
                 ))}
               </select>
+            </div>
 
+            <div className="catalog-filter-group">
+              <label className="catalog-filter-label">Estado</label>
               <select
-                className="filter-select"
+                className="catalog-category-select"
                 value={filters.paymentStatus}
-                onChange={(e) => setFilters({ ...filters, paymentStatus: e.target.value })}
+                onChange={(e) => updateFilter({ paymentStatus: e.target.value })}
               >
-                <option value="">Todos los estados</option>
+                <option value="">Todos</option>
                 <option value="PENDING">Pendiente</option>
                 <option value="PARTIAL">Parcial</option>
                 <option value="PAID">Pagado</option>
               </select>
+            </div>
 
+            <div className="catalog-filter-group">
+              <label htmlFor="pur-search" className="catalog-filter-label">
+                Buscar
+              </label>
               <input
+                ref={searchRef}
+                id="pur-search"
                 type="text"
-                placeholder="Buscar por folio o factura..."
-                className="search-input"
+                placeholder="Folio o factura..."
+                className="catalog-search-input"
                 value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                onChange={(e) => updateFilter({ search: e.target.value })}
               />
             </div>
 
-            <Button variant="primary" onClick={() => setShowModal(true)}>
-              ➕ Nueva Compra
-            </Button>
+            <div className="catalog-filter-group catalog-actions-group">
+              <button type="button" className="pur-add-btn" onClick={() => setShowModal(true)}>
+                ➕ Nueva Compra
+              </button>
+            </div>
           </div>
+        </Card>
 
-          {loading ? (
-            <div className="loading">Cargando compras...</div>
-          ) : purchases.length === 0 ? (
-            <div className="no-results">No se encontraron compras</div>
-          ) : (
-            <>
-              <div className="purchases-table-container">
-                <table className="purchases-table">
-                  <thead>
-                    <tr>
-                      <th>Folio</th>
-                      <th>Proveedor</th>
-                      <th>Fecha</th>
-                      <th>Factura</th>
-                      <th>Total</th>
-                      <th>Estado Pago</th>
-                      <th>Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {purchases.map((purchase) => {
-                      const statusInfo = getPaymentStatusBadge(purchase.paymentStatus);
-                      return (
-                        <tr key={purchase.id}>
-                          <td>
-                            <strong>{purchase.folio}</strong>
-                          </td>
-                          <td>{purchase.supplier?.name || "N/A"}</td>
-                          <td>{formatDate(purchase.purchaseDate)}</td>
-                          <td>{purchase.invoiceNumber || "-"}</td>
-                          <td>
-                            <div>
-                              <strong>{formatCurrency(purchase.total)}</strong>
-                              {purchase.balance !== undefined && purchase.balance > 0 && (
-                                <div className="balance-info">
-                                  <span className="balance-label">Pendiente:</span>
-                                  <span className="balance-amount">{formatCurrency(purchase.balance)}</span>
-                                  {purchase.pendingPercentage !== undefined && (
-                                    <span className="balance-percentage">({purchase.pendingPercentage.toFixed(1)}%)</span>
-                                  )}
-                                </div>
+        {/* Tabla de compras (mismo contenedor que el catálogo) */}
+        <Card className="catalog-table-card pur-table-card">
+          <div className="pur-table-container">
+            {loading ? (
+              <div className="loading">Cargando compras...</div>
+            ) : purchases.length === 0 ? (
+              <div className="no-results">No se encontraron compras</div>
+            ) : (
+              <table className="pur-table">
+                <thead>
+                  <tr>
+                    <th>Folio</th>
+                    <th>Proveedor</th>
+                    <th>Fecha</th>
+                    <th>Factura</th>
+                    <th className="pur-th-right">Total</th>
+                    <th>Estado Pago</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {purchases.map((purchase) => {
+                    const statusInfo = getPaymentStatusBadge(purchase.paymentStatus);
+                    return (
+                      <tr key={purchase.id}>
+                        <td>
+                          {/* Folio interno = id de la compra (corto). El folio
+                              largo autogenerado sigue en BD pero no se muestra. */}
+                          <span className="pur-folio">#{purchase.id}</span>
+                        </td>
+                        <td>{purchase.supplier?.name || "N/A"}</td>
+                        <td>{formatDate(purchase.purchaseDate)}</td>
+                        <td>{purchase.invoiceNumber || "-"}</td>
+                        <td className="pur-td-right">
+                          <span className="pur-total">{formatCurrency(purchase.total)}</span>
+                          {purchase.balance !== undefined && purchase.balance > 0 && (
+                            <div className="pur-balance-info">
+                              <span>Pendiente:</span>
+                              <span className="pur-balance-amount">
+                                {formatCurrency(purchase.balance)}
+                              </span>
+                              {purchase.pendingPercentage !== undefined && (
+                                <span className="pur-balance-pct">
+                                  ({purchase.pendingPercentage.toFixed(1)}%)
+                                </span>
                               )}
                             </div>
-                          </td>
-                          <td>
-                            <span className={`status-badge ${statusInfo.class}`}>
-                              {statusInfo.label}
-                            </span>
-                            {purchase.paidPercentage !== undefined && purchase.paidPercentage > 0 && purchase.paidPercentage < 100 && (
-                              <div className="payment-progress">
-                                <div className="progress-bar">
-                                  <div 
-                                    className="progress-fill" 
+                          )}
+                        </td>
+                        <td>
+                          <span className={`pur-status-badge ${statusInfo.cls}`}>
+                            {statusInfo.label}
+                          </span>
+                          {purchase.paidPercentage !== undefined &&
+                            purchase.paidPercentage > 0 &&
+                            purchase.paidPercentage < 100 && (
+                              <div className="pur-progress">
+                                <div className="pur-progress-bar">
+                                  <div
+                                    className="pur-progress-fill"
                                     style={{ width: `${purchase.paidPercentage}%` }}
-                                  ></div>
+                                  />
                                 </div>
-                                <span className="progress-text">{purchase.paidPercentage.toFixed(1)}% pagado</span>
+                                <span className="pur-progress-text">
+                                  {purchase.paidPercentage.toFixed(1)}% pagado
+                                </span>
                               </div>
                             )}
-                          </td>
-                          <td>
-                            <div className="action-buttons">
-                              <Button
-                                variant="secondary"
-                                size="small"
-                                onClick={() => {
-                                  Swal.fire({
-                                    icon: "info",
-                                    title: "Detalles de Compra",
-                                    html: `
-                                      <div style="text-align: left;">
-                                        <p><strong>Folio:</strong> ${purchase.folio}</p>
-                                        <p><strong>Proveedor:</strong> ${purchase.supplier?.name}</p>
-                                        <p><strong>Fecha:</strong> ${formatDate(purchase.purchaseDate)}</p>
-                                        <p><strong>Factura:</strong> ${purchase.invoiceNumber || "N/A"}</p>
-                                        <p><strong>Subtotal:</strong> ${formatCurrency(purchase.subtotal)}</p>
-                                        <p><strong>Impuestos:</strong> ${formatCurrency(purchase.tax)}</p>
-                                        <p><strong>Descuento:</strong> ${formatCurrency(purchase.discount)}</p>
-                                <p><strong>Total:</strong> ${formatCurrency(purchase.total)}</p>
-                                ${purchase.paidAmount !== undefined && purchase.paidAmount > 0 ? `
-                                  <p><strong>Pagado:</strong> ${formatCurrency(purchase.paidAmount)}</p>
-                                  <p><strong>Saldo Pendiente:</strong> ${formatCurrency(purchase.balance || 0)}</p>
-                                  ${purchase.paidPercentage !== undefined ? `<p><strong>Porcentaje Pagado:</strong> ${purchase.paidPercentage.toFixed(2)}%</p>` : ""}
-                                  ${purchase.pendingPercentage !== undefined ? `<p><strong>Porcentaje Pendiente:</strong> ${purchase.pendingPercentage.toFixed(2)}%</p>` : ""}
-                                ` : ""}
-                                <p><strong>Estado:</strong> ${statusInfo.label}</p>
-                                ${purchase.notes ? `<p><strong>Notas:</strong> ${purchase.notes}</p>` : ""}
-                                      </div>
-                                    `,
-                                  });
-                                }}
-                              >
-                                👁️ Ver
-                              </Button>
-                              <Button
-                                variant="danger"
-                                size="small"
-                                onClick={() => handleDelete(purchase.id)}
-                              >
-                                🗑️ Eliminar
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {totalPages > 1 && (
-                <div className="purchases-pagination">
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    onClick={() => setCurrentPage(1)}
-                    disabled={currentPage === 1}
-                  >
-                    ⏮️ Primera
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    ◀️ Anterior
-                  </Button>
-                  <span className="pagination-info">
-                    Página {currentPage} de {totalPages}
-                  </span>
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    Siguiente ▶️
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    onClick={() => setCurrentPage(totalPages)}
-                    disabled={currentPage === totalPages}
-                  >
-                    Última ⏭️
-                  </Button>
-                </div>
-              )}
-
-              <div className="purchases-summary">
-                <span>
-                  Mostrando {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalItems)} de {totalItems.toLocaleString('es-MX')} compras
-                </span>
-              </div>
-            </>
-          )}
+                        </td>
+                        <td>
+                          <div className="pur-actions">
+                            <button
+                              type="button"
+                              className="pur-action pur-action--view"
+                              onClick={() => setDetailPurchase(purchase)}
+                            >
+                              👁️ Ver
+                            </button>
+                            <button
+                              type="button"
+                              className="pur-action pur-action--delete"
+                              onClick={() => handleDelete(purchase.id)}
+                            >
+                              🗑️ Eliminar
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
         </Card>
+
+        {/* Footer con paginación (estilo catálogo) */}
+        {totalItems > 0 && (
+          <div className="pur-footer-bar">
+            <button
+              type="button"
+              className="prod-page-btn"
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              ← Anterior
+            </button>
+            <span className="prod-page-info">
+              Página {currentPage} de {totalPages} · {totalItems.toLocaleString("es-MX")} compra(s)
+            </span>
+            <button
+              type="button"
+              className="prod-page-btn"
+              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages || totalPages === 0}
+            >
+              Siguiente →
+            </button>
+          </div>
+        )}
       </div>
 
       {showModal && (
-        <PurchaseModal
-          isOpen={showModal}
-          onClose={() => setShowModal(false)}
-          onSave={handleSave}
-        />
+        <PurchaseModal isOpen={showModal} onClose={() => setShowModal(false)} onSave={handleSave} />
       )}
+
+      <PurchaseDetailModal
+        isOpen={detailPurchase !== null}
+        purchase={detailPurchase}
+        onClose={() => setDetailPurchase(null)}
+      />
     </div>
   );
 };
 
 export default PurchasesPage;
-

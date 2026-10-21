@@ -1,328 +1,756 @@
-/* ===== PÁGINA DE CUENTAS POR PAGAR ===== */
+/* ============================================================
+   💳 CUENTAS POR PAGAR — unificado con Compras / Catálogo
+   Reutiliza las clases catalog-* (filtros, tabla, paginación)
+   y usa clases propias ap-* para resumen y modal de pago.
+   ============================================================ */
 
 .account-payables-page {
   width: 100%;
-  min-height: 100vh;
-  padding: 20px;
-  background: var(--background-light, #f5f5f5);
-}
-
-.account-payables-container {
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.summary-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.summary-card {
-  padding: 20px;
-  text-align: center;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.summary-card.pending {
-  border-left: 4px solid #f59e0b;
-}
-
-.summary-card.partial {
-  border-left: 4px solid #3b82f6;
-}
-
-.summary-card.overdue {
-  border-left: 4px solid #dc2626;
-}
-
-.summary-label {
-  font-size: 0.875rem;
-  color: #6b7280;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.summary-value {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 4px;
-}
-
-.summary-count {
-  font-size: 0.875rem;
-  color: #6b7280;
-}
-
-.account-payables-card {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-}
-
-.account-payables-header {
-  margin-bottom: 20px;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  overflow: hidden;
+  padding: 16px;
+  background: var(--background-light, #f5f5f5);
+  box-sizing: border-box;
 }
 
-.filters-section {
+.account-payables-page .ap-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  gap: 0.6rem;
+  overflow-y: auto;
+}
+
+.account-payables-page .catalog-filters-section {
+  flex-shrink: 0;
+}
+
+/* ── Resumen compacto: chips en una barra, no 4 cards grandes ── */
+.ap-summary {
+  display: flex;
   flex-wrap: wrap;
-  align-items: center;
-}
-
-.filter-select {
-  padding: 10px 12px;
-  border: 2px solid #e5e7eb;
-  border-radius: 6px;
-  font-size: 1rem;
-  transition: border-color 0.2s;
-  font-family: inherit;
-  min-width: 200px;
-}
-
-.filter-select:focus {
-  outline: none;
-  border-color: #3b82f6;
-}
-
-.filter-checkbox {
-  display: flex;
-  align-items: center;
   gap: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  color: #374151;
+  flex-shrink: 0;
 }
 
-.filter-checkbox input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  accent-color: #3b82f6;
+.ap-summary-chip {
+  flex: 1;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 14px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  border-left: 4px solid #94a3b8;
 }
 
-.account-payables-table-container {
-  overflow-x: auto;
-  margin-bottom: 20px;
+.ap-summary-chip--total {
+  border-left-color: #1e40af;
+}
+.ap-summary-chip--pending {
+  border-left-color: #f59e0b;
+}
+.ap-summary-chip--partial {
+  border-left-color: #3b82f6;
+}
+.ap-summary-chip--overdue {
+  border-left-color: #dc2626;
 }
 
-.account-payables-table {
+.ap-summary-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.ap-summary-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #1f2937;
+  font-variant-numeric: tabular-nums;
+}
+
+.ap-summary-count {
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+/* ── Card de la tabla: scroll interno, header sticky ── */
+.ap-table-card {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ap-table-container {
+  max-height: calc(100vh - 350px);
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #eef2f7;
+}
+
+.ap-table-container::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+.ap-table-container::-webkit-scrollbar-track {
+  background: #eef2f7;
+}
+.ap-table-container::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border: 3px solid #eef2f7;
+  border-radius: 999px;
+}
+
+.ap-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
-}
-
-.account-payables-table thead {
-  background: #f9fafb;
-  color: #374151;
-}
-
-.account-payables-table th {
-  padding: 12px 16px;
-  text-align: left;
-  font-weight: 600;
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 2px solid #e5e7eb;
-}
-
-.account-payables-table tbody tr {
-  border-bottom: 1px solid #e5e7eb;
-  transition: background-color 0.2s ease;
-}
-
-.account-payables-table tbody tr:hover {
-  background-color: #f9fafb;
-}
-
-.account-payables-table td {
-  padding: 16px;
-  color: #1f2937;
-}
-
-.purchase-info {
-  font-size: 0.8rem;
-  color: #6b7280;
-  margin-top: 4px;
-}
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 12px;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.status-badge.pending {
-  background-color: #fef3c7;
-  color: #92400e;
-}
-
-.status-badge.partial {
-  background-color: #dbeafe;
-  color: #1e40af;
-}
-
-.status-badge.paid {
-  background-color: #d1fae5;
-  color: #065f46;
-}
-
-.status-badge.overdue {
-  background-color: #fee2e2;
-  color: #991b1b;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.account-payables-pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-  margin-top: 24px;
-  padding: 16px;
-  flex-wrap: wrap;
-}
-
-.pagination-info {
-  padding: 8px 16px;
-  background: #f9fafb;
-  border-radius: 6px;
-  font-weight: 600;
-  color: #374151;
   font-size: 0.95rem;
 }
 
-.account-payables-pagination button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.ap-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #f1f5f9;
+  color: #334155;
+  font-weight: 700;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-align: left;
+  padding: 12px 16px;
+  white-space: nowrap;
+  border-bottom: 2px solid #e2e8f0;
 }
 
-.account-payables-summary {
-  padding: 16px;
-  background: #f9fafb;
-  border-radius: 8px;
-  text-align: center;
-  font-weight: 600;
-  color: #374151;
+.ap-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+  vertical-align: middle;
 }
 
-.loading,
-.no-results {
-  text-align: center;
-  padding: 60px 20px;
-  color: #6b7280;
-  font-size: 1.1rem;
-}
-
-/* Modal de Pago */
-.payment-modal {
-  max-width: 600px;
-}
-
-.payment-form {
-  padding: 20px;
-}
-
-.payment-info {
-  background: #f9fafb;
-  padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.info-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.info-item:last-child {
+.ap-table tbody tr:last-child td {
   border-bottom: none;
 }
 
-.info-item.highlight {
-  background: #eff6ff;
-  padding: 12px;
-  border-radius: 6px;
-  margin-top: 8px;
-  border: 2px solid #3b82f6;
+.ap-table tbody tr:hover {
+  background: #f8fafc;
 }
 
-.info-label {
+.ap-th-right,
+.ap-td-right {
+  text-align: right;
+}
+
+.ap-supplier-name {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.ap-purchase-info {
+  font-size: 0.76rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.ap-balance {
+  font-weight: 800;
+  color: #dc2626;
+  font-variant-numeric: tabular-nums;
+}
+
+.ap-money {
+  font-variant-numeric: tabular-nums;
+}
+
+.ap-table-state {
+  padding: 40px 16px !important;
+  text-align: center !important;
+  color: #64748b;
+}
+
+/* Badge de estado */
+.ap-status-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ap-status-badge--pending {
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+}
+.ap-status-badge--partial {
+  color: #1e40af;
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+}
+.ap-status-badge--paid {
+  color: #047857;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+}
+.ap-status-badge--overdue {
+  color: #991b1b;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+}
+
+/* Acciones por fila */
+.ap-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ap-action {
+  min-height: 40px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s;
+}
+
+.ap-action--pay {
+  color: #047857;
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+.ap-action--pay:hover {
+  background: #d1fae5;
+}
+
+.ap-action--delete {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+.ap-action--delete:hover {
+  background: #fee2e2;
+}
+
+/* Footer paginación */
+.ap-footer-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.5rem 0;
+}
+
+.account-payables-page .loading,
+.account-payables-page .no-results {
+  text-align: center;
+  padding: 50px 20px;
+  color: #6b7280;
+  font-size: 1.05rem;
+}
+
+/* Filtro checkbox dentro de la barra de filtros */
+.ap-filter-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  white-space: nowrap;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.ap-filter-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .ap-table {
+    font-size: 0.875rem;
+  }
+  .ap-table th,
+  .ap-table td {
+    padding: 8px 10px;
+  }
+}
+
+/* ============================================================
+   💰 MODAL REGISTRAR PAGO — grande, detallado y compacto
+   2 columnas: resumen de la deuda (izq) + formulario (der).
+   ============================================================ */
+
+.ap-pay-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.ap-pay-modal {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
+  overflow: hidden;
+  width: 97%;
+  max-width: 860px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  animation: apModalPop 0.16s ease-out;
+}
+
+@keyframes apModalPop {
+  from { transform: translateY(8px) scale(0.99); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.ap-pay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+
+.ap-pay-header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.ap-pay-close {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  line-height: 1;
+  color: #64748b;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ap-pay-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Cuerpo en 2 columnas */
+.ap-pay-body {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 0;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Columna izquierda: resumen de la deuda tipo ticket */
+.ap-pay-summary {
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+/* Saldo pendiente como héroe */
+.ap-pay-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+}
+
+.ap-pay-hero-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ap-pay-hero-value {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+/* Proveedor */
+.ap-pay-supplier {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+}
+
+.ap-pay-supplier-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.ap-pay-supplier-name {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.ap-pay-supplier-sub {
+  display: block;
+  font-size: 0.74rem;
+  color: #94a3b8;
+  margin-top: 1px;
+}
+
+/* Líneas de detalle */
+.ap-pay-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ap-pay-lines li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 2px;
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-variant-numeric: tabular-nums;
+}
+
+.ap-pay-lines li:last-child {
+  border-bottom: none;
+}
+
+.ap-pay-lines li span:last-child {
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+/* Quedará después del pago */
+.ap-pay-after {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  border-radius: 10px;
+}
+
+.ap-pay-after--left {
+  background: rgba(220, 38, 38, 0.15);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.ap-pay-after--ok {
+  background: rgba(5, 150, 105, 0.18);
+  border: 1px solid rgba(52, 211, 153, 0.4);
+}
+
+.ap-pay-after-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #cbd5e1;
+}
+
+.ap-pay-after-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.ap-pay-after--left .ap-pay-after-value {
+  color: #fca5a5;
+}
+
+.ap-pay-after--ok .ap-pay-after-value {
+  color: #6ee7b7;
+}
+
+/* Columna derecha: formulario */
+.ap-pay-form {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+
+/* Monto protagonista con símbolo $ */
+.ap-pay-amount-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ap-pay-amount-symbol {
+  position: absolute;
+  left: 14px;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #059669;
+  pointer-events: none;
+}
+
+.ap-pay-amount {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.7rem 0.9rem 0.7rem 2.2rem !important;
+  text-align: right;
+  font-size: 1.5rem !important;
+  font-weight: 800 !important;
+  font-variant-numeric: tabular-nums;
+  border: 2px solid #a7f3d0 !important;
+  border-radius: 12px !important;
+  background: #f0fdf4 !important;
+  color: #065f46;
+}
+
+.ap-pay-amount:focus {
+  outline: none;
+  border-color: #059669 !important;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.18) !important;
+}
+
+/* Método de pago como chips */
+.ap-pay-methods {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.ap-pay-method {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.14s;
+}
+
+.ap-pay-method:hover {
+  border-color: #93c5fd;
+  background: #f8fafc;
+}
+
+.ap-pay-method--on {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  color: #1d4ed8;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.12);
+}
+
+.ap-pay-method-icon {
+  font-size: 1.2rem;
+}
+
+@media (max-width: 520px) {
+  .ap-pay-methods {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.ap-pay-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.ap-pay-group label {
+  font-size: 0.85rem;
   font-weight: 600;
   color: #374151;
 }
 
-.info-value {
-  font-weight: 700;
-  color: #1f2937;
+.ap-pay-required {
+  color: #dc2626;
 }
 
-.payment-amount-input {
+.ap-pay-group input,
+.ap-pay-group select,
+.ap-pay-group textarea {
   width: 100%;
-  padding: 12px;
-  border: 2px solid #e5e7eb;
-  border-radius: 6px;
-  font-size: 1.25rem;
-  font-weight: 700;
-  text-align: right;
+  box-sizing: border-box;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.92rem;
+  border: 1.5px solid #d1d5db;
+  border-radius: 9px;
+  background: #fff;
+  color: #0f172a;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.payment-amount-input:focus {
+.ap-pay-group input:focus,
+.ap-pay-group select:focus,
+.ap-pay-group textarea:focus {
   outline: none;
   border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
-.input-hint {
-  margin-top: 4px;
-  font-size: 0.875rem;
+.ap-pay-group textarea {
+  resize: vertical;
+  min-height: 48px;
+}
+
+/* Monto del pago: destacado */
+.ap-pay-amount {
+  text-align: right;
+  font-size: 1.3rem !important;
+  font-weight: 800 !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.ap-pay-hint {
+  font-size: 0.75rem;
   color: #6b7280;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .account-payables-page {
-    padding: 10px;
-  }
-
-  .summary-cards {
-    grid-template-columns: 1fr;
-  }
-
-  .filters-section {
-    flex-direction: column;
-  }
-
-  .filter-select {
-    width: 100%;
-  }
-
-  .account-payables-table {
-    font-size: 0.8rem;
-  }
-
-  .account-payables-table th,
-  .account-payables-table td {
-    padding: 8px;
-  }
+/* Botones rápidos de monto */
+.ap-pay-quick {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
 }
 
+.ap-pay-quick-btn {
+  flex: 1;
+  padding: 7px 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.ap-pay-quick-btn:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.ap-pay-quick-btn:active {
+  transform: scale(0.97);
+}
+
+.ap-pay-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* Acciones */
+.ap-pay-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 14px 20px;
+  border-top: 1px solid #e5e7eb;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.ap-btn {
+  min-height: 44px;
+  padding: 0.55rem 1.3rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border-radius: 9px;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ap-btn--ghost {
+  background: #fff;
+  border-color: #d1d5db;
+  color: #374151;
+}
+.ap-btn--ghost:hover {
+  background: #f3f4f6;
+}
+
+.ap-btn--success {
+  background: #059669;
+  color: #fff;
+}
+.ap-btn--success:hover {
+  background: #047857;
+}
+
+@media (max-width: 720px) {
+  .ap-pay-body {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+  .ap-pay-summary {
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .ap-pay-row {
+    grid-template-columns: 1fr;
+  }
+}

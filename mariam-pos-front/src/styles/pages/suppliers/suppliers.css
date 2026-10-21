@@ -1,377 +1,498 @@
-/* ===== PÁGINA DE PROVEEDORES ===== */
+/* ============================================================
+   🏭 MÓDULO DE PROVEEDORES — unificado con Clientes / Catálogo
+   Reutiliza las clases catalog-* (filtros, tabla, paginación)
+   y usa clases propias sup-* para el modal, sin pisar estilos
+   globales de otras pantallas.
+   ============================================================ */
 
 .suppliers-page {
   width: 100%;
-  min-height: 100vh;
-  padding: 20px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px;
   background: var(--background-light, #f5f5f5);
+  box-sizing: border-box;
 }
 
-.suppliers-container {
+/* Contenido: filtros / tabla / paginación de arriba a abajo. */
+.suppliers-page .suppliers-content {
   max-width: 1400px;
   margin: 0 auto;
-}
-
-.suppliers-card {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-}
-
-.suppliers-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.search-section {
-  flex: 1;
-  min-width: 300px;
-}
-
-.search-input {
   width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e5e7eb;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  overflow-y: auto;
+}
+
+.suppliers-page .catalog-filters-section {
+  flex-shrink: 0;
+}
+
+.suppliers-page .catalog-actions-group {
+  flex: 0 0 auto;
+}
+
+.sup-add-btn {
+  flex-shrink: 0;
+  padding: 0.625rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: 2px solid #047857;
   border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.2s;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
 }
 
-.search-input:focus {
-  outline: none;
-  border-color: #3b82f6;
+.sup-add-btn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  border-color: #065f46;
+  transform: translateY(-1px);
 }
 
-.suppliers-table-container {
-  overflow-x: auto;
-  margin-bottom: 20px;
+/* ── Card de la tabla: se ajusta a su contenido, scroll interno ── */
+.sup-table-card {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.suppliers-table {
+.sup-table-container {
+  max-height: calc(100vh - 290px);
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #eef2f7;
+}
+
+.sup-table-container::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+.sup-table-container::-webkit-scrollbar-track {
+  background: #eef2f7;
+}
+
+.sup-table-container::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border: 3px solid #eef2f7;
+  border-radius: 999px;
+  min-height: 48px;
+}
+
+.sup-table-container::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* ── Tabla de proveedores: mismo look que catálogo/clientes ──── */
+.sup-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
-.suppliers-table thead {
-  background: #f9fafb;
-  color: #374151;
-}
-
-.suppliers-table th {
-  padding: 12px 16px;
-  text-align: left;
-  font-weight: 600;
-  font-size: 0.875rem;
+.sup-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #f1f5f9;
+  color: #334155;
+  font-weight: 700;
+  font-size: 0.82rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 2px solid #e5e7eb;
+  letter-spacing: 0.02em;
+  text-align: left;
+  padding: 12px 16px;
+  white-space: nowrap;
+  border-bottom: 2px solid #e2e8f0;
 }
 
-.suppliers-table tbody tr {
-  border-bottom: 1px solid #e5e7eb;
-  transition: background-color 0.2s ease;
+.sup-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+  vertical-align: middle;
 }
 
-.suppliers-table tbody tr:hover {
-  background-color: #f9fafb;
+.sup-table tbody tr {
+  min-height: 52px;
+  transition: background 0.12s;
 }
 
-.suppliers-table td {
-  padding: 16px;
-  color: #1f2937;
+.sup-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 12px;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  font-weight: 600;
+.sup-table tbody tr:hover {
+  background: #f8fafc;
 }
 
-.status-badge.active {
-  background-color: #d1fae5;
-  color: #065f46;
+/* Columna de número consecutivo. */
+.sup-th-num,
+.sup-td-num {
+  width: 48px;
+  text-align: center;
+  color: #94a3b8;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
-.status-badge.inactive {
-  background-color: #fee2e2;
-  color: #991b1b;
+.sup-name {
+  font-weight: 700;
+  color: #0f172a;
 }
 
-.action-buttons {
+.sup-code-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.sup-table-state {
+  padding: 40px 16px !important;
+  text-align: center !important;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+/* Badge de estado. */
+.sup-status-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sup-status-badge--active {
+  color: #047857;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+}
+
+.sup-status-badge--inactive {
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+/* Acciones por fila. */
+.sup-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.suppliers-summary {
-  padding: 16px;
-  background: #f9fafb;
-  border-radius: 8px;
-  text-align: center;
-  font-weight: 600;
-  color: #374151;
+.sup-action {
+  min-height: 40px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.loading,
-.no-results {
+.sup-action--edit {
+  color: #1d4ed8;
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+.sup-action--edit:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.sup-action--delete {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+.sup-action--delete:hover {
+  background: #fee2e2;
+}
+
+/* ── Footer con paginación (estilo catálogo) ──────────────── */
+.sup-footer-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.5rem 0;
+}
+
+/* Estados vacíos / carga. */
+.suppliers-page .loading,
+.suppliers-page .no-results {
   text-align: center;
-  padding: 60px 20px;
+  padding: 50px 20px;
   color: #6b7280;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
 }
 
-/* Modal */
-.modal-overlay {
+@media (max-width: 768px) {
+  .suppliers-page .catalog-filters {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .sup-add-btn {
+    width: 100%;
+  }
+
+  .sup-table {
+    font-size: 0.875rem;
+  }
+
+  .sup-table th,
+  .sup-table td {
+    padding: 8px 10px;
+  }
+}
+
+/* ============================================================
+   🏭 MODAL CREAR/EDITAR PROVEEDOR — moderno, compacto, limpio
+   Clases propias sup-form-* (mismo criterio que client-form-*)
+   para no heredar los estilos globales .modal-content/.form-section.
+   ============================================================ */
+
+.sup-form-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 20px;
+  padding: 16px;
 }
 
-.modal-content {
-  background: white !important;
-  border-radius: 12px;
-  max-width: 800px;
-  width: 100%;
-  max-height: 90vh;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  display: flex !important;
-  flex-direction: column !important;
+.sup-form-panel {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.22);
   overflow: hidden;
-  padding: 0 !important;
-  margin: 0 !important;
-}
-
-.modal-content.card {
-  padding: 0 !important;
-}
-
-.modal-content > * {
-  flex-shrink: 0;
-}
-
-.modal-header {
+  width: 96%;
+  max-width: 640px;
+  max-height: 92vh;
   display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #e5e7eb;
-  flex-shrink: 0;
-  width: 100%;
-  box-sizing: border-box;
+  flex-direction: column;
+  animation: supModalPop 0.16s ease-out;
 }
 
-.close-button {
+@keyframes supModalPop {
+  from { transform: translateY(8px) scale(0.99); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.sup-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+
+.sup-form-header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.sup-form-close {
   background: none;
   border: none;
-  font-size: 1.5rem;
+  font-size: 1.8rem;
+  line-height: 1;
+  color: #64748b;
   cursor: pointer;
-  color: #6b7280;
-  padding: 0;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
-  transition: background-color 0.2s;
-}
-
-.close-button:hover {
-  background-color: #f3f4f6;
-}
-
-.supplier-form {
-  padding: 24px;
-  flex: 1;
-  overflow-y: auto;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* Secciones del formulario */
-.form-section {
-  margin-bottom: 32px;
-  padding: 20px;
-  background: #f9fafb;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  transition: background 0.15s, color 0.15s;
 }
 
-.form-section:last-of-type {
-  margin-bottom: 24px;
+.sup-form-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
 }
 
-.form-section-title {
+/* Cuerpo del formulario: scrolleable, compacto. */
+.sup-form {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+
+/* Sección compacta (sin card grande anidada). */
+.sup-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sup-form-section-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 0 0 20px 0;
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #1f2937;
-  padding-bottom: 12px;
-  border-bottom: 2px solid #e5e7eb;
+  gap: 7px;
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-.section-icon {
-  font-size: 1.25rem;
+.sup-form-section-title .section-icon {
+  font-size: 1rem;
 }
 
-.form-group {
-  margin-bottom: 20px;
+.sup-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
-.form-group:last-child {
-  margin-bottom: 0;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
+.sup-form-group label {
+  font-size: 0.85rem;
   font-weight: 600;
   color: #374151;
-  font-size: 0.875rem;
 }
 
-.form-group .required {
+.sup-form-required {
   color: #dc2626;
 }
 
-.form-group input,
-.form-group textarea,
-.form-group select {
+.sup-form-group input,
+.sup-form-group select,
+.sup-form-group textarea {
   width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 1rem;
+  box-sizing: border-box;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.92rem;
+  border: 1.5px solid #d1d5db;
+  border-radius: 9px;
+  background: #fff;
+  color: #0f172a;
   font-family: inherit;
-  transition: all 0.2s;
-  background: white;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.form-group input::placeholder,
-.form-group textarea::placeholder {
-  color: #9ca3af;
-  font-style: italic;
-}
-
-.form-group input:focus,
-.form-group textarea:focus,
-.form-group select:focus {
+.sup-form-group input:focus,
+.sup-form-group select:focus,
+.sup-form-group textarea:focus {
   outline: none;
   border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
-.form-group textarea {
+.sup-form-group input.error {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+.sup-form-group textarea {
   resize: vertical;
-  min-height: 80px;
+  min-height: 56px;
 }
 
-.field-hint {
-  display: block;
-  margin-top: 6px;
+.sup-form-error {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #dc2626;
+}
+
+.sup-field-hint {
   font-size: 0.75rem;
   color: #6b7280;
-  font-style: italic;
 }
 
-.form-group input.error {
-  border-color: #dc2626;
-}
-
-.error-message {
-  display: block;
-  margin-top: 4px;
-  color: #dc2626;
-  font-size: 0.875rem;
-}
-
-.form-row {
+/* Filas de 2 columnas. */
+.sup-form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 12px;
 }
 
-.form-actions {
+/* Acciones (sticky al pie del panel). */
+.sup-form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 32px;
-  padding-top: 24px;
-  border-top: 2px solid #e5e7eb;
-  background: white;
-  position: sticky;
-  bottom: 0;
-  z-index: 10;
+  padding: 14px 20px;
+  border-top: 1px solid #e5e7eb;
+  background: #fff;
+  flex-shrink: 0;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .suppliers-page {
-    padding: 10px;
-  }
+.sup-btn {
+  min-height: 44px;
+  padding: 0.55rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border-radius: 9px;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+}
 
-  .suppliers-header {
-    flex-direction: column;
-  }
+.sup-btn--ghost {
+  background: #fff;
+  border-color: #d1d5db;
+  color: #374151;
+}
+.sup-btn--ghost:hover {
+  background: #f3f4f6;
+}
 
-  .search-section {
-    width: 100%;
-  }
+.sup-btn--success {
+  background: #059669;
+  color: #fff;
+}
+.sup-btn--success:hover {
+  background: #047857;
+}
 
-  .modal-content {
-    max-width: 100%;
-    margin: 10px;
-  }
-
-  .form-section {
-    padding: 16px;
-    margin-bottom: 24px;
-  }
-
-  .form-row {
+@media (max-width: 640px) {
+  .sup-form-row {
     grid-template-columns: 1fr;
-    gap: 12px;
   }
 
-  .form-group {
-    margin-bottom: 16px;
-  }
-
-  .form-actions {
+  .sup-form-actions {
     flex-direction: column-reverse;
   }
 
-  .form-actions button {
+  .sup-form-actions .sup-btn {
     width: 100%;
   }
-
-  .suppliers-table {
-    font-size: 0.8rem;
-  }
-
-  .suppliers-table th,
-  .suppliers-table td {
-    padding: 8px;
-  }
 }
-
