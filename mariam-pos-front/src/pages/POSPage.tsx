@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import POSConfigModal from '../components/POSConfigModal';
@@ -46,7 +46,17 @@ const POSPage: React.FC<POSPageProps> = ({
   onAccountPayablesClick
 }) => {
   const [config, setConfig] = useState<POSPageConfig>(loadPOSConfig());
+  const [branchLabel, setBranchLabel] = useState<string>('');
   const [showConfigModal, setShowConfigModal] = useState(false);
+
+  // Sucursal/caja para mostrarlas en la barra superior del menú.
+  useEffect(() => {
+    const sucursal = localStorage.getItem('sucursal');
+    const caja = localStorage.getItem('caja');
+    if (sucursal) {
+      setBranchLabel(caja ? `${sucursal} · ${caja}` : sucursal);
+    }
+  }, []);
   const [showOnlineStoreModal, setShowOnlineStoreModal] = useState(false);
   const [showRechargesModal, setShowRechargesModal] = useState(false);
   const [showReceivablesModal, setShowReceivablesModal] = useState(false);
@@ -123,18 +133,18 @@ const POSPage: React.FC<POSPageProps> = ({
 
       if (sectionModules.length === 0) return null;
 
+      // La primera sección visible se destaca (cards más grandes).
+      const isPrimary = section.id === 'operations';
+
       return (
-        <div key={section.id} className="pos-section">
+        <div key={section.id} className={`pos-section ${isPrimary ? 'pos-section--primary' : ''}`}>
           <div className="pos-section-header">
             <h2 className="pos-section-title">
               <span className="section-icon">{section.icon}</span>
               {section.title}
             </h2>
           </div>
-          <div 
-            className="pos-modules-grid"
-            style={{ gridTemplateColumns: `repeat(${section.columns || 3}, 1fr)` }}
-          >
+          <div className="pos-modules-grid">
             {sectionModules.map((module) => (
               <Card
                 key={module.id}
@@ -144,8 +154,10 @@ const POSPage: React.FC<POSPageProps> = ({
                 hoverable
               >
                 <div className="pos-module-icon">{module.icon}</div>
-                <h3 className="pos-module-title">{module.title}</h3>
-                <p className="pos-module-description">{module.description}</p>
+                <div className="pos-module-text">
+                  <h3 className="pos-module-title">{module.title}</h3>
+                  <p className="pos-module-description">{module.description}</p>
+                </div>
               </Card>
             ))}
           </div>
@@ -164,6 +176,11 @@ const POSPage: React.FC<POSPageProps> = ({
           className="pos-page-header"
           actions={
             <>
+              {branchLabel && (
+                <span className="pos-branch-chip" title="Sucursal · Caja">
+                  📍 {branchLabel}
+                </span>
+              )}
               {onUsersClick && (
                 <button
                   className="pos-config-button"

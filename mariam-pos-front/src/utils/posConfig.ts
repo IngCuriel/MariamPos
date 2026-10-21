@@ -1,7 +1,10 @@
 import type { POSPageConfig } from '../types/posConfig';
 import { DEFAULT_POS_CONFIG } from '../types/posConfig';
 
-const CONFIG_STORAGE_KEY = 'posPageConfig';
+// v2: reorganización de secciones (operaciones/clientes/compras/online/reportes/papelería)
+// a 4 columnas. Al cambiar la key, la config vieja (posPageConfig) se ignora y se
+// aplica la nueva estructura por defecto; el usuario puede re-personalizar.
+const CONFIG_STORAGE_KEY = 'posPageConfig_v2';
 
 export const loadPOSConfig = (): POSPageConfig => {
   try {

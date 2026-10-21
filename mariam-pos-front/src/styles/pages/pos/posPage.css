@@ -1,492 +1,348 @@
-/* ===== PÁGINA DE PUNTO DE VENTA - ESTILOS ESPECÍFICOS ===== */
-/* Estos estilos solo afectan al módulo POS, no a otros componentes */
+/* ============================================================
+   🏪 MENÚ PRINCIPAL (POS) — rediseño dashboard moderno
+   Look limpio, neutro y profesional. Respeta el sistema de
+   configuración (secciones/módulos/columnas) — solo estética.
+   ============================================================ */
 
 .pos-page {
   width: 100%;
   height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  padding: 0.75rem;
+  background: #eef2f7;
+  padding: 14px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 .pos-page-container {
-  max-width: 1400px;
+  max-width: 1500px;
+  width: 100%;
   margin: 0 auto;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  background: #f8fafc;
+  border-radius: 18px;
+  box-shadow: 0 20px 45px -12px rgba(15, 23, 42, 0.18);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   height: 100%;
-  max-height: 100vh;
+  max-height: 100%;
 }
 
+/* ===== APP BAR ===== */
 .pos-page-header {
-  padding: 0.75rem 1.5rem;
-  border-bottom: 2px solid #e5e7eb;
-  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+  padding: 0.85rem 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
   flex-shrink: 0;
+}
+
+.pos-page-header .header-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
 }
 
 .pos-page-header .header-actions {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.6rem;
+}
+
+/* Chip de sucursal/caja en la barra superior */
+.pos-branch-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0369a1;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+  border-radius: 999px;
+  white-space: nowrap;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 768px) {
+  .pos-branch-chip {
+    display: none;
+  }
 }
 
 .pos-config-button {
-  background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
   padding: 0;
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   line-height: 1;
 }
 
 .pos-config-button:hover {
-  background: #f0f9ff;
-  border-color: #3b82f6;
-  color: #3b82f6;
-  transform: rotate(90deg);
-  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2);
+  background: #e0f2fe;
+  border-color: #38bdf8;
+  transform: translateY(-1px);
 }
 
 .pos-page-content {
-  padding: 0.9rem 1.25rem;
+  padding: 1.1rem 1.4rem 1.4rem;
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 1.3rem;
   overflow-y: auto;
   flex: 1;
   min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.pos-page-content::-webkit-scrollbar {
+  width: 10px;
+}
+.pos-page-content::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+  border: 2px solid #f8fafc;
 }
 
 /* ===== SECCIONES ===== */
 .pos-section {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.7rem;
   flex-shrink: 0;
 }
 
 .pos-section-header {
-  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
 }
 
 .pos-section-title {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #1f2937;
-  margin: 0 0 0.1rem 0;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #64748b;
+  margin: 0;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
 }
 
 .section-icon {
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   line-height: 1;
 }
 
-.pos-section-description {
-  font-size: 0.8rem;
-  color: #6b7280;
-  margin: 0;
-  font-weight: 500;
+/* Línea divisoria que ocupa el resto del ancho del header de sección */
+.pos-section-header::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, #e2e8f0, transparent);
 }
 
-/* ===== GRID DE MÓDULOS ===== */
+.pos-section-description {
+  display: none; /* la descripción de sección no aporta en el menú compacto */
+}
+
+/* ===== GRID DE MÓDULOS =====
+   Usamos columnas de ancho fijo y centramos el contenido. Así TODAS las
+   cards miden igual en todo el menú y las filas incompletas (secciones con
+   menos de 4 módulos) quedan centradas en vez de dejar huecos a la derecha.
+   El ancho de columna se calcula para que entren 4 por fila con el gap. */
 .pos-modules-grid {
   display: grid;
-  /* grid-template-columns se define inline desde el componente según section.columns */
-  gap: 0.75rem;
+  grid-template-columns: repeat(4, minmax(0, 300px));
+  justify-content: center;
+  gap: 0.85rem;
+  width: 100%;
 }
 
 /* ===== TARJETAS DE MÓDULOS ===== */
 .pos-module-card {
-  background: white;
-  border-radius: 12px;
-  padding: 0.85rem 0.85rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  border: 2px solid transparent;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 1rem 1rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  border: 1px solid #e9eef5;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  text-align: center;
+  gap: 0.85rem;
+  text-align: left;
   position: relative;
   overflow: hidden;
-  min-height: 96px;
-  justify-content: center;
-}
-
-.pos-module-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, transparent, currentColor, transparent);
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  min-height: 78px;
 }
 
 .pos-module-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px -8px rgba(15, 23, 42, 0.18);
+  border-color: var(--accent, #3b82f6);
 }
 
-.pos-module-card:hover::before {
-  opacity: 1;
-}
-
-/* Variantes de color por tipo de módulo */
-.pos-module-card.primary {
-  border-left: 4px solid #3b82f6;
-  background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
-}
-
-.pos-module-card.primary:hover {
-  border-color: #3b82f6;
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-}
-
-.pos-module-card.primary::before {
-  color: #3b82f6;
-}
-
-.pos-module-card.secondary {
-  border-left: 4px solid #8b5cf6;
-  background: linear-gradient(135deg, #ffffff 0%, #f5f3ff 100%);
-}
-
-.pos-module-card.secondary:hover {
-  border-color: #8b5cf6;
-  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
-}
-
-.pos-module-card.secondary::before {
-  color: #8b5cf6;
-}
-
-.pos-module-card.success {
-  border-left: 4px solid #10b981;
-  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
-}
-
-.pos-module-card.success:hover {
-  border-color: #10b981;
-  background: linear-gradient(135deg, #f0fdf4 0%, #d1fae5 100%);
-}
-
-.pos-module-card.success::before {
-  color: #10b981;
-}
-
-.pos-module-card.info {
-  border-left: 4px solid #06b6d4;
-  background: linear-gradient(135deg, #ffffff 0%, #ecfeff 100%);
-}
-
-.pos-module-card.info:hover {
-  border-color: #06b6d4;
-  background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%);
-}
-
-.pos-module-card.info::before {
-  color: #06b6d4;
-}
-
-.pos-module-card.warning {
-  border-left: 4px solid #f59e0b;
-  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
-}
-
-.pos-module-card.warning:hover {
-  border-color: #f59e0b;
-  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-}
-
-.pos-module-card.warning::before {
-  color: #f59e0b;
-}
-
-.pos-module-card.chart {
-  border-left: 4px solid #ec4899;
-  background: linear-gradient(135deg, #ffffff 0%, #fdf2f8 100%);
-}
-
-.pos-module-card.chart:hover {
-  border-color: #ec4899;
-  background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
-}
-
-.pos-module-card.chart::before {
-  color: #ec4899;
-}
-
-.pos-module-card.history {
-  border-left: 4px solid #6366f1;
-  background: linear-gradient(135deg, #ffffff 0%, #eef2ff 100%);
-}
-
-.pos-module-card.history:hover {
-  border-color: #6366f1;
-  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
-}
-
-.pos-module-card.history::before {
-  color: #6366f1;
-}
-
-.pos-module-card.money {
-  border-left: 4px solid #f59e0b;
-  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
-}
-
-.pos-module-card.money:hover {
-  border-color: #f59e0b;
-  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-}
-
-.pos-module-card.money::before {
-  color: #f59e0b;
-}
-
-.pos-module-card.help {
-  border-left: 4px solid #f59e0b;
-  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
-}
-
-.pos-module-card.help:hover {
-  border-color: #f59e0b;
-  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-}
-
-.pos-module-card.help::before {
-  color: #f59e0b;
-}
-
-.pos-module-card.copies {
-  border-left: 4px solid #8b5cf6;
-  background: linear-gradient(135deg, #ffffff 0%, #f5f3ff 100%);
-}
-
-.pos-module-card.copies:hover {
-  border-color: #8b5cf6;
-  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
-}
-
-.pos-module-card.copies::before {
-  color: #8b5cf6;
-}
-
-.pos-module-card.containers {
-  border-left: 4px solid #f59e0b;
-  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
-}
-
-.pos-module-card.containers:hover {
-  border-color: #f59e0b;
-  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-}
-
-.pos-module-card.containers::before {
-  color: #f59e0b;
-}
-
-.pos-module-card.suppliers {
-  border-left: 4px solid #6366f1;
-  background: linear-gradient(135deg, #ffffff 0%, #eef2ff 100%);
-}
-
-.pos-module-card.suppliers:hover {
-  border-color: #6366f1;
-  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
-}
-
-.pos-module-card.suppliers::before {
-  color: #6366f1;
-}
-
-.pos-module-card.purchases {
-  border-left: 4px solid #3b82f6;
-  background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
-}
-
-.pos-module-card.purchases:hover {
-  border-color: #3b82f6;
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-}
-
-.pos-module-card.purchases::before {
-  color: #3b82f6;
-}
-
-.pos-module-card.account-payables {
-  border-left: 4px solid #ec4899;
-  background: linear-gradient(135deg, #ffffff 0%, #fdf2f8 100%);
-}
-
-.pos-module-card.account-payables:hover {
-  border-color: #ec4899;
-  background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
-}
-
-.pos-module-card.account-payables::before {
-  color: #ec4899;
-}
-
-/* ===== CONTENIDO DE LA TARJETA ===== */
+/* ===== CHIP DE ÍCONO (el color vive acá, no en toda la card) ===== */
 .pos-module-icon {
-  font-size: 2rem;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
   line-height: 1;
-  margin-bottom: 0.35rem;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-  transition: transform 0.3s ease;
+  background: var(--accent-soft, #eff6ff);
+  color: var(--accent, #3b82f6);
+  transition: transform 0.18s ease;
 }
 
 .pos-module-card:hover .pos-module-icon {
-  transform: scale(1.05);
+  transform: scale(1.06);
+}
+
+/* ===== TEXTOS ===== */
+.pos-module-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .pos-module-title {
   font-size: 0.95rem;
   font-weight: 700;
-  color: #1f2937;
-  margin: 0 0 0.15rem 0;
+  color: #0f172a;
+  margin: 0;
   line-height: 1.2;
 }
 
 .pos-module-description {
-  font-size: 0.75rem;
-  color: #6b7280;
+  font-size: 0.76rem;
+  color: #64748b;
   margin: 0;
   line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
-/* ===== RESPONSIVE ===== */
-@media (max-width: 1200px) {
-  .pos-modules-grid {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 0.875rem;
-  }
+/* ===== ACENTOS DE COLOR POR MÓDULO (solo el chip + borde hover) ===== */
+.pos-module-card.sales        { --accent: #2563eb; --accent-soft: #eff6ff; }
+.pos-module-card.online-store { --accent: #0891b2; --accent-soft: #ecfeff; }
+.pos-module-card.products     { --accent: #7c3aed; --accent-soft: #f5f3ff; }
+.pos-module-card.inventory    { --accent: #059669; --accent-soft: #ecfdf5; }
+.pos-module-card.recharges    { --accent: #0891b2; --accent-soft: #ecfeff; }
+.pos-module-card.containers   { --accent: #d97706; --accent-soft: #fffbeb; }
+.pos-module-card.clients      { --accent: #2563eb; --accent-soft: #eff6ff; }
+.pos-module-card.receivables  { --accent: #db2777; --accent-soft: #fdf2f8; }
+.pos-module-card.suppliers    { --accent: #6366f1; --accent-soft: #eef2ff; }
+.pos-module-card.purchases    { --accent: #2563eb; --accent-soft: #eff6ff; }
+.pos-module-card.account-payables { --accent: #db2777; --accent-soft: #fdf2f8; }
+.pos-module-card.copies       { --accent: #7c3aed; --accent-soft: #f5f3ff; }
+.pos-module-card.help         { --accent: #d97706; --accent-soft: #fffbeb; }
+.pos-module-card.reports      { --accent: #db2777; --accent-soft: #fdf2f8; }
+.pos-module-card.shift-history { --accent: #6366f1; --accent-soft: #eef2ff; }
+.pos-module-card.cash-movements { --accent: #059669; --accent-soft: #ecfdf5; }
+.pos-module-card.recover-containers { --accent: #d97706; --accent-soft: #fffbeb; }
 
-  .pos-module-card {
-    min-height: 120px;
-    padding: 1rem 0.875rem;
-  }
+/* ===== PRIMERA SECCIÓN (operaciones) — cards destacadas ===== */
+.pos-section--primary .pos-module-card {
+  min-height: 92px;
+  padding: 1.1rem 1.15rem;
+  background: linear-gradient(135deg, #ffffff 0%, #fbfdff 100%);
 }
 
-@media (max-width: 768px) {
-  .pos-page {
-    padding: 0.5rem;
-  }
+.pos-section--primary .pos-module-icon {
+  width: 54px;
+  height: 54px;
+  font-size: 1.85rem;
+}
 
-  .pos-page-container {
-    border-radius: 12px;
-  }
+.pos-section--primary .pos-module-title {
+  font-size: 1.05rem;
+}
 
-  .pos-page-header {
-    padding: 0.875rem 1.25rem;
-  }
+/* ===== RESPONSIVE =====
+   Escritorio y tablet mantienen las 4 columnas de la config (inline).
+   Solo en móvil reducimos a 2 / 1 columnas. Nunca auto-fit. */
 
+/* Tablet: achicamos cards e íconos pero SE MANTIENEN las 4 por fila.
+   Las columnas pasan a 1fr (sin tope de 300px) para aprovechar el ancho. */
+@media (max-width: 1024px) {
   .pos-page-content {
-    padding: 1rem 1.25rem;
+    padding: 0.9rem 1rem 1.1rem;
     gap: 1rem;
   }
-
-  .pos-section {
-    gap: 0.5rem;
-  }
-
-  .pos-section-title {
-    font-size: 1rem;
-  }
-
-  .section-icon {
-    font-size: 1.1rem;
-  }
-
-  .pos-section-description {
-    font-size: 0.75rem;
-  }
-
   .pos-modules-grid {
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 0.75rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.6rem;
   }
-
-  .pos-module-card {
-    padding: 1rem 0.75rem;
-    min-height: 110px;
+  .pos-module-card,
+  .pos-section--primary .pos-module-card {
+    min-height: 72px;
+    padding: 0.75rem;
+    gap: 0.6rem;
   }
-
-  .pos-module-icon {
-    font-size: 2rem;
-    margin-bottom: 0.375rem;
+  .pos-module-icon,
+  .pos-section--primary .pos-module-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 1.5rem;
   }
-
-  .pos-module-title {
+  .pos-module-title,
+  .pos-section--primary .pos-module-title {
     font-size: 0.9rem;
   }
-
   .pos-module-description {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
   }
 }
 
-@media (max-width: 480px) {
-  .pos-page-content {
-    padding: 0.875rem 1rem;
-    gap: 0.875rem;
+/* Móvil: 2 por fila. */
+@media (max-width: 768px) {
+  .pos-page {
+    padding: 8px;
   }
-
-  .pos-section {
-    gap: 0.5rem;
+  .pos-page-container {
+    border-radius: 14px;
   }
-
   .pos-modules-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.625rem;
-  }
-
-  .pos-module-card {
-    padding: 0.875rem 0.625rem;
-    min-height: 100px;
-  }
-
-  .pos-module-icon {
-    font-size: 1.75rem;
-    margin-bottom: 0.25rem;
-  }
-
-  .pos-module-title {
-    font-size: 0.85rem;
-    margin-bottom: 0.125rem;
-  }
-
-  .pos-module-description {
-    font-size: 0.7rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: stretch;
   }
 }
 
-/* ===== TOUCH OPTIMIZATIONS ===== */
+/* Móvil chico: 1 por fila. */
+@media (max-width: 480px) {
+  .pos-modules-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== TOUCH ===== */
 @media (hover: none) and (pointer: coarse) {
   .pos-module-card:active {
     transform: scale(0.98);
   }
 }
-
