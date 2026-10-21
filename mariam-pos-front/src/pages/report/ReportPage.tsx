@@ -24,7 +24,9 @@ import {
   getTopProducts, 
   getSalesByPaymentMethod,
   getSalesByCategory,
-  getSalesByClient
+  getSalesByClient,
+  getTopProductsByCategory,
+  type CategoryTopProducts
 } from "../../api/sales";
 import "../../styles/pages/report/report.css";
 
@@ -40,6 +42,7 @@ interface DailySale {
 
 interface TopProduct {
   productName: string;
+  code?: string | null;
   _sum: { quantity: number };
 }
 
@@ -66,10 +69,13 @@ const DashboardSalesPage: React.FC<DashboardSalesPageProps> = ({ onBack }) => {
   const [byPayment, setByPayment] = useState<Record<string, unknown>[]>([]);
   const [byCategory, setByCategory] = useState<CategorySale[]>([]);
   const [byClient, setByClient] = useState<ClientSale[]>([]);
+  const [topByCategory, setTopByCategory] = useState<CategoryTopProducts[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Pestaña activa del reporte.
-  const [activeTab, setActiveTab] = useState<"resumen" | "productos" | "clientes">("resumen");
+  const [activeTab, setActiveTab] = useState<"resumen" | "productos" | "categorias" | "clientes">(
+    "resumen"
+  );
 
   // Filtros
   const [filter, setFilter] = useState<"day" | "week" | "month" | "custom">("day");
@@ -123,19 +129,22 @@ const DashboardSalesPage: React.FC<DashboardSalesPageProps> = ({ onBack }) => {
         resTopProducts,
         resPaymentMethod,
         resCategory,
-        resClient
+        resClient,
+        resTopByCategory
       ] = await Promise.all([
         getSalesSummary(params),
         getDailySales(params),
         getTopProducts(params),
         getSalesByPaymentMethod(params),
         getSalesByCategory(params),
-        getSalesByClient(params)
+        getSalesByClient(params),
+        getTopProductsByCategory(params)
       ]);
 
       setSummary(resSummary);
       setDailySales(resDaily);
       setTopProducts(resTopProducts);
+      setTopByCategory(resTopByCategory);
       
       const paymentData: Record<string, unknown>[] = resPaymentMethod.map((item) => ({
         name: item.paymentMethod || 'Sin método',
@@ -177,6 +186,8 @@ const DashboardSalesPage: React.FC<DashboardSalesPageProps> = ({ onBack }) => {
           className="report-header"
         />
 
+        {/* Barra superior: filtros + KPIs en una sola fila */}
+        <div className="rep-topbar">
         {/* Filtros */}
         <div className="report-filters">
           <div className="filter-buttons">
@@ -262,6 +273,35 @@ const DashboardSalesPage: React.FC<DashboardSalesPageProps> = ({ onBack }) => {
             </select>
           </div>
         </div>
+        </div>
+        {/* /rep-topbar (solo filtros) */}
+
+        {/* Resumen discreto en una sola línea (no estorba los reportes) */}
+        <div className="rep-summary-strip">
+          <span className="rep-pill">
+            💰 <strong>{summary?.totalVentas ?? 0}</strong> ventas
+          </span>
+          <span className="rep-pill-sep" />
+          <span className="rep-pill">
+            💵 <strong>{formatCurrency(summary?.totalDinero ?? 0)}</strong> generado
+          </span>
+          <span className="rep-pill-sep" />
+          <span className="rep-pill">
+            📦 <strong>{topProducts.reduce((acc, p) => acc + (p._sum.quantity || 0), 0)}</strong> uds
+          </span>
+          <span className="rep-pill-sep" />
+          <span className="rep-pill">
+            🎟️{" "}
+            <strong>
+              {formatCurrency(
+                summary && summary.totalVentas > 0
+                  ? (summary.totalDinero ?? 0) / summary.totalVentas
+                  : 0
+              )}
+            </strong>{" "}
+            ticket
+          </span>
+        </div>
 
         {loading ? (
           <div className="loading-container">
@@ -270,46 +310,6 @@ const DashboardSalesPage: React.FC<DashboardSalesPageProps> = ({ onBack }) => {
           </div>
         ) : (
           <>
-            {/* KPIs — siempre visibles (el pulso del negocio) */}
-            <div className="rep-kpis">
-              <div className="rep-kpi rep-kpi--sales">
-                <div className="rep-kpi-icon">💰</div>
-                <div className="rep-kpi-body">
-                  <span className="rep-kpi-value">{summary?.totalVentas ?? 0}</span>
-                  <span className="rep-kpi-label">Ventas registradas</span>
-                </div>
-              </div>
-              <div className="rep-kpi rep-kpi--money">
-                <div className="rep-kpi-icon">💵</div>
-                <div className="rep-kpi-body">
-                  <span className="rep-kpi-value">{formatCurrency(summary?.totalDinero ?? 0)}</span>
-                  <span className="rep-kpi-label">Total generado</span>
-                </div>
-              </div>
-              <div className="rep-kpi rep-kpi--units">
-                <div className="rep-kpi-icon">📦</div>
-                <div className="rep-kpi-body">
-                  <span className="rep-kpi-value">
-                    {topProducts.reduce((acc, p) => acc + (p._sum.quantity || 0), 0)}
-                  </span>
-                  <span className="rep-kpi-label">Unidades vendidas</span>
-                </div>
-              </div>
-              <div className="rep-kpi rep-kpi--ticket">
-                <div className="rep-kpi-icon">🎟️</div>
-                <div className="rep-kpi-body">
-                  <span className="rep-kpi-value">
-                    {formatCurrency(
-                      summary && summary.totalVentas > 0
-                        ? (summary.totalDinero ?? 0) / summary.totalVentas
-                        : 0
-                    )}
-                  </span>
-                  <span className="rep-kpi-label">Ticket promedio</span>
-                </div>
-              </div>
-            </div>
-
             {/* Pestañas */}
             <div className="rep-tabs">
               <button
@@ -323,6 +323,12 @@ const DashboardSalesPage: React.FC<DashboardSalesPageProps> = ({ onBack }) => {
                 onClick={() => setActiveTab("productos")}
               >
                 🏷️ Productos
+              </button>
+              <button
+                className={`rep-tab ${activeTab === "categorias" ? "rep-tab--active" : ""}`}
+                onClick={() => setActiveTab("categorias")}
+              >
+                📂 Por Categoría
               </button>
               <button
                 className={`rep-tab ${activeTab === "clientes" ? "rep-tab--active" : ""}`}
@@ -402,16 +408,17 @@ const DashboardSalesPage: React.FC<DashboardSalesPageProps> = ({ onBack }) => {
               </div>
             )}
 
-            {/* ===== PESTAÑA: PRODUCTOS ===== */}
+            {/* ===== PESTAÑA: PRODUCTOS (dos filas apiladas) ===== */}
             {activeTab === "productos" && (
               <div className="rep-tab-content">
-                <div className="rep-split">
+                <div className="rep-stack">
+                  {/* Fila 1: Ventas por categoría */}
                   <Card className="chart-card">
                     <div className="chart-header">
                       <h3>🏷️ Ventas por Categoría</h3>
                       <p className="chart-subtitle">Rendimiento por departamento</p>
                     </div>
-                    <ResponsiveContainer width="100%" height={320}>
+                    <ResponsiveContainer width="100%" height={300}>
                       <BarChart data={byCategory.slice(0, 10)}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                         <XAxis
@@ -435,6 +442,7 @@ const DashboardSalesPage: React.FC<DashboardSalesPageProps> = ({ onBack }) => {
                     </ResponsiveContainer>
                   </Card>
 
+                  {/* Fila 2: Productos más vendidos (con código) */}
                   <Card className="table-card">
                     <div className="table-header">
                       <h3>🏆 Productos Más Vendidos</h3>
@@ -445,6 +453,7 @@ const DashboardSalesPage: React.FC<DashboardSalesPageProps> = ({ onBack }) => {
                         <thead>
                           <tr>
                             <th>#</th>
+                            <th>Código</th>
                             <th>Producto</th>
                             <th>Cantidad</th>
                           </tr>
@@ -453,6 +462,7 @@ const DashboardSalesPage: React.FC<DashboardSalesPageProps> = ({ onBack }) => {
                           {topProducts.slice(0, 10).map((product, index) => (
                             <tr key={index}>
                               <td className="rank-cell">{index + 1}</td>
+                              <td className="code-cell">{product.code || "—"}</td>
                               <td className="product-cell">{product.productName}</td>
                               <td className="quantity-cell">
                                 <span className="badge">{product._sum.quantity}</span>
@@ -461,7 +471,7 @@ const DashboardSalesPage: React.FC<DashboardSalesPageProps> = ({ onBack }) => {
                           ))}
                           {topProducts.length === 0 && (
                             <tr>
-                              <td colSpan={3} className="empty-cell">
+                              <td colSpan={4} className="empty-cell">
                                 No hay datos disponibles
                               </td>
                             </tr>
@@ -471,6 +481,53 @@ const DashboardSalesPage: React.FC<DashboardSalesPageProps> = ({ onBack }) => {
                     </div>
                   </Card>
                 </div>
+              </div>
+            )}
+
+            {/* ===== PESTAÑA: POR CATEGORÍA ===== */}
+            {activeTab === "categorias" && (
+              <div className="rep-tab-content">
+                {topByCategory.length === 0 ? (
+                  <Card className="chart-card">
+                    <div className="empty-cell" style={{ padding: "40px", textAlign: "center" }}>
+                      No hay ventas en el periodo seleccionado
+                    </div>
+                  </Card>
+                ) : (
+                  <div className="rep-cat-grid">
+                    {topByCategory.map((cat, i) => {
+                      const maxQty = cat.products[0]?.quantity || 1;
+                      return (
+                        <Card key={i} className="rep-cat-card">
+                          <div className="rep-cat-head">
+                            <span className="rep-cat-name">{cat.categoryName}</span>
+                            <span className="rep-cat-total">{formatCurrency(cat.total)}</span>
+                          </div>
+                          <div className="rep-cat-sub">
+                            {cat.quantity.toLocaleString("es-MX")} unidades vendidas
+                          </div>
+                          <ul className="rep-cat-products">
+                            {cat.products.map((p, j) => (
+                              <li key={j} className="rep-cat-product">
+                                <span className="rep-cat-rank">{j + 1}</span>
+                                <span className="rep-cat-pname" title={p.productName}>
+                                  {p.productName}
+                                </span>
+                                <span className="rep-cat-bar-wrap">
+                                  <span
+                                    className="rep-cat-bar"
+                                    style={{ width: `${Math.max(8, (p.quantity / maxQty) * 100)}%` }}
+                                  />
+                                </span>
+                                <span className="rep-cat-qty">{p.quantity}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
@@ -548,6 +605,7 @@ const DashboardSalesPage: React.FC<DashboardSalesPageProps> = ({ onBack }) => {
             )}
           </>
         )}
+
       </div>
     </div>
   );

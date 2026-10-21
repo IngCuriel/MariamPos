@@ -10,6 +10,7 @@ export interface DailySale {
 
 export interface TopProduct {
   productName: string;
+  code?: string | null;
   _sum: { quantity: number };
 }
 

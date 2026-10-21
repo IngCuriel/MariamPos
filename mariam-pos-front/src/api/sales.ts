@@ -88,6 +88,25 @@ export const getSalesByCategory = async (params:Record<string, string>): Promise
   return data;
 };
 
+// Productos más vendidos agrupados por categoría.
+export interface CategoryTopProducts {
+  categoryName: string;
+  total: number;
+  quantity: number;
+  products: { productName: string; quantity: number; total: number }[];
+}
+
+export const getTopProductsByCategory = async (
+  params: Record<string, string>
+): Promise<CategoryTopProducts[]> => {
+  const query = new URLSearchParams(params).toString();
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.get<CategoryTopProducts[]>(
+    `/sales/top-products-by-category?${query}`
+  );
+  return data;
+};
+
 export const getSalesByClient = async (params:Record<string, string>): Promise<{clientName: string; total: number; count: number}[]> => {
   const query = new URLSearchParams(params).toString();
   const clientAxios = await getAxiosClient();

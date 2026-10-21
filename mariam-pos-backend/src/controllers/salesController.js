@@ -472,43 +472,50 @@ export const getTopProducts = async (req, res) => {
       ...(cashRegister ? { cashRegister } : {}),
     };
 
-    // Obtener todos los detalles de venta
+    // Obtener todos los detalles de venta (incluye el código del producto)
     const allDetails = await prisma.saleDetail.findMany({
       where: detailWhere,
       select: {
         productName: true,
         quantity: true,
         returnedQuantity: true,
+        product: { select: { code: true } },
       },
     });
 
     // Agrupar productos, normalizando productos no registrados
     const productMap = new Map();
-    
+
     allDetails.forEach((detail) => {
       let normalizedName = detail.productName || 'Sin nombre';
-      
+      let code = detail.product?.code || null;
+
       // Normalizar productos no registrados (que empiezan con "Producto no registrado")
       // Pueden tener variaciones como "Producto no registrado 1", "Producto no registrado 2", etc.
       if (normalizedName.toLowerCase().startsWith('producto no registrado')) {
         normalizedName = 'Producto no registrado';
+        code = null;
       }
-      
+
       // Cantidad neta: descontar lo ya devuelto por renglón (Req 8.5)
       const netQuantity = (detail.quantity || 0) - (detail.returnedQuantity || 0);
 
-      if (productMap.has(normalizedName)) {
-        productMap.set(normalizedName, productMap.get(normalizedName) + netQuantity);
+      const existing = productMap.get(normalizedName);
+      if (existing) {
+        existing.quantity += netQuantity;
+        // Conservar el primer código conocido.
+        if (!existing.code && code) existing.code = code;
       } else {
-        productMap.set(normalizedName, netQuantity);
+        productMap.set(normalizedName, { code, quantity: netQuantity });
       }
     });
 
     // Convertir a array y ordenar por cantidad descendente
     const topProducts = Array.from(productMap.entries())
-      .map(([productName, totalQuantity]) => ({
+      .map(([productName, info]) => ({
         productName,
-        _sum: { quantity: totalQuantity },
+        code: info.code,
+        _sum: { quantity: info.quantity },
       }))
       .sort((a, b) => b._sum.quantity - a._sum.quantity)
       .slice(0, 10);
@@ -674,6 +681,102 @@ export const getSalesByCategory = async (req, res) => {
   } catch (error) {
     console.error("Error al obtener ventas por categoría:", error);
     res.status(500).json({ error: 'Error al obtener ventas por categoría' });
+  }
+};
+
+// ============================================================
+// 📌 PRODUCTOS MÁS VENDIDOS AGRUPADOS POR CATEGORÍA
+// Devuelve, por categoría, su total neto y los productos top (cantidad + total)
+// dentro de esa categoría. Respeta rango de fechas, caja, cancelaciones y
+// devoluciones (igual que getSalesByCategory).
+// ============================================================
+export const getTopProductsByCategory = async (req, res) => {
+  try {
+    const { range, start, end, cashRegister } = req.query;
+    let where = {};
+    const now = new Date();
+
+    if (range === "day") {
+      const startDay = new Date();
+      startDay.setHours(0, 0, 0, 0);
+      const endDay = new Date();
+      endDay.setHours(23, 59, 59, 999);
+      where = { createdAt: { gte: startDay, lte: endDay } };
+    } else if (range === "week") {
+      const startWeek = new Date();
+      startWeek.setDate(now.getDate() - 7);
+      where = { createdAt: { gte: startWeek } };
+    } else if (range === "month") {
+      const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      where = { createdAt: { gte: startMonth } };
+    } else if (start && end) {
+      const startDate = new Date(`${start}T00:00:00.000`);
+      const endDate = new Date(`${end}T23:59:59.999`);
+      where = { createdAt: { gte: startDate, lte: endDate } };
+    }
+
+    if (cashRegister) {
+      where.cashRegister = cashRegister;
+    }
+    where.status = { not: "Cancelada" };
+
+    const sales = await prisma.sale.findMany({
+      where,
+      include: {
+        details: {
+          include: {
+            product: { include: { category: true } },
+          },
+        },
+      },
+    });
+
+    // categoría -> { categoryName, total, quantity, products: Map<name, {quantity,total}> }
+    const categoryMap = new Map();
+
+    sales.forEach((sale) => {
+      sale.details.forEach((detail) => {
+        const categoryName = detail.product?.category?.name || "Sin categoría";
+        const productName = detail.productName || detail.product?.name || "Sin nombre";
+        const quantity = detail.quantity || 0;
+        const netQuantity = quantity - (detail.returnedQuantity || 0);
+        const netSubTotal = quantity > 0 ? detail.subTotal * (netQuantity / quantity) : 0;
+
+        if (!categoryMap.has(categoryName)) {
+          categoryMap.set(categoryName, {
+            categoryName,
+            total: 0,
+            quantity: 0,
+            products: new Map(),
+          });
+        }
+        const cat = categoryMap.get(categoryName);
+        cat.total += netSubTotal;
+        cat.quantity += netQuantity;
+
+        const prod = cat.products.get(productName) || { productName, quantity: 0, total: 0 };
+        prod.quantity += netQuantity;
+        prod.total += netSubTotal;
+        cat.products.set(productName, prod);
+      });
+    });
+
+    // Convertir a arrays: categorías ordenadas por total; productos top 5 por categoría.
+    const result = Array.from(categoryMap.values())
+      .map((cat) => ({
+        categoryName: cat.categoryName,
+        total: cat.total,
+        quantity: cat.quantity,
+        products: Array.from(cat.products.values())
+          .sort((a, b) => b.quantity - a.quantity)
+          .slice(0, 5),
+      }))
+      .sort((a, b) => b.total - a.total);
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error al obtener productos más vendidos por categoría:", error);
+    res.status(500).json({ error: "Error al obtener productos por categoría" });
   }
 };
 

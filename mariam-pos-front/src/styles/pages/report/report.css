@@ -482,10 +482,83 @@
   background: #eef2f7;
   padding: 14px;
   box-sizing: border-box;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.report-page .report-container {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .report-header {
   margin-bottom: 0.9rem;
+  flex-shrink: 0;
+}
+
+/* El topbar (filtros) y las pestañas no se encogen; el contenido scrollea. */
+.report-page .rep-topbar,
+.report-page .rep-tabs {
+  flex-shrink: 0;
+}
+
+.report-page .rep-tab-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* ===== Tira de resumen discreta (reemplaza los cards de KPI) ===== */
+.rep-summary-strip {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.9rem;
+  padding: 0.5rem 0.9rem;
+  margin-bottom: 0.9rem;
+  background: #fff;
+  border: 1px solid #e9eef5;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.rep-pill {
+  font-size: 0.85rem;
+  color: #475569;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+.rep-pill strong {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+.rep-pill-sep {
+  width: 1px;
+  height: 16px;
+  background: #e2e8f0;
+}
+
+@media (max-width: 600px) {
+  .rep-pill-sep {
+    display: none;
+  }
+  .rep-summary-strip {
+    gap: 0.3rem 0.8rem;
+  }
 }
 
 /* Filtros más compactos. */
@@ -625,12 +698,27 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Split: gráfico + tabla lado a lado (productos / clientes) */
+/* Split: gráfico + tabla lado a lado (clientes) */
 .rep-split {
   display: grid;
   grid-template-columns: 1.2fr 1fr;
   gap: 0.9rem;
   align-items: start;
+}
+
+/* Stack: gráfico arriba, tabla abajo (dos filas apiladas — pestaña Productos) */
+.rep-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+/* Columna de código en la tabla de productos. */
+.data-table .code-cell {
+  font-variant-numeric: tabular-nums;
+  color: #475569;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 /* El grid de charts del resumen a 2 columnas. */
@@ -665,4 +753,179 @@
   .report-page .cash-register-filter {
     margin-left: 0;
   }
+}
+
+/* ============================================================
+   📊 COMPACTAR: filtros + KPIs en una sola fila
+   ============================================================ */
+
+/* Filtros aún más compactos para dejar espacio a los KPIs al lado. */
+.report-page .report-filters {
+  flex: 0 0 auto;
+}
+
+.report-page .filter-btn {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+/* KPIs: tira horizontal compacta (chips). */
+.rep-kpis {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0;
+  flex: 1;
+}
+
+.rep-kpi {
+  padding: 0.5rem 0.7rem;
+  gap: 0.5rem;
+  border-radius: 10px;
+}
+
+.rep-kpi-icon {
+  width: 34px;
+  height: 34px;
+  font-size: 1.1rem;
+  border-radius: 8px;
+}
+
+.rep-kpi-value {
+  font-size: 1.05rem;
+}
+
+.rep-kpi-label {
+  font-size: 0.66rem;
+}
+
+/* Fila superior: filtros a la izquierda, KPIs a la derecha. */
+.rep-topbar {
+  display: flex;
+  align-items: stretch;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.rep-topbar .report-filters {
+  margin-bottom: 0;
+  flex: 1 1 340px;
+}
+
+.rep-topbar .rep-kpis {
+  flex: 2 1 420px;
+}
+
+@media (max-width: 900px) {
+  .rep-topbar {
+    flex-direction: column;
+  }
+  .rep-topbar .rep-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ============================================================
+   📂 REPORTE: PRODUCTOS MÁS VENDIDOS POR CATEGORÍA
+   ============================================================ */
+.rep-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 0.9rem;
+}
+
+.rep-cat-card {
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rep-cat-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid #eef2f7;
+}
+
+.rep-cat-name {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.rep-cat-total {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #047857;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rep-cat-sub {
+  font-size: 0.74rem;
+  color: #94a3b8;
+  font-weight: 600;
+  margin-top: -0.2rem;
+}
+
+.rep-cat-products {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.rep-cat-product {
+  display: grid;
+  grid-template-columns: 20px 1fr 70px 32px;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.rep-cat-rank {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #64748b;
+  background: #f1f5f9;
+  border-radius: 6px;
+}
+
+.rep-cat-pname {
+  font-weight: 600;
+  color: #1e293b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rep-cat-bar-wrap {
+  height: 8px;
+  background: #eef2f7;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.rep-cat-bar {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+}
+
+.rep-cat-qty {
+  text-align: right;
+  font-weight: 800;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
 }
