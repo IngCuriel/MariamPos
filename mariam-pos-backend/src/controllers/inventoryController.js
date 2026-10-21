@@ -440,3 +440,188 @@ export const batchInitialInventory = async (req, res) => {
     res.status(500).json({ error: "Error interno del servidor" });
   }
 };
+
+
+// ============================================================
+// 📌 ROTACIÓN DE INVENTARIO — PRODUCTOS SIN MOVIMIENTO (DORMIDOS)
+// ------------------------------------------------------------
+// Detecta productos que no rotan: cruza cada producto con la fecha de su
+// ÚLTIMA VENTA real (SaleDetail) para calcular "días sin vender". Prioriza
+// por capital inmovilizado (stock * costo) para atacar primero lo que más
+// dinero tiene dormido.
+//
+// Query params (todos opcionales):
+//   days        → umbral de días sin vender (default 60)
+//   onlyStock   → "true" para incluir solo productos con stock > 0 (default false)
+//   neverSold   → "true" para devolver SOLO los que nunca se vendieron
+//   scope       → "all" (default, incluye productos sin inventario) | "inventory"
+//                 (solo los que manejan inventario)
+//   categoryId  → filtrar por categoría
+//   search      → nombre o código
+//
+// Funciona SIN inventario: "días sin vender" y "última venta" se calculan
+// sobre ventas reales (SaleDetail), que no dependen de trackInventory. Para
+// productos sin inventario, stock/capital se reportan como no aplicables.
+// ============================================================
+export const getStaleProducts = async (req, res) => {
+  try {
+    const {
+      days = "60",
+      onlyStock = "false",
+      neverSold = "false",
+      scope = "all",
+      categoryId = "",
+      search = "",
+      limit = "200",
+    } = req.query;
+
+    const daysThreshold = Math.max(0, parseInt(days, 10) || 0);
+    // Tope de filas devueltas (seguridad/rendimiento). Default 200.
+    const maxRows = Math.max(1, Math.min(2000, parseInt(limit, 10) || 200));
+    const onlyWithStock = onlyStock === "true";
+    const onlyNeverSold = neverSold === "true";
+    const now = new Date();
+
+    // 1) Productos candidatos. Por defecto TODOS los productos vendibles
+    //    (excluye kits). Con scope="inventory" se limita a los que manejan stock.
+    const where = { isKit: false };
+    if (scope === "inventory") {
+      where.inventory = { is: { trackInventory: true } };
+    }
+    if (categoryId) {
+      where.categoryId = categoryId;
+    }
+    if (search) {
+      where.OR = [
+        { name: { contains: search } },
+        { code: { contains: search } },
+      ];
+    }
+
+    const products = await prisma.product.findMany({
+      where,
+      include: {
+        inventory: true,
+        category: { select: { id: true, name: true } },
+      },
+    });
+
+    if (products.length === 0) {
+      return res.json({ data: [], summary: emptyStaleSummary() });
+    }
+
+    // 2) Última venta y unidades vendidas por producto (una sola consulta).
+    const productIds = products.map((p) => p.id);
+    const salesAgg = await prisma.saleDetail.groupBy({
+      by: ["productId"],
+      where: { productId: { in: productIds } },
+      _max: { createdAt: true },
+      _sum: { quantity: true },
+      _count: { _all: true },
+    });
+
+    const salesByProduct = new Map(
+      salesAgg.map((row) => [
+        row.productId,
+        {
+          lastSale: row._max.createdAt,
+          soldUnits: row._sum.quantity || 0,
+          salesCount: row._count._all || 0,
+        },
+      ])
+    );
+
+    // 3) Construir filas con métricas calculadas.
+    const msPerDay = 1000 * 60 * 60 * 24;
+    let rows = products.map((p) => {
+      const stats = salesByProduct.get(p.id);
+      const lastSale = stats?.lastSale || null;
+      const everSold = Boolean(lastSale);
+
+      // Días sin vender: desde la última venta, o desde el alta si nunca se vendió.
+      const referenceDate = lastSale || p.createdAt;
+      const daysWithoutSale = referenceDate
+        ? Math.floor((now - new Date(referenceDate)) / msPerDay)
+        : null;
+
+      // ¿Este producto maneja inventario? Si no, stock/capital no aplican.
+      const tracksInventory = Boolean(p.inventory?.trackInventory);
+      const stock = tracksInventory ? p.inventory?.currentStock ?? 0 : null;
+      const cost = p.cost ?? 0;
+      const tiedCapital = tracksInventory ? (stock || 0) * cost : 0;
+
+      return {
+        id: p.id,
+        code: p.code,
+        name: p.name,
+        categoryId: p.categoryId,
+        categoryName: p.category?.name || null,
+        tracksInventory,
+        currentStock: stock, // null si no maneja inventario
+        cost,
+        price: p.price ?? 0,
+        tiedCapital,
+        lastSale,
+        everSold,
+        soldUnits: stats?.soldUnits || 0,
+        salesCount: stats?.salesCount || 0,
+        daysWithoutSale,
+        createdAt: p.createdAt,
+      };
+    });
+
+    // 4) Filtros de negocio.
+    // "Solo con stock" solo tiene sentido para productos con inventario.
+    if (onlyWithStock) {
+      rows = rows.filter((r) => r.tracksInventory && (r.currentStock ?? 0) > 0);
+    }
+    if (onlyNeverSold) {
+      rows = rows.filter((r) => !r.everSold);
+    } else {
+      // Solo "dormidos": superan el umbral de días (o nunca vendidos).
+      rows = rows.filter(
+        (r) => !r.everSold || (r.daysWithoutSale ?? 0) >= daysThreshold
+      );
+    }
+
+    // 5) Orden: primero lo que más capital tiene parado.
+    rows.sort((a, b) => b.tiedCapital - a.tiedCapital);
+
+    // 6) Resumen (KPIs) sobre el TOTAL (antes de truncar), para no mentir.
+    //    Capital/unidades solo suman productos con inventario.
+    const summary = {
+      totalProducts: rows.length,
+      neverSold: rows.filter((r) => !r.everSold).length,
+      tiedCapital: rows.reduce((sum, r) => sum + (r.tiedCapital || 0), 0),
+      totalUnits: rows.reduce(
+        (sum, r) => sum + (r.tracksInventory ? r.currentStock || 0 : 0),
+        0
+      ),
+      daysThreshold,
+      shown: Math.min(rows.length, maxRows),
+      truncated: rows.length > maxRows,
+      limit: maxRows,
+    };
+
+    // 7) Truncar al tope (los más relevantes por capital van primero).
+    const data = rows.slice(0, maxRows);
+
+    res.json({ data, summary });
+  } catch (error) {
+    console.error("Error getStaleProducts:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+};
+
+function emptyStaleSummary() {
+  return {
+    totalProducts: 0,
+    neverSold: 0,
+    tiedCapital: 0,
+    totalUnits: 0,
+    daysThreshold: 60,
+    shown: 0,
+    truncated: false,
+    limit: 200,
+  };
+}

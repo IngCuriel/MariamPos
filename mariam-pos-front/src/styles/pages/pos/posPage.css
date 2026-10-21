@@ -265,6 +265,7 @@
 .pos-module-card.shift-history { --accent: #6366f1; --accent-soft: #eef2ff; }
 .pos-module-card.cash-movements { --accent: #059669; --accent-soft: #ecfdf5; }
 .pos-module-card.recover-containers { --accent: #d97706; --accent-soft: #fffbeb; }
+.pos-module-card.stale-products { --accent: #dc2626; --accent-soft: #fef2f2; }
 
 /* ===== PRIMERA SECCIÓN (operaciones) — cards destacadas ===== */
 .pos-section--primary .pos-module-card {

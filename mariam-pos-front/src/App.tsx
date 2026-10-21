@@ -21,6 +21,7 @@ import NewKitPage from './pages/product/NewKitPage';
 import SuppliersPage from './pages/suppliers/SuppliersPage';
 import PurchasesPage from './pages/purchases/PurchasesPage';
 import AccountPayablesPage from './pages/accountPayables/AccountPayablesPage';
+import StaleProductsPage from './pages/inventory/StaleProductsPage';
 import './styles/index.css';
 
 function App() {
@@ -44,6 +45,7 @@ function App() {
     goToSuppliers,
     goToPurchases,
     goToAccountPayables,
+    goToStaleProducts,
   } = useNavigation();
   
   const { categories, addCategory, updateCategory, deleteCategory, loadCategories } = useCategories();
@@ -63,7 +65,7 @@ function App() {
       case 'help':
         return <HelpPage onBack={goToPOS} />;
       case 'pos':
-        return <POSPage onBack={goToMain} onProductsClick={goToCatalog} onSalesClick={goToSales} onClientClick={gotoClients} onReportClick={gotoReport} onInventoryClick={goToInventory} onUsersClick={goToUsers} onShiftHistoryClick={goToShiftHistory} onCashMovementsHistoryClick={goToCashMovementsHistory} onCopiesClick={goToCopies} onContainersClick={goToContainers} onHelpClick={goToHelp} onSuppliersClick={goToSuppliers} onPurchasesClick={goToPurchases} onAccountPayablesClick={goToAccountPayables} />;
+        return <POSPage onBack={goToMain} onProductsClick={goToCatalog} onSalesClick={goToSales} onClientClick={gotoClients} onReportClick={gotoReport} onInventoryClick={goToInventory} onUsersClick={goToUsers} onShiftHistoryClick={goToShiftHistory} onCashMovementsHistoryClick={goToCashMovementsHistory} onCopiesClick={goToCopies} onContainersClick={goToContainers} onHelpClick={goToHelp} onSuppliersClick={goToSuppliers} onPurchasesClick={goToPurchases} onAccountPayablesClick={goToAccountPayables} onStaleProductsClick={goToStaleProducts} />;
       case 'products':
         return (
           <ProductsPage 
@@ -119,6 +121,8 @@ function App() {
         return <PurchasesPage onBack={goToPOS} />;
       case 'account-payables':
         return <AccountPayablesPage onBack={goToPOS} />;
+      case 'stale-products':
+        return <StaleProductsPage onBack={goToPOS} />;
       default:
         return <HomePage onPOSClick={goToPOS} />;
     }

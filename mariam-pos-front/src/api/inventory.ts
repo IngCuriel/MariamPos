@@ -144,3 +144,67 @@ export const saveInitialInventoryBatch = async (payload: {
   const { data } = await clientAxios.post(`/inventory/initial-batch`, payload);
   return data;
 };
+
+
+// ============================================================
+// 📉 ROTACIÓN — Productos sin movimiento (dormidos)
+// ============================================================
+export interface StaleProduct {
+  id: number;
+  code: string | null;
+  name: string;
+  categoryId: string | null;
+  categoryName: string | null;
+  tracksInventory: boolean;
+  currentStock: number | null; // null si el producto no maneja inventario
+  cost: number;
+  price: number;
+  tiedCapital: number;
+  lastSale: string | null;
+  everSold: boolean;
+  soldUnits: number;
+  salesCount: number;
+  daysWithoutSale: number | null;
+  createdAt: string;
+}
+
+export interface StaleProductsSummary {
+  totalProducts: number;
+  neverSold: number;
+  tiedCapital: number;
+  totalUnits: number;
+  daysThreshold: number;
+  shown: number;
+  truncated: boolean;
+  limit: number;
+}
+
+export interface StaleProductsResponse {
+  data: StaleProduct[];
+  summary: StaleProductsSummary;
+}
+
+export const getStaleProducts = async (params?: {
+  days?: number;
+  onlyStock?: boolean;
+  neverSold?: boolean;
+  scope?: "all" | "inventory";
+  categoryId?: string;
+  search?: string;
+  limit?: number;
+}): Promise<StaleProductsResponse> => {
+  const clientAxios = await getAxiosClient();
+  const query = new URLSearchParams();
+  if (params?.days !== undefined) query.append("days", String(params.days));
+  if (params?.onlyStock !== undefined) query.append("onlyStock", String(params.onlyStock));
+  if (params?.neverSold !== undefined) query.append("neverSold", String(params.neverSold));
+  if (params?.scope) query.append("scope", params.scope);
+  if (params?.categoryId) query.append("categoryId", params.categoryId);
+  if (params?.search) query.append("search", params.search);
+  if (params?.limit !== undefined) query.append("limit", String(params.limit));
+
+  const { data } = await clientAxios.get<StaleProductsResponse>(
+    `/inventory/stale?${query.toString()}`
+  );
+  return data;
+};

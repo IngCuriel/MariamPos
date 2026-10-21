@@ -252,6 +252,16 @@ export const DEFAULT_POS_CONFIG: POSPageConfig = {
       order: 3,
       onClick: "onCashMovementsHistoryClick",
     },
+    {
+      id: "stale-products",
+      title: "Rotación de Inventario",
+      icon: "📉",
+      description: "Productos dormidos y capital parado",
+      section: "reports",
+      visible: true,
+      order: 4,
+      onClick: "onStaleProductsClick",
+    },
   ],
 };
 

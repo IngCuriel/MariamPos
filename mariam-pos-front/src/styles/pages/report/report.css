@@ -472,3 +472,197 @@
   }
 }
 
+
+/* ============================================================
+   📊 REDISEÑO COMPACTO CON PESTAÑAS
+   ============================================================ */
+
+/* Fondo neutro y profesional (coherente con el menú principal). */
+.report-page {
+  background: #eef2f7;
+  padding: 14px;
+  box-sizing: border-box;
+}
+
+.report-header {
+  margin-bottom: 0.9rem;
+}
+
+/* Filtros más compactos. */
+.report-page .report-filters {
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.9rem;
+  border-radius: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+}
+
+.report-page .filter-buttons {
+  margin-bottom: 0;
+  gap: 0.5rem;
+}
+
+.report-page .filter-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  border-radius: 9px;
+}
+
+.report-page .cash-register-filter {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ===== KPIs compactos (siempre visibles) ===== */
+.rep-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.rep-kpi {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: #fff;
+  border: 1px solid #e9eef5;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  border-left: 4px solid var(--kpi, #3b82f6);
+}
+
+.rep-kpi-icon {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  background: var(--kpi-soft, #eff6ff);
+}
+
+.rep-kpi-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rep-kpi-value {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rep-kpi-label {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.rep-kpi--sales  { --kpi: #2563eb; --kpi-soft: #eff6ff; }
+.rep-kpi--money  { --kpi: #059669; --kpi-soft: #ecfdf5; }
+.rep-kpi--units  { --kpi: #0891b2; --kpi-soft: #ecfeff; }
+.rep-kpi--ticket { --kpi: #d97706; --kpi-soft: #fffbeb; }
+
+/* ===== Pestañas ===== */
+.rep-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.9rem;
+  background: #fff;
+  padding: 0.35rem;
+  border-radius: 12px;
+  border: 1px solid #e9eef5;
+  width: fit-content;
+}
+
+.rep-tab {
+  padding: 0.55rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.rep-tab:hover {
+  color: #0f172a;
+  background: #f1f5f9;
+}
+
+.rep-tab--active {
+  color: #fff;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 4px 10px -3px rgba(37, 99, 235, 0.5);
+}
+
+/* ===== Contenido de pestaña ===== */
+.rep-tab-content {
+  animation: repFade 0.2s ease;
+}
+
+@keyframes repFade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Split: gráfico + tabla lado a lado (productos / clientes) */
+.rep-split {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 0.9rem;
+  align-items: start;
+}
+
+/* El grid de charts del resumen a 2 columnas. */
+.report-page .charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+}
+
+@media (max-width: 1024px) {
+  .rep-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .rep-split,
+  .report-page .charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .rep-kpis {
+    grid-template-columns: 1fr;
+  }
+  .rep-tabs {
+    width: 100%;
+  }
+  .rep-tab {
+    flex: 1;
+    text-align: center;
+    padding: 0.55rem 0.5rem;
+  }
+  .report-page .cash-register-filter {
+    margin-left: 0;
+  }
+}

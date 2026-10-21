@@ -27,6 +27,7 @@ export const useNavigation = () => {
   const goToSuppliers = () => setCurrentView('suppliers');
   const goToPurchases = () => setCurrentView('purchases');
   const goToAccountPayables = () => setCurrentView('account-payables');
+  const goToStaleProducts = () => setCurrentView('stale-products');
 
   return {
     currentView,
@@ -50,5 +51,6 @@ export const useNavigation = () => {
     goToSuppliers,
     goToPurchases,
     goToAccountPayables,
+    goToStaleProducts,
   };
 };

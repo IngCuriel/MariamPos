@@ -26,6 +26,7 @@ interface POSPageProps {
   onSuppliersClick?:() => void;
   onPurchasesClick?:() => void;
   onAccountPayablesClick?:() => void;
+  onStaleProductsClick?:() => void;
 }
 
 const POSPage: React.FC<POSPageProps> = ({ 
@@ -43,7 +44,8 @@ const POSPage: React.FC<POSPageProps> = ({
   onHelpClick,
   onSuppliersClick,
   onPurchasesClick,
-  onAccountPayablesClick
+  onAccountPayablesClick,
+  onStaleProductsClick
 }) => {
   const [config, setConfig] = useState<POSPageConfig>(loadPOSConfig());
   const [branchLabel, setBranchLabel] = useState<string>('');
@@ -73,6 +75,7 @@ const POSPage: React.FC<POSPageProps> = ({
     onSuppliersClick,
     onPurchasesClick,
     onAccountPayablesClick,
+    onStaleProductsClick,
     onCopiesClick,
     onHelpClick,
     onReportClick,
@@ -92,6 +95,7 @@ const POSPage: React.FC<POSPageProps> = ({
     onSuppliersClick,
     onPurchasesClick,
     onAccountPayablesClick,
+    onStaleProductsClick,
     onCopiesClick,
     onHelpClick,
     onReportClick,

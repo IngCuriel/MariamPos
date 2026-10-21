@@ -1,6 +1,6 @@
 // Tipos principales de la aplicación
 
-export type ViewType = 'main' | 'help' | 'pos' | 'products' | 'catalog' | 'categories' | 'sales' |'client' | 'report' | 'inventory' | 'users' | 'shift-history' | 'cash-movements-history' | 'copies' | 'containers' | 'kit' | 'suppliers' | 'purchases' | 'account-payables';
+export type ViewType = 'main' | 'help' | 'pos' | 'products' | 'catalog' | 'categories' | 'sales' |'client' | 'report' | 'inventory' | 'users' | 'shift-history' | 'cash-movements-history' | 'copies' | 'containers' | 'kit' | 'suppliers' | 'purchases' | 'account-payables' | 'stale-products';
 
 // Tipos de venta soportados por un producto.
 // - "Pieza": venta por unidad con cantidad editable.

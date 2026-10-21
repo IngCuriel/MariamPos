@@ -10,6 +10,7 @@ import {
   toggleInventoryTracking,
   getProductsByDepartmentForInventory,
   batchInitialInventory,
+  getStaleProducts,
 } from "../controllers/inventoryController.js";
 
 const router = Router();
@@ -17,6 +18,8 @@ const router = Router();
 router.get("/", getInventory);
 router.get("/product/:productId", getProductInventory);
 router.get("/low-stock", getLowStockProducts);
+// Rotación: productos sin movimiento (dormidos)
+router.get("/stale", getStaleProducts);
 router.post("/movements", createInventoryMovement);
 router.get("/movements/product/:productId", getProductMovements);
 router.get("/movements", getAllMovements);

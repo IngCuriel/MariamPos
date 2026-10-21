@@ -67,7 +67,10 @@ const DashboardSalesPage: React.FC<DashboardSalesPageProps> = ({ onBack }) => {
   const [byCategory, setByCategory] = useState<CategorySale[]>([]);
   const [byClient, setByClient] = useState<ClientSale[]>([]);
   const [loading, setLoading] = useState(false);
-  
+
+  // Pestaña activa del reporte.
+  const [activeTab, setActiveTab] = useState<"resumen" | "productos" | "clientes">("resumen");
+
   // Filtros
   const [filter, setFilter] = useState<"day" | "week" | "month" | "custom">("day");
   const [startDate, setStartDate] = useState<Date | null>(null);
@@ -267,241 +270,282 @@ const DashboardSalesPage: React.FC<DashboardSalesPageProps> = ({ onBack }) => {
           </div>
         ) : (
           <>
-            {/* Resumen General */}
-            <div className="summary-cards">
-              <div className="summary-card primary">
-                <div className="summary-icon">💰</div>
-                <div className="summary-content">
-                  <h3>Total Ventas</h3>
-                  <p className="summary-value">{summary?.totalVentas ?? 0}</p>
-                  <p className="summary-label">ventas registradas</p>
+            {/* KPIs — siempre visibles (el pulso del negocio) */}
+            <div className="rep-kpis">
+              <div className="rep-kpi rep-kpi--sales">
+                <div className="rep-kpi-icon">💰</div>
+                <div className="rep-kpi-body">
+                  <span className="rep-kpi-value">{summary?.totalVentas ?? 0}</span>
+                  <span className="rep-kpi-label">Ventas registradas</span>
                 </div>
               </div>
-              <div className="summary-card success">
-                <div className="summary-icon">💵</div>
-                <div className="summary-content">
-                  <h3>Total Generado</h3>
-                  <p className="summary-value">{formatCurrency(summary?.totalDinero ?? 0)}</p>
-                  <p className="summary-label">monto total</p>
+              <div className="rep-kpi rep-kpi--money">
+                <div className="rep-kpi-icon">💵</div>
+                <div className="rep-kpi-body">
+                  <span className="rep-kpi-value">{formatCurrency(summary?.totalDinero ?? 0)}</span>
+                  <span className="rep-kpi-label">Total generado</span>
                 </div>
               </div>
-              <div className="summary-card info">
-                <div className="summary-icon">📦</div>
-                <div className="summary-content">
-                  <h3>Productos Vendidos</h3>
-                  <p className="summary-value">
+              <div className="rep-kpi rep-kpi--units">
+                <div className="rep-kpi-icon">📦</div>
+                <div className="rep-kpi-body">
+                  <span className="rep-kpi-value">
                     {topProducts.reduce((acc, p) => acc + (p._sum.quantity || 0), 0)}
-                  </p>
-                  <p className="summary-label">unidades totales</p>
+                  </span>
+                  <span className="rep-kpi-label">Unidades vendidas</span>
+                </div>
+              </div>
+              <div className="rep-kpi rep-kpi--ticket">
+                <div className="rep-kpi-icon">🎟️</div>
+                <div className="rep-kpi-body">
+                  <span className="rep-kpi-value">
+                    {formatCurrency(
+                      summary && summary.totalVentas > 0
+                        ? (summary.totalDinero ?? 0) / summary.totalVentas
+                        : 0
+                    )}
+                  </span>
+                  <span className="rep-kpi-label">Ticket promedio</span>
                 </div>
               </div>
             </div>
 
-            {/* Gráficas principales */}
-            <div className="charts-grid">
-              {/* Ventas por día */}
-              <Card className="chart-card">
-                <div className="chart-header">
-                  <h3>📈 Ventas por Día</h3>
-                  <p className="chart-subtitle">Evolución diaria de ventas</p>
-                </div>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={dailySales}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis 
-                      dataKey="date" 
-                      tick={{ fontSize: 11, fill: '#6b7280' }}
-                      tickFormatter={formatDate}
-                    />
-                    <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} />
-                    <Tooltip 
-                      formatter={(value: number) => formatCurrency(value)}
-                      labelFormatter={(label) => `Fecha: ${formatDate(label)}`}
-                      contentStyle={{ 
-                        backgroundColor: '#fff', 
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px'
-                      }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="total" 
-                      stroke="#3B82F6" 
-                      strokeWidth={3}
-                      dot={{ fill: '#3B82F6', r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </Card>
-
-              {/* Ventas por método de pago */}
-              <Card className="chart-card">
-                <div className="chart-header">
-                  <h3>💳 Ventas por Método de Pago</h3>
-                  <p className="chart-subtitle">Distribución de pagos</p>
-                </div>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={byPayment}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      label={(props: any) => {
-                        const { name, percent } = props;
-                        return `${name}: ${((percent as number) * 100).toFixed(0)}%`;
-                      }}
-                    >
-                      {byPayment.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </Card>
-
-              {/* Ventas por categoría */}
-              <Card className="chart-card">
-                <div className="chart-header">
-                  <h3>🏷️ Ventas por Categoría</h3>
-                  <p className="chart-subtitle">Rendimiento por departamento</p>
-                </div>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={byCategory.slice(0, 10)}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis 
-                      dataKey="categoryName" 
-                      tick={{ fontSize: 10, fill: '#6b7280' }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                    />
-                    <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} />
-                    <Tooltip 
-                      formatter={(value: number) => formatCurrency(value)}
-                      contentStyle={{ 
-                        backgroundColor: '#fff', 
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px'
-                      }}
-                    />
-                    <Bar dataKey="total" fill="#10B981" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Card>
-
-              {/* Ventas por cliente */}
-              <Card className="chart-card">
-                <div className="chart-header">
-                  <h3>👥 Ventas por Cliente</h3>
-                  <p className="chart-subtitle">Top 10 clientes</p>
-                </div>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={byClient.slice(0, 10)} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis type="number" tick={{ fontSize: 11, fill: '#6b7280' }} />
-                    <YAxis 
-                      type="category" 
-                      dataKey="clientName" 
-                      tick={{ fontSize: 10, fill: '#6b7280' }}
-                      width={120}
-                    />
-                    <Tooltip 
-                      formatter={(value: number) => formatCurrency(value)}
-                      contentStyle={{ 
-                        backgroundColor: '#fff', 
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px'
-                      }}
-                    />
-                    <Bar dataKey="total" fill="#8B5CF6" radius={[0, 8, 8, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Card>
+            {/* Pestañas */}
+            <div className="rep-tabs">
+              <button
+                className={`rep-tab ${activeTab === "resumen" ? "rep-tab--active" : ""}`}
+                onClick={() => setActiveTab("resumen")}
+              >
+                📈 Resumen
+              </button>
+              <button
+                className={`rep-tab ${activeTab === "productos" ? "rep-tab--active" : ""}`}
+                onClick={() => setActiveTab("productos")}
+              >
+                🏷️ Productos
+              </button>
+              <button
+                className={`rep-tab ${activeTab === "clientes" ? "rep-tab--active" : ""}`}
+                onClick={() => setActiveTab("clientes")}
+              >
+                👥 Clientes
+              </button>
             </div>
 
-            {/* Tablas de detalles */}
-            <div className="tables-grid">
-              {/* Productos más vendidos */}
-              <Card className="table-card">
-                <div className="table-header">
-                  <h3>🏆 Productos Más Vendidos</h3>
-                  <p className="table-subtitle">Top 10 productos</p>
-                </div>
-                <div className="table-content">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>Producto</th>
-                        <th>Cantidad</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {topProducts.slice(0, 10).map((product, index) => (
-                        <tr key={index}>
-                          <td className="rank-cell">{index + 1}</td>
-                          <td className="product-cell">{product.productName}</td>
-                          <td className="quantity-cell">
-                            <span className="badge">{product._sum.quantity}</span>
-                          </td>
-                        </tr>
-                      ))}
-                      {topProducts.length === 0 && (
-                        <tr>
-                          <td colSpan={3} className="empty-cell">
-                            No hay datos disponibles
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
+            {/* ===== PESTAÑA: RESUMEN ===== */}
+            {activeTab === "resumen" && (
+              <div className="rep-tab-content">
+                <div className="charts-grid">
+                  <Card className="chart-card">
+                    <div className="chart-header">
+                      <h3>📈 Ventas por Día</h3>
+                      <p className="chart-subtitle">Evolución diaria de ventas</p>
+                    </div>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={dailySales}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <XAxis
+                          dataKey="date"
+                          tick={{ fontSize: 11, fill: "#6b7280" }}
+                          tickFormatter={formatDate}
+                        />
+                        <YAxis tick={{ fontSize: 11, fill: "#6b7280" }} />
+                        <Tooltip
+                          formatter={(value: number) => formatCurrency(value)}
+                          labelFormatter={(label) => `Fecha: ${formatDate(label)}`}
+                          contentStyle={{
+                            backgroundColor: "#fff",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: "8px",
+                          }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="total"
+                          stroke="#3B82F6"
+                          strokeWidth={3}
+                          dot={{ fill: "#3B82F6", r: 4 }}
+                          activeDot={{ r: 6 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </Card>
 
-              {/* Top clientes */}
-              <Card className="table-card">
-                <div className="table-header">
-                  <h3>⭐ Top Clientes</h3>
-                  <p className="table-subtitle">Clientes con más compras</p>
+                  <Card className="chart-card">
+                    <div className="chart-header">
+                      <h3>💳 Métodos de Pago</h3>
+                      <p className="chart-subtitle">Distribución de cobros</p>
+                    </div>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={byPayment}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={100}
+                          label={(props: any) => {
+                            const { name, percent } = props;
+                            return `${name}: ${((percent as number) * 100).toFixed(0)}%`;
+                          }}
+                        >
+                          {byPayment.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </Card>
                 </div>
-                <div className="table-content">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>Cliente</th>
-                        <th>Ventas</th>
-                        <th>Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {byClient.slice(0, 10).map((client, index) => (
-                        <tr key={index}>
-                          <td className="rank-cell">{index + 1}</td>
-                          <td className="client-cell">{client.clientName}</td>
-                          <td className="count-cell">
-                            <span className="badge">{client.count}</span>
-                          </td>
-                          <td className="amount-cell">{formatCurrency(client.total)}</td>
-                        </tr>
-                      ))}
-                      {byClient.length === 0 && (
-                        <tr>
-                          <td colSpan={4} className="empty-cell">
-                            No hay datos disponibles
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+              </div>
+            )}
+
+            {/* ===== PESTAÑA: PRODUCTOS ===== */}
+            {activeTab === "productos" && (
+              <div className="rep-tab-content">
+                <div className="rep-split">
+                  <Card className="chart-card">
+                    <div className="chart-header">
+                      <h3>🏷️ Ventas por Categoría</h3>
+                      <p className="chart-subtitle">Rendimiento por departamento</p>
+                    </div>
+                    <ResponsiveContainer width="100%" height={320}>
+                      <BarChart data={byCategory.slice(0, 10)}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <XAxis
+                          dataKey="categoryName"
+                          tick={{ fontSize: 10, fill: "#6b7280" }}
+                          angle={-45}
+                          textAnchor="end"
+                          height={80}
+                        />
+                        <YAxis tick={{ fontSize: 11, fill: "#6b7280" }} />
+                        <Tooltip
+                          formatter={(value: number) => formatCurrency(value)}
+                          contentStyle={{
+                            backgroundColor: "#fff",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: "8px",
+                          }}
+                        />
+                        <Bar dataKey="total" fill="#10B981" radius={[8, 8, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Card>
+
+                  <Card className="table-card">
+                    <div className="table-header">
+                      <h3>🏆 Productos Más Vendidos</h3>
+                      <p className="table-subtitle">Top 10 productos</p>
+                    </div>
+                    <div className="table-content">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>#</th>
+                            <th>Producto</th>
+                            <th>Cantidad</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {topProducts.slice(0, 10).map((product, index) => (
+                            <tr key={index}>
+                              <td className="rank-cell">{index + 1}</td>
+                              <td className="product-cell">{product.productName}</td>
+                              <td className="quantity-cell">
+                                <span className="badge">{product._sum.quantity}</span>
+                              </td>
+                            </tr>
+                          ))}
+                          {topProducts.length === 0 && (
+                            <tr>
+                              <td colSpan={3} className="empty-cell">
+                                No hay datos disponibles
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
                 </div>
-              </Card>
-            </div>
+              </div>
+            )}
+
+            {/* ===== PESTAÑA: CLIENTES ===== */}
+            {activeTab === "clientes" && (
+              <div className="rep-tab-content">
+                <div className="rep-split">
+                  <Card className="chart-card">
+                    <div className="chart-header">
+                      <h3>👥 Ventas por Cliente</h3>
+                      <p className="chart-subtitle">Top 10 clientes</p>
+                    </div>
+                    <ResponsiveContainer width="100%" height={320}>
+                      <BarChart data={byClient.slice(0, 10)} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <XAxis type="number" tick={{ fontSize: 11, fill: "#6b7280" }} />
+                        <YAxis
+                          type="category"
+                          dataKey="clientName"
+                          tick={{ fontSize: 10, fill: "#6b7280" }}
+                          width={120}
+                        />
+                        <Tooltip
+                          formatter={(value: number) => formatCurrency(value)}
+                          contentStyle={{
+                            backgroundColor: "#fff",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: "8px",
+                          }}
+                        />
+                        <Bar dataKey="total" fill="#8B5CF6" radius={[0, 8, 8, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Card>
+
+                  <Card className="table-card">
+                    <div className="table-header">
+                      <h3>⭐ Top Clientes</h3>
+                      <p className="table-subtitle">Clientes con más compras</p>
+                    </div>
+                    <div className="table-content">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>#</th>
+                            <th>Cliente</th>
+                            <th>Ventas</th>
+                            <th>Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {byClient.slice(0, 10).map((client, index) => (
+                            <tr key={index}>
+                              <td className="rank-cell">{index + 1}</td>
+                              <td className="client-cell">{client.clientName}</td>
+                              <td className="count-cell">
+                                <span className="badge">{client.count}</span>
+                              </td>
+                              <td className="amount-cell">{formatCurrency(client.total)}</td>
+                            </tr>
+                          ))}
+                          {byClient.length === 0 && (
+                            <tr>
+                              <td colSpan={4} className="empty-cell">
+                                No hay datos disponibles
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
