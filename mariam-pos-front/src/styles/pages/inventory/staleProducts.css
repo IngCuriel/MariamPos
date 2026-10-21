@@ -1,0 +1,318 @@
+/* ============================================================
+   📉 ROTACIÓN DE INVENTARIO — productos dormidos
+   Mismo layout unificado (filtros / tabla con scroll).
+   ============================================================ */
+
+.stale-page {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px;
+  background: var(--background-light, #f5f5f5);
+  box-sizing: border-box;
+}
+
+.stale-page .stale-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  overflow-y: auto;
+}
+
+.stale-page .catalog-filters-section {
+  flex-shrink: 0;
+}
+
+/* ===== KPIs ===== */
+.stale-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.stale-kpi {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 0.7rem;
+  background: #fff;
+  border: 1px solid #e9eef5;
+  border-radius: 10px;
+  border-left: 3px solid var(--k, #3b82f6);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.stale-kpi-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  background: var(--k-soft, #eff6ff);
+}
+
+.stale-kpi-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stale-kpi-value {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stale-kpi-label {
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.stale-kpi--count   { --k: #6366f1; --k-soft: #eef2ff; }
+.stale-kpi--capital { --k: #d97706; --k-soft: #fffbeb; }
+.stale-kpi--never   { --k: #dc2626; --k-soft: #fef2f2; }
+.stale-kpi--units   { --k: #059669; --k-soft: #ecfdf5; }
+
+/* ===== Checkboxes en filtros ===== */
+.stale-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  white-space: nowrap;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.stale-check input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+.stale-page .catalog-actions-group {
+  display: flex;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+}
+
+/* ===== Tabla ===== */
+.stale-table-card {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.stale-table-container {
+  max-height: calc(100vh - 280px);
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #eef2f7;
+}
+
+.stale-table-container::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+.stale-table-container::-webkit-scrollbar-track {
+  background: #eef2f7;
+}
+.stale-table-container::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border: 3px solid #eef2f7;
+  border-radius: 999px;
+}
+
+.stale-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.stale-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #f1f5f9;
+  color: #334155;
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-align: left;
+  padding: 11px 14px;
+  white-space: nowrap;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.stale-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+  vertical-align: middle;
+}
+
+.stale-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.stale-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.stale-th-num,
+.stale-td-num {
+  width: 44px;
+  text-align: center;
+  color: #94a3b8;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stale-th-right,
+.stale-td-right {
+  text-align: right;
+}
+
+.stale-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Producto sin control de inventario: stock/capital no aplican. */
+.stale-no-inv {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* Producto: nombre + código + categoría apilados */
+.stale-name {
+  display: block;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.stale-code {
+  display: block;
+  font-size: 0.74rem;
+  color: #94a3b8;
+}
+
+.stale-cat {
+  display: inline-block;
+  margin-top: 2px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+/* Capital parado destacado */
+.stale-capital {
+  font-weight: 800;
+  color: #b45309;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== Semáforo de días sin vender ===== */
+.stale-days {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.stale-days--yellow {
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+}
+
+.stale-days--orange {
+  color: #c2410c;
+  background: #ffedd5;
+  border: 1px solid #fed7aa;
+}
+
+.stale-days--red {
+  color: #991b1b;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+}
+
+.stale-days--never {
+  color: #fff;
+  background: #dc2626;
+  border: 1px solid #b91c1c;
+}
+
+.stale-page .loading,
+.stale-page .no-results {
+  text-align: center;
+  padding: 50px 20px;
+  color: #6b7280;
+  font-size: 1.05rem;
+}
+
+@media (max-width: 1024px) {
+  .stale-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .stale-kpis {
+    grid-template-columns: 1fr;
+  }
+  .stale-table {
+    font-size: 0.85rem;
+  }
+}
+
+/* Aviso de lista truncada al tope (200). */
+.stale-truncate-note {
+  flex-shrink: 0;
+  padding: 0.6rem 1rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  color: #92400e;
+  text-align: center;
+}
+
+.stale-truncate-note strong {
+  color: #78350f;
+}
