@@ -266,6 +266,15 @@ model Sale {
   // Cajero que registró la venta (auditoría)
   createdBy String?
 
+  // 🆕 Origen de venta (Req 9.1, 9.2, 10.3): "DIRECT" | "PENDING_SALE" | "ONLINE"
+  origin String @default("DIRECT")
+
+  // 🆕 Caja de origen del folio cuando origin = PENDING_SALE (Req 9.4)
+  sourceCashRegister String?
+
+  // 🆕 Referencia opcional para pedidos en línea (Req 9.5)
+  onlineOrderId String?
+
   // Monto recibido en efectivo (para arqueo/cambio)
   amountReceived Float?
 
@@ -293,6 +302,7 @@ model Sale {
   @@index([folio])
   @@index([syncStatus])
   @@index([shiftId])
+  @@index([origin]) // 🆕 reportes futuros por origen (Req 9.1)
 }
 
 model SaleDetail {
@@ -633,6 +643,18 @@ model PendingSale {
   branch       String? @default("Sucursal Default")
   cashRegister String? @default("Caja 1")
 
+  // 🆕 Máquina de estados (Req 1, 10.4): "PENDING" | "PAID"
+  status String @default("PENDING")
+
+  // 🆕 Trazabilidad de creación (Req 5.1)
+  createdBy String?
+
+  // 🆕 Trazabilidad de cobro (Req 4, 5.2, 5.3)
+  paidAt           DateTime?
+  paidSaleId       Int?      @unique
+  paidCashRegister String?
+  paidBy           String?
+
   // Relación con los detalles del carrito
   details PendingSaleDetail[]
 
@@ -643,6 +665,8 @@ model PendingSale {
   @@index([code])
   @@index([clientName])
   @@index([createdAt])
+  @@index([status])       // 🆕 filtro por estado (Req 8.3)
+  @@index([cashRegister]) // 🆕 filtro por Caja_Origen (Req 8.2)
 }
 
 // ------------------------------------------------------------
@@ -744,8 +768,10 @@ model ClientContainerDeposit {
   shiftId Int?
   shift   CashRegisterShift? @relation(fields: [shiftId], references: [id])
 
-  // Relación con movimiento de efectivo
-  cashMovementId Int? // ID del movimiento de efectivo generado
+  // Movimiento de efectivo de ENTRADA (cuando entró el importe con la venta)
+  cashMovementId Int? // ID del movimiento de efectivo de entrada
+  // Movimiento de efectivo de SALIDA (cuando se regresó el importe al cliente)
+  returnCashMovementId Int? // ID del movimiento de efectivo de salida (regreso)
 
   // Notas
   notes String?
@@ -1073,4 +1099,42 @@ model SaleReturnLine {
 
   @@index([saleReturnId])
   @@index([saleDetailId])
+}
+
+// ============================================================
+// 🛒 MÓDULO DE CONFIGURACIÓN DE TIENDA ONLINE
+// ============================================================
+
+// ------------------------------------------------------------
+// Configuración de tienda online por sucursal.
+// La sucursal no es una entidad propia: es el texto `branch` que cada
+// terminal guarda en localStorage (clave `sucursal`) y actúa como clave
+// única. A lo sumo existe una configuración por sucursal.
+// ------------------------------------------------------------
+model OnlineStoreConfig {
+  id Int @id @default(autoincrement())
+
+  // Clave única por sucursal: a lo sumo una configuración por branch
+  branch String @unique
+
+  // Habilitación de la tienda online; por defecto deshabilitada
+  enabled Boolean @default(false)
+
+  // Datos de conexión de la tienda online
+  apiUrl    String?
+  storeName String?
+  username  String?
+
+  // Contraseña almacenada SIEMPRE cifrada (formato "iv:authTag:data",
+  // AES-256-GCM). La base de datos nunca contiene la contraseña en claro.
+  password String?
+
+  // Endpoints de productos y de ventas de la tienda online
+  productsEndpoint String?
+  salesEndpoint    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([branch])
 }

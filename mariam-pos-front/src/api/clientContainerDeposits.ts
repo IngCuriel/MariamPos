@@ -10,7 +10,8 @@ export interface ClientContainerDeposit {
   unitPrice: number;
   status: "PENDING" | "RETURNED";
   shiftId?: number;
-  cashMovementId?: number;
+  cashMovementId?: number; // movimiento de ENTRADA (venta)
+  returnCashMovementId?: number; // movimiento de SALIDA (regreso)
   notes?: string;
   createdBy?: string; // Cajero que dio el envase
   returnedBy?: string; // Cajero que regresó el importe
@@ -83,12 +84,13 @@ export const getClientPendingDeposits = async (
 export const returnClientContainerDeposit = async (
   depositId: number,
   quantity?: number,
-  returnedBy?: string
+  returnedBy?: string,
+  cashMovementId?: number
 ): Promise<ClientContainerDeposit> => {
   const clientAxios = await getAxiosClient();
   const { data } = await clientAxios.post<ClientContainerDeposit>(
     `/client-container-deposits/${depositId}/return`,
-    { quantity, returnedBy }
+    { quantity, returnedBy, cashMovementId }
   );
   return data;
 };

@@ -514,485 +514,35 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
 
   return (
     <div className="modal-overlay">
-      <div 
-        className={`modal-container ${hasContainersDeposit ? 'payment-with-containers' : ''}`}
-        style={hasContainersDeposit ? { maxWidth: "1200px", width: "95%" } : {}}
-      >
+      <div className="modal-container payment-modal-box">
         <button className="close-btn" onClick={onClose}>
           <IoCloseCircleOutline size={32} />
         </button>
 
         <h2 className="modal-title">💰 Cobrar Venta</h2>
 
-        {hasContainersDeposit ? (
-          <div className="payment-two-columns" style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "1.5rem",
-            marginBottom: "1.5rem",
-          }}>
-            {/* Columna izquierda: Depósito de Envases + Totales */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <div className="containers-deposit-section" style={{
-                background: "#f0fdf4",
-                border: "2px solid #059669",
-                borderRadius: "8px",
-                padding: "1rem",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
-                  <span style={{ fontSize: "1.5rem" }}>🍺</span>
-                  <strong style={{ fontSize: "1rem", color: "#059669" }}>Depósito de Envases</strong>
-                </div>
-                <div style={{ marginBottom: "0.5rem" }}>
-                  {containersDepositInfo.details.map((detail, idx) => (
-                    <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: "0.25rem 0", fontSize: "0.9rem" }}>
-                      <span> {detail.quantity} - {detail.name} -Precio unitario: ${(detail.amount/detail.quantity).toFixed(2)}</span>
-                      <strong>${detail.amount.toFixed(2)}</strong>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "0.5rem", borderTop: "1px solid #059669", fontWeight: "600" }}>
-                  <span>Total envases:</span>
-                  <strong style={{ color: "#059669" }}>${containersDepositInfo.total.toFixed(2)}</strong>
-                </div>
-              </div>
-
-              {/* Totales de la venta */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                <div className="total-section">
-                  <p>Subtotal productos:</p>
-                  <p style={{ fontSize: "1.2rem", color: "#6b7280" }}>${total.toFixed(2)}</p>
-                </div>
-                <div className="total-section">
-                  <p>Depósito envases:</p>
-                  <p style={{ fontSize: "1.2rem", color: "#059669" }}>+${containersDepositInfo.total.toFixed(2)}</p>
-                </div>
-                <div className="total-section" style={{ borderTop: "2px solid #1f2937", paddingTop: "0.5rem", marginTop: "0.5rem" }}>
-                  <p style={{ fontSize: "1.1rem", fontWeight: "600" }}>Total a cobrar:</p>
-                  <h1 style={{ fontSize: "2rem", color: "#059669" }}>${totalNumber.toFixed(2)}</h1>
-                </div>
-              </div>
-            </div>
-
-            {/* Columna derecha: Métodos de pago + Inputs */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <div className="payment-options" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "10px" }}>
-          <button
-            className={`payment-btn ${paymentType === "efectivo" ? "active" : ""}`}
-            onClick={() => setPaymentType("efectivo")}
-          >
-            <FaMoneyBillWave size={30} />
-            Efectivo
-          </button>
-          <button
-            className={`payment-btn ${paymentType === "tarjeta" ? "active" : ""}`}
-            onClick={() => {
-              if (containersDepositInfo && containersDepositInfo.total > 0) {
-                Swal.fire({
-                  icon: "info",
-                  title: "💵 Pago de Envases",
-                  html: `
-                    <p>El importe de envases ($${containersDepositInfo.total.toFixed(2)}) debe pagarse en <strong>efectivo</strong>.</p>
-                    <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #6b7280;">
-                      Use la opción "Mixto" para pagar productos con tarjeta y envases en efectivo.
-                    </p>
-                  `,
-                  confirmButtonText: "Entendido",
-                  confirmButtonColor: "#059669",
-                });
-              } else {
-                setPaymentType("tarjeta");
-              }
-            }}
-            disabled={!!(containersDepositInfo && containersDepositInfo.total > 0)}
-            style={{
-              opacity: containersDepositInfo && containersDepositInfo.total > 0 ? 0.5 : 1,
-              cursor: containersDepositInfo && containersDepositInfo.total > 0 ? "not-allowed" : "pointer",
-            }}
-            title={containersDepositInfo && containersDepositInfo.total > 0 ? "El importe de envases debe pagarse en efectivo" : ""}
-          >
-            <FaCreditCard size={30} />
-            Tarjeta
-          </button>
-          <button
-            className={`payment-btn ${paymentType === "mixto" ? "active" : ""}`}
-            onClick={() => setPaymentType("mixto")}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "5px",
-            }}
-          >
-            <div style={{ display: "flex", gap: "5px" }}>
-              <FaMoneyBillWave size={20} />
-              <FaCreditCard size={20} />
-            </div>
-            Mixto
-          </button>
-          <button
-            className={`payment-btn ${paymentType === "regalo" ? "active" : ""}`}
-            onClick={() => {
-              if (containersDepositInfo && containersDepositInfo.total > 0) {
-                Swal.fire({
-                  icon: "warning",
-                  title: "💵 Pago de Envases",
-                  html: `
-                    <p>El importe de envases ($${containersDepositInfo.total.toFixed(2)}) debe pagarse en <strong>efectivo</strong>.</p>
-                    <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #6b7280;">
-                      No se puede registrar como regalo cuando hay depósito de envases.
-                    </p>
-                  `,
-                  confirmButtonText: "Entendido",
-                  confirmButtonColor: "#059669",
-                });
-              } else {
-                setPaymentType("regalo");
-              }
-            }}
-            disabled={!!(containersDepositInfo && containersDepositInfo.total > 0)}
-            style={{
-              backgroundColor: paymentType === "regalo" ? "#aeae40" : "#f3f4f6",
-              borderColor: paymentType === "regalo" ? "#f59e0b" : "#d1d5db",
-              opacity: containersDepositInfo && containersDepositInfo.total > 0 ? 0.5 : 1,
-              cursor: containersDepositInfo && containersDepositInfo.total > 0 ? "not-allowed" : "pointer",
-            }}
-            title={containersDepositInfo && containersDepositInfo.total > 0 ? "No disponible cuando hay depósito de envases" : ""}
-          >
-            <FaGift size={30} />
-            Regalo
-          </button>
-              </div>
-
-              {paymentType === "efectivo" && (
-          <div className="input-section">
-            <label>Monto recibido:</label>
-            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-              <div className="input-wrapper" style={{ flex: 1 }}>
-                <input
-                  ref={inputRef}
-                  type="number"
-                  placeholder="0.00"
-                  value={amountReceived}
-                  onChange={(e) => setAmountReceived(e.target.value)}
-                  onWheel={(e) => e.currentTarget.blur()}
-                  style={{ paddingRight: amountReceived.length > 0 ? '35px' : '10px' }}
-                />
-                {amountReceived.length > 0 && (
-                  <button
-                    className="clear-btn-payment"
-                    onClick={() => {
-                      setAmountReceived("");
-                      inputRef.current?.focus();
-                    }}
-                    title="Limpiar"
-                  >
-                    ❌
-                  </button>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const currentValue = amountReceived.replace(/,/g, '') || '0';
-                  showTouchCalculator(currentValue, '💰 Monto Recibido', (newValue) => {
-                    setAmountReceived(newValue);
-                    if (inputRef.current) {
-                      inputRef.current.focus();
-                      inputRef.current.select();
-                    }
-                  });
-                }}
-                title="Abrir calculadora táctil"
-                style={{
-                  padding: "12px 16px",
-                  fontSize: "1.5rem",
-                  backgroundColor: "#f3f4f6",
-                  border: "2px solid #d1d5db",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "#e5e7eb";
-                  e.currentTarget.style.borderColor = "#9ca3af";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "#f3f4f6";
-                  e.currentTarget.style.borderColor = "#d1d5db";
-                }}
-              >
-                🧮
-              </button>
-            </div>
-            <p className="change-text">Cambio: ${change.toFixed(2)}</p>
-              </div>
-              )}
-
-              {paymentType === "mixto" && (
-          <div className="input-section">
-            {containersDepositInfo && containersDepositInfo.total > 0 && (
-              <div style={{
-                marginBottom: "15px",
-                padding: "0.75rem",
-                backgroundColor: "#fef3c7",
-                border: "1px solid #f59e0b",
-                borderRadius: "4px",
-              }}>
-                <p style={{ fontSize: "0.85rem", color: "#92400e", margin: 0 }}>
-                  <strong>⚠️ Importante:</strong> El importe de envases (${containersDepositInfo.total.toFixed(2)}) debe pagarse en efectivo.
-                  <br />
-                  Mínimo requerido en efectivo: <strong>${containersDepositInfo.total.toFixed(2)}</strong>
-                </p>
-              </div>
-            )}
-
-            {/* Efectivo */}
-            <div style={{ marginBottom: "15px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <label style={{ flexShrink: 0, width: "150px", fontSize: "0.9rem" }}>
-                💵 Monto en Efectivo:
-                {containersDepositInfo && containersDepositInfo.total > 0 && (
-                  <span style={{ color: "#dc2626", fontSize: "0.85rem", marginLeft: "0.5rem" }}>
-                    (Mínimo: ${containersDepositInfo.total.toFixed(2)})
-                  </span>
-                )}
-              </label>
-              <div style={{ display: "flex", gap: "10px", alignItems: "center", flex: 1 }}>
-                <div className="input-wrapper" style={{ flex: 1 }}>
-                  <input
-                    ref={cashInputRef}
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder={containersDepositInfo && containersDepositInfo.total > 0 ? `Mínimo: ${containersDepositInfo.total.toFixed(2)}` : "0.00"}
-                    value={cashAmount}
-                    onChange={(e) => {
-                      // Permitir cualquier valor mientras se escribe (validación al confirmar)
-                      setCashAmount(e.target.value);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Tab" && !e.shiftKey) {
-                        e.preventDefault();
-                        cardInputRef.current?.focus();
-                      }
-                    }}
-                    onWheel={(e) => e.currentTarget.blur()}
-                    style={{ paddingRight: cashAmount.length > 0 ? '35px' : '10px' }}
-                  />
-                  {cashAmount.length > 0 && (
-                    <button
-                      className="clear-btn-payment"
-                      onClick={() => {
-                        setCashAmount("");
-                        cashInputRef.current?.focus();
-                      }}
-                      title="Limpiar"
-                    >
-                      ❌
-                    </button>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const currentValue = cashAmount.replace(/,/g, '') || '0';
-                    showTouchCalculator(currentValue, '💰 Monto en Efectivo', (newValue) => {
-                      setCashAmount(newValue);
-                      if (cashInputRef.current) {
-                        cashInputRef.current.focus();
-                        cashInputRef.current.select();
-                      }
-                    });
-                  }}
-                  title="Abrir calculadora táctil"
-                  style={{
-                    padding: "12px 16px",
-                    fontSize: "1.5rem",
-                    backgroundColor: "#f3f4f6",
-                    border: "2px solid #d1d5db",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "#e5e7eb";
-                    e.currentTarget.style.borderColor = "#9ca3af";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "#f3f4f6";
-                    e.currentTarget.style.borderColor = "#d1d5db";
-                  }}
-                >
-                  🧮
-                </button>
-              </div>
-              </div>
-              {/* Desglose del efectivo cuando hay envases */}
-              {containersDepositInfo && containersDepositInfo.total > 0 && (
-                <div style={{
-                  marginTop: "0.5rem",
-                  padding: "0.5rem",
-                  backgroundColor: cashReceived >= containersDepositInfo.total ? "#f0fdf4" : "#fef3c7",
-                  border: `1px solid ${cashReceived >= containersDepositInfo.total ? "#059669" : "#f59e0b"}`,
-                  borderRadius: "4px",
-                  fontSize: "0.85rem",
-                }}>
-                  {cashReceived >= containersDepositInfo.total ? (
-                    <>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-                        <span style={{ color: "#065f46" }}>🍺 Efectivo para envases:</span>
-                        <strong style={{ color: "#059669" }}>${containersDepositInfo.total.toFixed(2)}</strong>
-                      </div>
-                      {cashReceived > containersDepositInfo.total && (
-                        <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "0.25rem", borderTop: "1px solid #059669" }}>
-                          <span style={{ color: "#065f46" }}>💰 Efectivo para productos:</span>
-                          <strong style={{ color: "#059669" }}>${(cashReceived - containersDepositInfo.total).toFixed(2)}</strong>
-                        </div>
-                      )}
-                      <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "0.25rem", borderTop: "1px solid #059669", marginTop: "0.25rem", fontWeight: "600" }}>
-                        <span style={{ color: "#065f46" }}>Total efectivo:</span>
-                        <strong style={{ color: "#059669" }}>${cashReceived.toFixed(2)}</strong>
-                      </div>
-                    </>
-                  ) : (
-                    <div style={{ color: "#92400e" }}>
-                      <strong>⚠️ Efectivo insuficiente:</strong> Se requiere al menos ${containersDepositInfo.total.toFixed(2)} para envases.
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Tarjeta */}
-            <div style={{ marginBottom: "15px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <label style={{ flexShrink: 0, width: "150px", fontSize: "0.9rem" }}>
-                💳 Monto en Tarjeta:
-                {containersDepositInfo && containersDepositInfo.total > 0 && (
-                  <span style={{ color: "#6b7280", fontSize: "0.85rem", marginLeft: "0.5rem" }}>
-                    (Máximo: ${total.toFixed(2)} - solo productos)
-                  </span>
-                )}
-              </label>
-              <div style={{ display: "flex", gap: "10px", alignItems: "center", flex: 1 }}>
-                <div className="input-wrapper" style={{ flex: 1 }}>
-                  <input
-                    ref={cardInputRef}
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    value={cardAmount}
-                    onChange={(e) => setCardAmount(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Tab" && e.shiftKey) {
-                        e.preventDefault();
-                        cashInputRef.current?.focus();
-                      }
-                    }}
-                    onWheel={(e) => e.currentTarget.blur()}
-                    style={{ paddingRight: cardAmount.length > 0 ? '35px' : '10px' }}
-                  />
-                  {cardAmount.length > 0 && (
-                    <button
-                      className="clear-btn-payment"
-                      onClick={() => {
-                        setCardAmount("");
-                        cardInputRef.current?.focus();
-                      }}
-                      title="Limpiar"
-                    >
-                      ❌
-                    </button>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const currentValue = cardAmount.replace(/,/g, '') || '0';
-                    showTouchCalculator(currentValue, '💰 Monto en Tarjeta', (newValue) => {
-                      setCardAmount(newValue);
-                      if (cardInputRef.current) {
-                        cardInputRef.current.focus();
-                        cardInputRef.current.select();
-                      }
-                    });
-                  }}
-                  title="Abrir calculadora táctil"
-                  style={{
-                    padding: "12px 16px",
-                    fontSize: "1.5rem",
-                    backgroundColor: "#f3f4f6",
-                    border: "2px solid #d1d5db",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "#e5e7eb";
-                    e.currentTarget.style.borderColor = "#9ca3af";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "#f3f4f6";
-                    e.currentTarget.style.borderColor = "#d1d5db";
-                  }}
-                >
-                  🧮
-                </button>
-              </div>
-              </div>
-            </div>
-
-            {/* Resumen */}
-            <div style={{
-              padding: "12px",
-              backgroundColor: totalMixed === totalNumber ? "#d1fae5" : "#fee2e2",
-              borderRadius: "8px",
-              border: `2px solid ${totalMixed === totalNumber ? "#059669" : "#dc2626"}`,
-              marginTop: "10px"
-            }}>
-              {/*<div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                <span style={{ fontSize: "0.9rem" }}>Efectivo:</span>
-                <strong style={{ color: "#059669" }}>${cashReceived.toFixed(2)}</strong>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                <span style={{ fontSize: "0.9rem" }}>Tarjeta:</span>
-                <strong style={{ color: "#3b82f6" }}>${cardReceived.toFixed(2)}</strong>
-              </div>
-               <hr style={{ margin: "8px 0", borderColor: "#d1d5db" }} />*/}
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontSize: "1rem", fontWeight: "600" }}>Total:</span>
-                <strong style={{ 
-                  fontSize: "1.1rem",
-                  color: totalMixed === totalNumber ? "#059669" : "#dc2626"
-                }}>
-                  ${totalMixed.toFixed(2)} / ${totalNumber.toFixed(2)}
-                </strong>
-              </div>
-              {totalMixed !== totalNumber && (
-                <p style={{ 
-                  margin: "8px 0 0 0", 
-                  fontSize: "0.85rem", 
-                  color: "#dc2626",
-                  textAlign: "center"
-                }}>
-                  {totalMixed < totalNumber 
-                    ? `Faltan $${(totalNumber - totalMixed).toFixed(2)}`
-                    : `Sobran $${(totalMixed - totalNumber).toFixed(2)}`
-                  }
-                </p>
-              )}
-            </div>
-              </div>
-              )}
-            </div>
-          </div>
-        ) : (
+        {/* Layout unificado: SIEMPRE una sola columna (igual al cobro normal).
+            El depósito de envases se muestra como línea en el desglose, no como
+            tarjeta grande ni dos columnas. */}
+        {
           <>
             <div className="total-section" style={{ marginBottom: "1rem" }}>
               <p style={{ fontSize: "1.1rem", fontWeight: "600" }}>Total a cobrar:</p>
               <h1 style={{ fontSize: "2rem", color: "#059669" }}>${totalNumber.toFixed(2)}</h1>
+              {/* Desglose compacto cuando hay depósito de envases (una línea,
+                  mismo layout que el cobro normal — sin tarjeta grande). */}
+              {hasContainersDeposit && (
+                <div className="payment-breakdown">
+                  <div className="payment-breakdown-row">
+                    <span>Subtotal productos</span>
+                    <span>${total.toFixed(2)}</span>
+                  </div>
+                  <div className="payment-breakdown-row payment-breakdown-row--deposit">
+                    <span>🍺 Depósito de envases <em className="pm-cash-tag">en efectivo</em></span>
+                    <span>+${containersDepositInfo!.total.toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="payment-options" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "10px" }}>
@@ -1164,31 +714,17 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
             )}
 
             {paymentType === "mixto" && (
-              <div className="input-section">
-                {containersDepositInfo && containersDepositInfo.total > 0 && (
-                  <div style={{
-                    marginBottom: "15px",
-                    padding: "0.75rem",
-                    backgroundColor: "#fef3c7",
-                    border: "1px solid #f59e0b",
-                    borderRadius: "4px",
-                  }}>
-                    <p style={{ fontSize: "0.85rem", color: "#92400e", margin: 0 }}>
-                      <strong>⚠️ Importante:</strong> El importe de envases (${containersDepositInfo.total.toFixed(2)}) debe pagarse en efectivo.
-                      <br />
-                      Mínimo requerido en efectivo: <strong>${containersDepositInfo.total.toFixed(2)}</strong>
-                    </p>
-                  </div>
-                )}
+              <div className="input-section payment-mixed-compact">
+
 
                 {/* Efectivo */}
                 <div style={{ marginBottom: "15px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                   <label style={{ flexShrink: 0, width: "150px", fontSize: "0.9rem" }}>
-                    💵 Monto en Efectivo:
+                    💵 Efectivo
                     {containersDepositInfo && containersDepositInfo.total > 0 && (
-                      <span style={{ color: "#dc2626", fontSize: "0.85rem", marginLeft: "0.5rem" }}>
-                        (Mínimo: ${containersDepositInfo.total.toFixed(2)})
+                      <span style={{ color: "#dc2626", fontSize: "0.78rem", display: "block" }}>
+                        mín. ${containersDepositInfo.total.toFixed(2)}
                       </span>
                     )}
                   </label>
@@ -1262,40 +798,15 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
                     </button>
                   </div>
                   </div>
-                  {/* Desglose del efectivo cuando hay envases */}
-                  {containersDepositInfo && containersDepositInfo.total > 0 && (
-                    <div style={{
-                      marginTop: "0.5rem",
-                      padding: "0.5rem",
-                      backgroundColor: cashReceived >= containersDepositInfo.total ? "#f0fdf4" : "#fef3c7",
-                      border: `1px solid ${cashReceived >= containersDepositInfo.total ? "#059669" : "#f59e0b"}`,
-                      borderRadius: "4px",
-                      fontSize: "0.85rem",
-                    }}>
-                      {cashReceived >= containersDepositInfo.total ? (
-                        <>
-                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-                            <span style={{ color: "#065f46" }}>🍺 Efectivo para envases:</span>
-                            <strong style={{ color: "#059669" }}>${containersDepositInfo.total.toFixed(2)}</strong>
-                          </div>
-                          {cashReceived > containersDepositInfo.total && (
-                            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "0.25rem", borderTop: "1px solid #059669" }}>
-                              <span style={{ color: "#065f46" }}>💰 Efectivo para productos:</span>
-                              <strong style={{ color: "#059669" }}>${(cashReceived - containersDepositInfo.total).toFixed(2)}</strong>
-                            </div>
-                          )}
-                          <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "0.25rem", borderTop: "1px solid #059669", marginTop: "0.25rem", fontWeight: "600" }}>
-                            <span style={{ color: "#065f46" }}>Total efectivo:</span>
-                            <strong style={{ color: "#059669" }}>${cashReceived.toFixed(2)}</strong>
-                          </div>
-                        </>
-                      ) : (
-                        <div style={{ color: "#92400e" }}>
-                          <strong>⚠️ Efectivo insuficiente:</strong> Se requiere al menos ${containersDepositInfo.total.toFixed(2)} para envases.
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  {/* Aviso SOLO si el efectivo no cubre el mínimo de envases. */}
+                  {containersDepositInfo &&
+                    containersDepositInfo.total > 0 &&
+                    cashReceived < containersDepositInfo.total && (
+                      <div className="pm-cash-short">
+                        ⚠️ Efectivo insuficiente para envases (mín. $
+                        {containersDepositInfo.total.toFixed(2)})
+                      </div>
+                    )}
                 </div>
 
                 {/* Tarjeta */}
@@ -1378,41 +889,38 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, client, containersDe
                   </div>
                 </div>
 
-                {/* Resumen */}
+                {/* Resumen — todo en una sola línea (compacto). */}
                 <div style={{
-                  padding: "12px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "10px",
+                  padding: "8px 12px",
                   backgroundColor: totalMixed === totalNumber ? "#d1fae5" : "#fee2e2",
                   borderRadius: "8px",
                   border: `2px solid ${totalMixed === totalNumber ? "#059669" : "#dc2626"}`,
                   marginTop: "10px"
                 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ fontSize: "1rem", fontWeight: "600" }}>Total:</span>
-                    <strong style={{ 
-                      fontSize: "1.1rem",
-                      color: totalMixed === totalNumber ? "#059669" : "#dc2626"
-                    }}>
-                      ${totalMixed.toFixed(2)} / ${totalNumber.toFixed(2)}
-                    </strong>
-                  </div>
+                  <span style={{ fontSize: "1rem", fontWeight: "600" }}>Total:</span>
                   {totalMixed !== totalNumber && (
-                    <p style={{ 
-                      margin: "8px 0 0 0", 
-                      fontSize: "0.85rem", 
-                      color: "#dc2626",
-                      textAlign: "center"
-                    }}>
-                      {totalMixed < totalNumber 
+                    <span style={{ fontSize: "0.82rem", color: "#dc2626", fontWeight: 600 }}>
+                      {totalMixed < totalNumber
                         ? `Faltan $${(totalNumber - totalMixed).toFixed(2)}`
-                        : `Sobran $${(totalMixed - totalNumber).toFixed(2)}`
-                      }
-                    </p>
+                        : `Sobran $${(totalMixed - totalNumber).toFixed(2)}`}
+                    </span>
                   )}
+                  <strong style={{
+                    fontSize: "1.1rem",
+                    color: totalMixed === totalNumber ? "#059669" : "#dc2626",
+                    whiteSpace: "nowrap"
+                  }}>
+                    ${totalMixed.toFixed(2)} / ${totalNumber.toFixed(2)}
+                  </strong>
                 </div>
               </div>
             )}
           </>
-        )}
+        }
 
         <div className="payment-modal-actions">
           <button className="cancel-btn-payment" onClick={onClose}>

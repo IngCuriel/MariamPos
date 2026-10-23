@@ -9,6 +9,8 @@ interface FooterProps  {
  onCheckout: () => void;
  onSaleToPending: () => void;
  showPendingCarts:() => void;
+ showOnlineSales:() => void;
+ onlineSalesVisible: boolean;
  onFocusSearch?: () => void;
  branch?: string;
  cashRegister?: string;
@@ -20,6 +22,8 @@ const Footer:React.FC<FooterProps>= ({
   onCheckout,
   onSaleToPending, 
   showPendingCarts, 
+  showOnlineSales,
+  onlineSalesVisible,
   onFocusSearch,
   cashRegister
 }) =>{
@@ -28,21 +32,39 @@ const Footer:React.FC<FooterProps>= ({
   return (
     <footer className="pos-footer">
         <div className="column left">
-            <button className="btn touch-btn print-last" onClick={showPendingCarts}> 🖨 Cargar V</button>
-            <button 
-                className="btn touch-btn pending" 
-                onClick={onSaleToPending}
-                disabled={cartLength === 0}
-            >
-                🕓 V Pendiente
-            </button>
-            <DaySalesModal onClose={onFocusSearch}/>
-            <button
-                className="btn touch-btn dept-sales"
-                onClick={() => setShowDeptSales(true)}
-            >
-                🏢 Ventas x D
-            </button>
+            {/* Grupo: Folios y cobros (acento azul) */}
+            <div className="btn-group btn-group--cobros" role="group" aria-label="Folios y cobros">
+                <button className="btn touch-btn print-last" onClick={showPendingCarts}> 🧾 Cobrar folio</button>
+                {onlineSalesVisible && (
+                    <button
+                        className="btn touch-btn online-sales"
+                        onClick={showOnlineSales}
+                    >
+                        🌐 Cobrar en línea
+                    </button>
+                )}
+                <button 
+                    className="btn touch-btn pending" 
+                    onClick={onSaleToPending}
+                    disabled={cartLength === 0}
+                >
+                    🕓 Guardar folio
+                </button>
+            </div>
+
+            <span className="btn-group-divider" aria-hidden="true" />
+
+            {/* Grupo: Reportes (acento neutro) */}
+            <div className="btn-group btn-group--reportes" role="group" aria-label="Reportes">
+                <DaySalesModal onClose={onFocusSearch}/>
+                <button
+                    className="btn touch-btn dept-sales"
+                    onClick={() => setShowDeptSales(true)}
+                >
+                    🏢 Ventas x D
+                </button>
+            </div>
+
             <DepartmentSalesModal
                 isOpen={showDeptSales}
                 cashRegister={cashRegister}
@@ -54,7 +76,9 @@ const Footer:React.FC<FooterProps>= ({
         </div>
         <div className="column center">
             <div className="cart-info">
-                <span className="cart-count">{cartLength} Productos</span>
+                <span className="cart-count" title="Productos en el carrito">
+                    🛒 {cartLength}
+                </span>
             </div>
         </div>
         <div className="column right">

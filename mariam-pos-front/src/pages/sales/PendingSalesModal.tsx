@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getPendingSales, deletePendingSale, type PendingSale } from "../../api/pendingSales";
+import { getPendingSales, deletePendingSale, type PendingSale, type PendingSaleStatus } from "../../api/pendingSales";
 import Swal from "sweetalert2";
 import PendingSaleDetailModal from "./PendingSaleDetailModal";
 import "../../styles/pages/sales/pendingSalesModal.css";
@@ -10,26 +10,49 @@ interface PendingSalesModalProps {
   onSelect: (pendingSale: PendingSale) => void;
 }
 
+// Fecha de HOY en zona horaria de México (America/Mexico_City), formato YYYY-MM-DD.
+// Se usa como valor por defecto del rango de fechas de la pestaña "Pagadas".
+const todayMexico = (): string =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Mexico_City",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date()); // en-CA entrega directamente YYYY-MM-DD
+
 const PendingSalesModal: React.FC<PendingSalesModalProps> = ({
   isOpen,
   onClose,
   onSelect,
 }) => {
+  // Pestaña activa: folios por cobrar (PENDING) o ya cobrados (PAID).
+  const [activeTab, setActiveTab] = useState<PendingSaleStatus>("PENDING");
+  // Rango de fechas de la pestaña "Pagadas" (por defecto: HOY en zona México).
+  const [startDate, setStartDate] = useState<string>(todayMexico());
+  const [endDate, setEndDate] = useState<string>(todayMexico());
   const [pendingSales, setPendingSales] = useState<PendingSale[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [detailSale, setDetailSale] = useState<PendingSale | null>(null); // venta cuyos productos se ven en detalle
 
+  // Recargar al abrir el modal o al cambiar de pestaña.
   useEffect(() => {
     if (isOpen) {
-      loadPendingSales();
+      loadPendingSales(activeTab);
     }
-  }, [isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, activeTab]);
 
-  const loadPendingSales = async () => {
+  const loadPendingSales = async (status: PendingSaleStatus) => {
     try {
       setLoading(true);
-      const sales = await getPendingSales();
+      // Lista los folios del estado de la pestaña activa:
+      // - PENDING: folios cobrables (todos los por cobrar, sin filtro de fecha).
+      // - PAID: folios ya cobrados (solo lectura), filtrados por rango de fechas
+      //   sobre la fecha de cobro (paidAt).
+      const sales = await getPendingSales(
+        status === "PAID" ? { status, startDate, endDate } : { status }
+      );
       setPendingSales(sales);
     } catch (error) {
       console.error("Error al cargar ventas pendientes:", error);
@@ -46,7 +69,7 @@ const PendingSalesModal: React.FC<PendingSalesModalProps> = ({
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadPendingSales();
+    await loadPendingSales(activeTab);
   };
 
   const handleSelect = async (pendingSale: PendingSale) => {
@@ -78,19 +101,10 @@ const PendingSalesModal: React.FC<PendingSalesModalProps> = ({
     if (confirm) {
       // Cerrar el modal principal
       onClose();
-      
-      // Eliminar de la base de datos
-      try {
-        await deletePendingSale(pendingSale.id);
-        onSelect(pendingSale);
-      } catch (error) {
-        console.error("Error al eliminar venta pendiente:", error);
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "No se pudo cargar la venta pendiente",
-        });
-      }
+
+      // Cargar el folio como bloque inmutable SIN eliminar la venta pendiente.
+      // La venta pendiente se conserva en PENDING y solo pasa a PAID al cobrar.
+      onSelect(pendingSale);
     }
   };
 
@@ -118,8 +132,8 @@ const PendingSalesModal: React.FC<PendingSalesModalProps> = ({
     if (confirm) {
       try {
         await deletePendingSale(pendingSale.id);
-        // Recargar la lista
-        await loadPendingSales();
+        // Recargar la lista de la pestaña activa
+        await loadPendingSales(activeTab);
         Swal.fire({
           icon: "success",
           title: "Eliminada",
@@ -138,13 +152,6 @@ const PendingSalesModal: React.FC<PendingSalesModalProps> = ({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString("es-MX", {
-      dateStyle: "short",
-      timeStyle: "short",
-    });
-  };
 
   if (!isOpen) return null;
 
@@ -159,7 +166,7 @@ const PendingSalesModal: React.FC<PendingSalesModalProps> = ({
               className="pending-sales-refresh-btn-large"
               onClick={handleRefresh}
               disabled={refreshing}
-              title="Cargar nuevas ventas"
+              title="Actualizar lista"
             >
               {refreshing ? (
                 <>
@@ -169,7 +176,7 @@ const PendingSalesModal: React.FC<PendingSalesModalProps> = ({
               ) : (
                 <>
                   <span>🔄</span>
-                  <span>Cargar Nuevas</span>
+                  <span>Actualizar</span>
                 </>
               )}
             </button>
@@ -183,76 +190,164 @@ const PendingSalesModal: React.FC<PendingSalesModalProps> = ({
           </div>
         </div>
 
+        {/* Pestañas: por cobrar (PENDING) vs ya cobradas (PAID) */}
+        <div className="pending-sales-tabs">
+          <button
+            type="button"
+            className={`pending-sales-tab ${activeTab === "PENDING" ? "pending-sales-tab--active" : ""}`}
+            onClick={() => setActiveTab("PENDING")}
+          >
+            🟡 Pendientes
+          </button>
+          <button
+            type="button"
+            className={`pending-sales-tab ${activeTab === "PAID" ? "pending-sales-tab--active" : ""}`}
+            onClick={() => setActiveTab("PAID")}
+          >
+            🟢 Pagadas
+          </button>
+        </div>
+
+        {/* Filtro de rango de fechas (solo Pagadas): por defecto HOY (zona México) */}
+        {activeTab === "PAID" && (
+          <div className="pending-sales-filters">
+            <div className="ps-filter-field">
+              <label htmlFor="ps-start">Desde</label>
+              <input
+                id="ps-start"
+                type="date"
+                value={startDate}
+                max={endDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="ps-filter-field">
+              <label htmlFor="ps-end">Hasta</label>
+              <input
+                id="ps-end"
+                type="date"
+                value={endDate}
+                min={startDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+            <button
+              type="button"
+              className="ps-filter-search"
+              onClick={() => loadPendingSales("PAID")}
+              disabled={loading}
+            >
+              {loading ? "Buscando..." : "🔍 Buscar"}
+            </button>
+          </div>
+        )}
+
         <div className="pending-sales-modal-body">
           {loading ? (
             <div className="pending-sales-loading">
               <div className="pending-sales-spinner"></div>
-              <p>Cargando ventas pendientes...</p>
+              <p>
+                {activeTab === "PENDING"
+                  ? "Cargando ventas pendientes..."
+                  : "Cargando ventas pagadas..."}
+              </p>
             </div>
           ) : pendingSales.length === 0 ? (
             <div className="pending-sales-empty">
-              <div className="pending-sales-empty-icon">📋</div>
-              <p className="pending-sales-empty-title">No hay ventas pendientes</p>
+              <div className="pending-sales-empty-icon">
+                {activeTab === "PENDING" ? "📋" : "🧾"}
+              </div>
+              <p className="pending-sales-empty-title">
+                {activeTab === "PENDING"
+                  ? "No hay ventas pendientes"
+                  : "No hay ventas pagadas"}
+              </p>
               <p className="pending-sales-empty-text">
-                Las ventas que guardes como pendientes aparecerán aquí
+                {activeTab === "PENDING"
+                  ? "Las ventas que guardes como pendientes aparecerán aquí"
+                  : "Los folios que ya fueron cobrados aparecerán aquí"}
               </p>
             </div>
           ) : (
             <div className="pending-sales-list">
               {pendingSales.map((pendingSale) => (
                 <div key={pendingSale.id} className="pending-sales-card">
-                  {/* Encabezado: folio + eliminar */}
+                  {/* Fila superior: folio + utilidades.
+                      En Pendientes: 👁 ver + 🗑️ eliminar (el primario abajo es "Cargar").
+                      En Pagadas: sin íconos (el primario abajo ya es "Ver productos"). */}
                   <div className="ps-card-top">
-                    <div className="ps-folio">
-                      <span className="ps-folio-label">Folio</span>
-                      <span className="ps-folio-value">{pendingSale.code}</span>
-                    </div>
-                    <button
-                      className="pending-sales-delete-btn"
-                      onClick={(e) => handleDelete(pendingSale, e)}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      title="Eliminar"
-                      type="button"
-                    >
-                      🗑️
-                    </button>
+                    <span className="ps-folio-value">{pendingSale.code}</span>
+                    {activeTab === "PENDING" && (
+                      <div className="ps-icon-actions">
+                        <button
+                          className="ps-icon-btn"
+                          onClick={() => setDetailSale(pendingSale)}
+                          type="button"
+                          title="Ver productos"
+                          aria-label="Ver productos"
+                        >
+                          👁
+                        </button>
+                        <button
+                          className="ps-icon-btn ps-icon-btn--danger"
+                          onClick={(e) => handleDelete(pendingSale, e)}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          title="Eliminar folio"
+                          aria-label="Eliminar folio"
+                          type="button"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Meta: total, productos, fecha */}
-                  <div className="ps-meta">
+                  {/* Total destacado */}
+                  <div className="ps-total-row">
                     <span className="ps-total">
                       {pendingSale.total.toLocaleString("es-MX", {
                         style: "currency",
                         currency: "MXN",
                       })}
                     </span>
-                    <span className="ps-meta-sub">
-                      {pendingSale.details.length}{" "}
-                      {pendingSale.details.length === 1 ? "producto" : "productos"} ·{" "}
-                      {formatDate(pendingSale.createdAt)}
-                    </span>
-                    {pendingSale.clientName && (
-                      <span className="ps-note">📝 {pendingSale.clientName}</span>
+                    {activeTab === "PAID" && (
+                      <span className="ps-paid-badge" title="Folio cobrado">
+                        🟢 Pagado
+                      </span>
                     )}
                   </div>
 
-                  {/* Acciones */}
-                  <div className="ps-actions">
+                  {/* Meta mínima: productos + cliente (desambiguación) */}
+                  <div className="ps-meta-line">
+                    <span className="ps-meta-sub">
+                      {pendingSale.details.length}{" "}
+                      {pendingSale.details.length === 1 ? "producto" : "productos"}
+                    </span>
+                    {pendingSale.clientName && (
+                      <span className="ps-client" title={pendingSale.clientName}>
+                        · {pendingSale.clientName}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Acción principal full-width */}
+                  {activeTab === "PENDING" ? (
                     <button
-                      className="ps-btn ps-btn--ghost"
-                      onClick={() => setDetailSale(pendingSale)}
-                      type="button"
-                    >
-                      👁 Ver productos
-                    </button>
-                    <button
-                      className="ps-btn ps-btn--load"
+                      className="ps-primary-btn"
                       onClick={() => handleSelect(pendingSale)}
                       type="button"
                     >
                       Cargar venta
                     </button>
-                  </div>
+                  ) : (
+                    <button
+                      className="ps-primary-btn ps-primary-btn--view"
+                      onClick={() => setDetailSale(pendingSale)}
+                      type="button"
+                    >
+                      Ver productos
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

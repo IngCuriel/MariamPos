@@ -67,9 +67,11 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({
       setNewClientName("");
       setNewClientAlias("");
       setCurrentPage(1);
-      setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 100);
+      // Enfoque robusto: varios reintentos para ganarle a SweetAlert (que al
+      // cerrarse retiene el foco) y a otros focus() que compiten al abrir.
+      const focusInput = () => searchInputRef.current?.focus();
+      const timers = [60, 180, 320, 500].map((ms) => setTimeout(focusInput, ms));
+      return () => timers.forEach(clearTimeout);
     }
   }, [isOpen]);
 

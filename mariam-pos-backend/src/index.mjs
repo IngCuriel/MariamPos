@@ -63,6 +63,7 @@ import printersRouter from "./routes/printers.js";
 import suppliersRouter from "./routes/suppliers.js";
 import purchasesRouter from "./routes/purchases.js";
 import accountPayablesRouter from "./routes/accountPayables.js";
+import onlineStoreConfigRouter from "./routes/onlineStoreConfig.js";
 
 // Health check (sin /api para facilitar detección)
 app.use("/health", healthRouter);
@@ -88,6 +89,7 @@ app.use("/api/printers", printersRouter);
 app.use("/api/suppliers", suppliersRouter);
 app.use("/api/purchases", purchasesRouter);
 app.use("/api/account-payables", accountPayablesRouter); 
+app.use("/api/online-store-config", onlineStoreConfigRouter);
 
 // -------------------
 // Middleware de manejo de errores global

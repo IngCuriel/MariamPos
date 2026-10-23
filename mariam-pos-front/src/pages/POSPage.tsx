@@ -6,8 +6,10 @@ import OnlineStoreModal from '../components/OnlineStoreModal';
 import RechargesModal from '../components/RechargesModal';
 import AccountsReceivableModal from '../components/AccountsReceivableModal';
 import RecoverContainersModal from '../components/RecoverContainersModal';
+import OnlineStoreConfigModal from './sales/OnlineStoreConfigModal';
 import type { POSPageConfig, POSModuleConfig } from '../types/posConfig';
 import { loadPOSConfig, savePOSConfig } from '../utils/posConfig';
+import { useOnlineStoreConfig } from '../hooks/useOnlineStoreConfig';
 import '../styles/pages/pos/posPage.css';
 
 interface POSPageProps {
@@ -50,6 +52,7 @@ const POSPage: React.FC<POSPageProps> = ({
   const [config, setConfig] = useState<POSPageConfig>(loadPOSConfig());
   const [branchLabel, setBranchLabel] = useState<string>('');
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const { isOnlineStoreVisible } = useOnlineStoreConfig();
 
   // Sucursal/caja para mostrarlas en la barra superior del menú.
   useEffect(() => {
@@ -63,6 +66,7 @@ const POSPage: React.FC<POSPageProps> = ({
   const [showRechargesModal, setShowRechargesModal] = useState(false);
   const [showReceivablesModal, setShowReceivablesModal] = useState(false);
   const [showRecoverContainersModal, setShowRecoverContainersModal] = useState(false);
+  const [showOnlineStoreConfig, setShowOnlineStoreConfig] = useState(false);
 
   // Mapeo de funciones onClick
   const onClickHandlers = useMemo(() => ({
@@ -81,7 +85,14 @@ const POSPage: React.FC<POSPageProps> = ({
     onReportClick,
     onShiftHistoryClick,
     onCashMovementsHistoryClick,
-    onOnlineStoreClick: () => setShowOnlineStoreModal(true),
+    // El acceso al módulo de tienda online (OnlineStoreModal) solo está
+    // disponible cuando la tienda está configurada y habilitada. Si no lo
+    // está, el handler queda undefined e isModuleAvailable oculta el módulo.
+    // (El acceso a la CONFIGURACIÓN de tienda online es independiente y
+    // siempre está disponible desde el menú de administración.)
+    onOnlineStoreClick: isOnlineStoreVisible
+      ? () => setShowOnlineStoreModal(true)
+      : undefined,
     onRechargesClick: () => setShowRechargesModal(true),
     onReceivablesClick: () => setShowReceivablesModal(true),
     onRecoverContainersClick: () => setShowRecoverContainersModal(true),
@@ -101,6 +112,7 @@ const POSPage: React.FC<POSPageProps> = ({
     onReportClick,
     onShiftHistoryClick,
     onCashMovementsHistoryClick,
+    isOnlineStoreVisible,
   ]);
 
   const handleConfigSave = (newConfig: POSPageConfig) => {
@@ -201,6 +213,13 @@ const POSPage: React.FC<POSPageProps> = ({
               >
                 ⚙️
               </button>
+              <button
+                className="pos-config-button"
+                onClick={() => setShowOnlineStoreConfig(true)}
+                title="Configuración de tienda online"
+              >
+                🛒
+              </button>
             </>
           }
         />
@@ -235,6 +254,11 @@ const POSPage: React.FC<POSPageProps> = ({
       <RecoverContainersModal
         isOpen={showRecoverContainersModal}
         onClose={() => setShowRecoverContainersModal(false)}
+      />
+
+      <OnlineStoreConfigModal
+        isOpen={showOnlineStoreConfig}
+        onClose={() => setShowOnlineStoreConfig(false)}
       />
     </div>
   );

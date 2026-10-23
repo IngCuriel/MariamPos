@@ -1,0 +1,47 @@
+/* Estilos específicos de la Vista_Mis_Folios (MyFoliosModal).
+   El resto del layout reutiliza pendingSalesModal.css. */
+
+/* Semáforo de estado del folio (Req 7.1) */
+.myf-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+}
+
+.myf-status-badge {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.myf-status-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #4b5563;
+  letter-spacing: 0.2px;
+}
+
+/* Toggle de refresco automático / polling (Req 7.5) */
+.myf-autorefresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  font-size: 12px;
+  font-weight: 700;
+  color: #4b5563;
+  cursor: pointer;
+  user-select: none;
+}
+
+.myf-autorefresh input {
+  cursor: pointer;
+  accent-color: #4f46e5;
+}

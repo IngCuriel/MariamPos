@@ -3,16 +3,36 @@ import axios from 'axios';
 /** Evento global emitido cuando el backend responde 401 (token inválido/expirado). */
 export const ONLINE_STORE_UNAUTHORIZED_EVENT = 'online-store-unauthorized';
 
-const ONLINE_STORE_API_URL = 'https://mariam-pos-web-api.onrender.com/api';
-// const ONLINE_STORE_API_URL = 'http://localhost:4000/api';
+/**
+ * Valor por defecto TRANSITORIO de la baseURL del cliente axios.
+ *
+ * La URL real proviene de la configuración de tienda online por sucursal
+ * (`OnlineStoreConfig.apiUrl`) y se inyecta vía `setOnlineStoreApiBaseUrl`
+ * cuando `useOnlineStoreConfig` resuelve la config. Este default evita dejar
+ * el cliente sin baseURL (inoperable) mientras el hook aún no corre; una vez
+ * que la config se resuelve, este valor queda sobreescrito (Req 6.1).
+ */
+const DEFAULT_ONLINE_STORE_API_URL = 'https://mariam-pos-web-api.onrender.com/api';
+// const DEFAULT_ONLINE_STORE_API_URL = 'http://localhost:4000/api';
 
 export const onlineStoreClient = axios.create({
-  baseURL: ONLINE_STORE_API_URL,
+  baseURL: DEFAULT_ONLINE_STORE_API_URL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+/**
+ * Actualiza la baseURL del cliente axios existente SIN recrear la instancia,
+ * preservando interceptores y estado ya configurados (Req 6.1, 6.3).
+ *
+ * @param url URL del API de tienda online resuelta desde la config, o `null`
+ *            para volver a un estado sin baseURL explícita.
+ */
+export const setOnlineStoreApiBaseUrl = (url: string | null): void => {
+  onlineStoreClient.defaults.baseURL = url ?? undefined;
+};
 
 onlineStoreClient.interceptors.request.use(
   (config) => {

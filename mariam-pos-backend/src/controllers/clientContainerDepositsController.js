@@ -224,7 +224,10 @@ export const returnAllClientContainerDeposits = async (req, res) => {
 export const returnClientContainerDeposit = async (req, res) => {
   try {
     const { id } = req.params;
-    const { quantity, returnedBy } = req.body; // Cantidad a devolver (opcional); cajero que regresa
+    // Cantidad a devolver (opcional); cajero que regresa; id del movimiento de
+    // efectivo (SALIDA) generado al regresar el importe, para trazabilidad.
+    const { quantity, returnedBy, cashMovementId } = req.body;
+    const returnMovementId = cashMovementId ? parseInt(cashMovementId) : null;
 
     const deposit = await prisma.clientContainerDeposit.findUnique({
       where: { id: parseInt(id) },
@@ -255,6 +258,9 @@ export const returnClientContainerDeposit = async (req, res) => {
           status: "RETURNED",
           returnedAt: new Date(),
           returnedBy: returnedByValue,
+          // Movimiento de efectivo de SALIDA con el que se regresó el importe
+          // (NO pisa cashMovementId, que guarda la ENTRADA original).
+          returnCashMovementId: returnMovementId ?? undefined,
         },
       });
     } else {
@@ -270,6 +276,9 @@ export const returnClientContainerDeposit = async (req, res) => {
           status: "RETURNED",
           returnedAt: new Date(),
           returnedBy: returnedByValue,
+          // Movimiento de efectivo de SALIDA con el que se regresó el importe
+          // (NO pisa cashMovementId, que guarda la ENTRADA original).
+          returnCashMovementId: returnMovementId ?? undefined,
         },
       });
 
@@ -283,6 +292,8 @@ export const returnClientContainerDeposit = async (req, res) => {
           importAmount: remainingAmount,
           unitPrice: deposit.unitPrice,
           shiftId: deposit.shiftId,
+          // Conserva el movimiento de ENTRADA original en el remanente pendiente.
+          cashMovementId: deposit.cashMovementId,
           notes: deposit.notes,
           createdBy: deposit.createdBy,
           status: "PENDING",

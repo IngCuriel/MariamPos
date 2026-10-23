@@ -29,7 +29,7 @@
 
 .center {
   justify-content: center;
-  min-width: 150px;
+  min-width: 0;
 }
 
 .right {
@@ -43,13 +43,15 @@
 }
 
 .cart-count {
-  font-weight: 700;
-  color: #64748b;
-  font-size: 0.85rem;
+  font-weight: 800;
+  color: #475569;
+  font-size: 0.82rem;
   white-space: nowrap;
-  padding: 6px 12px;
+  padding: 5px 11px;
   background: #f1f5f9;
+  border: 1px solid #e2e8f0;
   border-radius: 999px;
+  font-variant-numeric: tabular-nums;
 }
 
 .checkout-section {
@@ -299,5 +301,69 @@
   .touch-btn:active,
   .btn-checkout:active:not(:disabled) {
     opacity: 0.9;
+  }
+}
+
+/* ====== GRUPOS DE ACCIONES (agrupar por tipo) ====== */
+.btn-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 12px;
+}
+
+/* Grupo Folios/Cobros: leve fondo e acento azul para leerlo como una familia */
+.btn-group--cobros {
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+}
+
+.btn-group--cobros .touch-btn {
+  background: #ffffff;
+  border-color: #bfdbfe;
+  color: #1e3a8a;
+}
+
+.btn-group--cobros .touch-btn:hover:not(:disabled) {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+/* Grupo Reportes: neutro con un tinte apenas distinto */
+.btn-group--reportes {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.btn-group--reportes .touch-btn {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
+.btn-group--reportes .touch-btn:hover:not(:disabled) {
+  background: #eef2f7;
+  border-color: #cbd5e1;
+}
+
+/* Divisor vertical entre grupos */
+.btn-group-divider {
+  width: 1px;
+  height: 34px;
+  background: #e2e8f0;
+  flex-shrink: 0;
+  margin: 0 2px;
+}
+
+/* En pantallas chicas, los grupos se expanden y el divisor se oculta */
+@media (max-width: 768px) {
+  .btn-group {
+    flex: 1;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .btn-group-divider {
+    display: none;
   }
 }

@@ -169,6 +169,13 @@ export interface Sale {
   amountReceived?: number; // Monto recibido en efectivo
   paymentReference?: string; // Folio/referencia del comprobante (tarjeta)
   shiftId?: number; // Turno de caja en el que se registró la venta
+  // Origen de la venta y trazabilidad de folio pendiente (feature pending-sale-payment-status).
+  // Opcionales para no afectar las ventas directas existentes.
+  origin?: "DIRECT" | "PENDING_SALE" | "ONLINE"; // Clasificación del origen de la venta
+  sourceCashRegister?: string | null; // Caja de origen del folio cuando origin = PENDING_SALE
+  onlineOrderId?: string | null; // Referencia opcional para pedidos en línea
+  pendingSaleId?: number | null; // Id de la Venta_Pendiente cobrada (solo en el payload de cobro)
+  paidBy?: string | null; // Cajero que cobró el folio
   details: SaleDetail[];
   shift?: {
     id: number;

@@ -64,13 +64,14 @@
 
 /* ===== DISPLAY SECTION INLINE ===== */
 .quick-add-calculator-display-inline {
-  padding-top: .1rem;
+  padding: 0.5rem 1rem;
   background: #f8fafc;
   display: flex;
   flex-direction: column;
   gap: 1rem;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 /* Input oculto para capturar el precio */
@@ -100,6 +101,7 @@
   border-radius: 16px;
   text-align: center;
   width: 100%;
+  padding: 0.75rem 1rem;
   box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
 }
 
@@ -110,11 +112,11 @@
 }
 
 .quick-add-calculator-total-value-inline {
-  font-size: 3rem;
+  font-size: clamp(1.75rem, 5vh, 3rem);
   font-weight: 800;
   color: white;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  min-height: 60px;
+  line-height: 1.1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -122,24 +124,26 @@
 
 /* ===== KEYPAD INLINE ===== */
 .quick-add-calculator-keypad-inline {
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   background: white;
   flex: 1;
-  overflow-y: auto;
+  min-height: 0; /* permite que el keypad se encoja dentro del flex del contenedor */
 }
 
 .quick-add-calculator-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 0.5rem;
+  flex: 1; /* las 4 filas reparten el alto disponible por igual */
+  min-height: 0;
 }
 
 .quick-add-calculator-btn {
-  padding: 0.875rem;
-  font-size: 1.25rem;
+  padding: 0.5rem;
+  font-size: clamp(1rem, 2.2vh, 1.25rem);
   font-weight: 700;
   border: none;
   border-radius: 12px;
@@ -151,7 +155,8 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  min-height: 50px;
+  min-height: 0; /* el alto lo define el grid de la fila, no un mínimo fijo */
+  height: 100%;
 }
 
 .quick-add-calculator-btn:active {
@@ -228,10 +233,11 @@
 
 /* ===== FOOTER INLINE ===== */
 .quick-add-calculator-footer-inline {
-  padding: 0.75rem 1rem;
+  padding: 0.4rem 1rem;
   background: #f8fafc;
   border-top: 1px solid #e2e8f0;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .quick-add-calculator-hint-inline {
@@ -270,9 +276,8 @@
   }
 
   .quick-add-calculator-btn {
-    padding: 0.75rem;
-    font-size: 1.1rem;
-    min-height: 45px;
+    padding: 0.5rem;
+    font-size: clamp(1rem, 2.2vh, 1.1rem);
   }
 
   .add-btn {
@@ -307,17 +312,17 @@
   }
 
   .quick-add-calculator-btn {
-    padding: 0.625rem;
-    font-size: 1rem;
-    min-height: 40px;
+    padding: 0.5rem;
+    font-size: clamp(0.95rem, 2vh, 1rem);
   }
 }
 
 /* ===== TOUCH OPTIMIZATIONS ===== */
 @media (hover: none) and (pointer: coarse) {
   .quick-add-calculator-btn {
-    min-height: 65px;
-    font-size: 1.6rem;
+    /* En táctil no imponemos alto fijo: el grid reparte el alto disponible
+       para que las 4 filas y "Agregar" entren siempre sin scroll. */
+    font-size: clamp(1.2rem, 2.6vh, 1.6rem);
   }
 
   .quick-add-calculator-btn:active {

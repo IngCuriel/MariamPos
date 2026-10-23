@@ -10,6 +10,7 @@ import {
   isOnlineStoreAuthenticated,
 } from '../api/onlineStoreOrders';
 import { useCashier } from '../contexts/CashierContext';
+import { useOnlineStoreConfig } from '../hooks/useOnlineStoreConfig';
 import OnlineStoreCajeroPanel from './onlineStore/OnlineStoreCajeroPanel';
 import CashExpressCajeroPanel from './onlineStore/CashExpressCajeroPanel';
 import ServiciosRecargasAbonosPanel from './onlineStore/ServiciosRecargasAbonosPanel';
@@ -68,10 +69,6 @@ function appendRecargasServiciosQueryParams(
   }
 }
 
-/** Credenciales por defecto en POS (solo para agilizar el acceso al cajero tienda online). */
-const DEFAULT_ONLINE_STORE_EMAIL = 'admin@mariamstore.com';
-const DEFAULT_ONLINE_STORE_PASSWORD = 'admin123'; // NOSONAR — credenciales de demo en POS solicitadas por producto
-
 const OFFLINE_LOGIN_MESSAGE = 'Revisa tu conexión a Internet.';
 
 function isNetworkLoginFailure(err: unknown): boolean {
@@ -103,14 +100,19 @@ function getOnlineStoreHeaderTitle(panel: AuthPanel): string {
 
 const OnlineStoreModal: React.FC<OnlineStoreModalProps> = ({ isOpen, onClose }) => {
   const { selectedCashier } = useCashier();
+  const { username: configUsername } = useOnlineStoreConfig();
   const recargasIframeRef = useRef<HTMLIFrameElement>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<Record<string, unknown> | null>(null);
   const [panel, setPanel] = useState<AuthPanel>('hub');
   const [remoteConfig, setRemoteConfig] = useState<AppConfigJson | null>(null);
 
-  const [loginEmail, setLoginEmail] = useState(DEFAULT_ONLINE_STORE_EMAIL);
-  const [loginPassword, setLoginPassword] = useState(DEFAULT_ONLINE_STORE_PASSWORD);
+  // Login email is prefilled from the online store config `username` (Req 6.2).
+  // The password is never prefilled: it is no longer hardcoded and the plain
+  // value is not returned by the GET; the cashier types it.
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [emailTouched, setEmailTouched] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [browserOnline, setBrowserOnline] = useState(
@@ -182,11 +184,22 @@ const OnlineStoreModal: React.FC<OnlineStoreModalProps> = ({ isOpen, onClose }) 
 
   useEffect(() => {
     if (isOpen) return;
-    setLoginEmail(DEFAULT_ONLINE_STORE_EMAIL);
-    setLoginPassword(DEFAULT_ONLINE_STORE_PASSWORD);
+    // On close, clear the form. The email falls back to the config username
+    // (not a hardcoded default); the password always starts empty (Req 6.2).
+    setLoginEmail(configUsername ?? '');
+    setLoginPassword('');
+    setEmailTouched(false);
     setLoginError(null);
     setLoginLoading(false);
-  }, [isOpen]);
+  }, [isOpen, configUsername]);
+
+  // Prefill the login email with the config `username` once it resolves, unless
+  // the cashier already typed something in the field (Req 6.2).
+  useEffect(() => {
+    if (!emailTouched && configUsername) {
+      setLoginEmail(configUsername);
+    }
+  }, [configUsername, emailTouched]);
 
   useEffect(() => {
     const syncOnline = () => {
@@ -221,8 +234,9 @@ const OnlineStoreModal: React.FC<OnlineStoreModalProps> = ({ isOpen, onClose }) 
       const response = await loginOnlineStore(loginEmail, loginPassword);
       setUser(response.user as Record<string, unknown>);
       setIsAuthenticated(true);
-      setLoginEmail(DEFAULT_ONLINE_STORE_EMAIL);
-      setLoginPassword(DEFAULT_ONLINE_STORE_PASSWORD);
+      setLoginEmail(configUsername ?? '');
+      setLoginPassword('');
+      setEmailTouched(false);
       setPanel('hub');
     } catch (err: unknown) {
       if (isNetworkLoginFailure(err)) {
@@ -240,8 +254,9 @@ const OnlineStoreModal: React.FC<OnlineStoreModalProps> = ({ isOpen, onClose }) 
     removeOnlineStoreToken();
     setIsAuthenticated(false);
     setUser(null);
-    setLoginEmail(DEFAULT_ONLINE_STORE_EMAIL);
-    setLoginPassword(DEFAULT_ONLINE_STORE_PASSWORD);
+    setLoginEmail(configUsername ?? '');
+    setLoginPassword('');
+    setEmailTouched(false);
     setPanel('hub');
   };
 
@@ -394,7 +409,7 @@ const OnlineStoreModal: React.FC<OnlineStoreModalProps> = ({ isOpen, onClose }) 
               <div className="online-store-login-container">
                 <div className="online-store-login-header">
                   <h3>Iniciar sesión</h3>
-                  <p>Credenciales de administrador cargadas; pulsa «Iniciar sesión» para continuar.</p>
+                  <p>Ingresa la contraseña de la tienda online para continuar.</p>
                 </div>
 
                 {!browserOnline && (
@@ -414,7 +429,10 @@ const OnlineStoreModal: React.FC<OnlineStoreModalProps> = ({ isOpen, onClose }) 
                       id="login-email"
                       type="email"
                       value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
+                      onChange={(e) => {
+                        setEmailTouched(true);
+                        setLoginEmail(e.target.value);
+                      }}
                       className="online-store-form-input online-store-form-input--touch"
                       autoComplete="username"
                       required

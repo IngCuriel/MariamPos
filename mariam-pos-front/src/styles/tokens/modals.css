@@ -1,0 +1,48 @@
+/* ============================================================
+   🎨 TOKENS DE MODALES — fuente única de verdad
+   ------------------------------------------------------------
+   Variables de diseño compartidas por los modales de gestión/
+   consulta (Recuperar Envases, Créditos por Cobrar y los que
+   creemos en adelante). Cambiá un color acá y se actualiza en
+   TODOS los modales que usen estas variables.
+
+   Convención de uso en un modal nuevo:
+     .mi-header     { background: var(--modal-header-bg); color: var(--modal-header-fg); }
+     .mi-search     { background: var(--modal-search-bg); color: var(--modal-search-fg); }
+     .mi-btn-close  { background: var(--modal-close-bg);  color: var(--modal-close-fg); }
+   ============================================================ */
+
+:root {
+  /* ---- Header del modal (barra superior) ---- */
+  /* Estilo LIMPIO: header claro (casi blanco) con texto oscuro y una línea
+     inferior sutil. Sin degradados fuertes — el color vive en los acentos
+     (botones de acción), no en el header. */
+  --modal-header-bg: #ffffff;
+  --modal-header-fg: #0f172a;
+  --modal-header-border: #e5e7eb;
+  /* Botón cerrar (✕) dentro del header: gris claro discreto. */
+  --modal-header-close-bg: #f1f5f9;
+  --modal-header-close-fg: #64748b;
+  --modal-header-close-bg-hover: #e2e8f0;
+
+  /* ---- Botón BUSCAR (acción de filtros) ---- */
+  /* Azul sólido limpio: la acción principal de filtros. */
+  --modal-search-bg: #2563eb;
+  --modal-search-bg-hover: #1d4ed8;
+  --modal-search-fg: #ffffff;
+
+  /* ---- Botón CERRAR modal (footer) ---- */
+  /* Secundario y discreto: gris claro con texto oscuro (como "Cancelar"). */
+  --modal-close-bg: #f1f5f9;
+  --modal-close-bg-hover: #e2e8f0;
+  --modal-close-fg: #334155;
+
+  /* ---- Foco de inputs/campos dentro del modal ---- */
+  --modal-field-focus: #3b82f6;
+
+  /* ---- Superficie / estructura ---- */
+  --modal-overlay-bg: rgba(15, 23, 42, 0.55);
+  --modal-surface-bg: #ffffff;
+  --modal-radius: 16px;
+  --modal-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+}

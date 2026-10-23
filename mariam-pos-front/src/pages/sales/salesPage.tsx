@@ -1,4 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import ContainersSummaryModal, {
+  type ContainerSummaryDetail,
+  type AdjustedContainersInfo,
+} from "./ContainersSummaryModal";
 import Header from "../../components/Header";
 import "../../styles/pages/sales.css";
 import PaymentModal from "./PaymentModal";
@@ -17,6 +21,7 @@ import { createInventoryMovement, getProductInventory } from "../../api/inventor
 import { getActiveShift } from "../../api/cashRegister";
 import type { CashRegisterShift } from "../../types";
 import Footer from "./Footer";
+import { useOnlineStoreConfig } from "../../hooks/useOnlineStoreConfig";
 
 import Swal from "sweetalert2";
 import { ProductComunModal } from "./ProductComunModal";
@@ -40,6 +45,8 @@ import type { ClientCredit } from "../../types";
 import type { ProductPresentation } from "../../types";
 import { createPendingSale, type PendingSale } from "../../api/pendingSales";
 import PendingSalesModal from "./PendingSalesModal";
+import OnlineSalesModal from "./OnlineSalesModal";
+import type { StoreOrder } from "../../api/onlineStoreOrders";
 import { playAddProductSound } from "../../utils/sound";
 import { getContainers, type Container } from "../../api/containers";
 import { createCashMovement } from "../../api/cashRegister";
@@ -53,10 +60,42 @@ interface ItemCart extends Product {
   quantity: number;
   selectedPresentation?: ProductPresentation; // Presentación seleccionada si aplica
   presentationQuantity?: number; // Cantidad de presentaciones (ej: 2 conos)
+  folioBlockId?: number; // Id del folio (PendingSale) al que pertenece la línea; marca las líneas del Bloque_Folio inmutable
+  folioCode?: string; // Código del folio de origen
+  folioCashRegister?: string; // Caja_Origen del folio
 }
+
+/**
+ * Quita del carrito todas las líneas pertenecientes a un Bloque_Folio dado,
+ * conservando intactos los Productos_Extra (líneas sin `folioBlockId`) en su
+ * mismo orden relativo. Función pura: no muta el carrito recibido (Req 3.5).
+ *
+ * @param cart Carrito de origen.
+ * @param folioId Id del folio cuyas líneas se desean quitar.
+ * @returns Nuevo arreglo con las líneas extra; sin ninguna línea del folio.
+ */
+export const removeFolioBlockLines = (
+  cart: ItemCart[],
+  folioId: number
+): ItemCart[] => cart.filter((item) => item.folioBlockId !== folioId);
+
+/**
+ * Calcula el detalle a entregar por la Caja_Auxiliar: las líneas propias del
+ * Folio (las que tienen `folioBlockId === folioId`), excluyendo cualquier
+ * Producto_Extra (líneas sin `folioBlockId`). Función pura (Req 6.1, 6.2).
+ *
+ * @param cart Carrito que puede mezclar líneas del Bloque_Folio y extras.
+ * @param folioId Id del folio cargado.
+ * @returns Las líneas del carrito que pertenecen al folio indicado.
+ */
+export const getFolioDeliveryDetail = (
+  cart: ItemCart[],
+  folioId: number
+): ItemCart[] => cart.filter((item) => item.folioBlockId === folioId);
 
 const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
   const { selectedCashier } = useCashier();
+  const { isOnlineStoreVisible } = useOnlineStoreConfig();
   const [search, setSearch] = useState("");
   const inputRef = useRef<HTMLInputElement>(null); // 👈 search al input
 
@@ -75,6 +114,18 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
     const savedCart = localStorage.getItem("cart");
     return savedCart ? JSON.parse(savedCart) : [];
   });
+  // Folio/pedido actualmente cargado en el carrito como bloque inmutable.
+  // null cuando no hay ninguno cargado.
+  // - source "PENDING_SALE": folio de caja (PendingSale local) → marca PAID al cobrar.
+  // - source "ONLINE": pedido de la tienda online → venta con origin=ONLINE, sin
+  //   descontar inventario local (la tienda online ya lo gestionó).
+  const [loadedFolio, setLoadedFolio] = useState<{
+    source: "PENDING_SALE" | "ONLINE";
+    pendingSaleId: number; // id del folio local o id del pedido online (reusa folioBlockId)
+    code: string;
+    cashRegister?: string;
+    onlineOrderId?: number;
+  } | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -83,6 +134,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
   const [showCashMovementModal, setShowCashMovementModal] = useState(false);
   const [showClientModal, setShowClientModal] = useState(false);
   const [showPendingSalesModal, setShowPendingSalesModal] = useState(false);
+  const [showOnlineSalesModal, setShowOnlineSalesModal] = useState(false);
   const [showPriceCheckModal, setShowPriceCheckModal] = useState(false); // 🔎 Verificador de precios
   const [showPromotionsModal, setShowPromotionsModal] = useState(false); // 🎁 Promociones
   const [showSavePendingModal, setShowSavePendingModal] = useState(false); // 🕓 Guardar venta pendiente
@@ -93,6 +145,19 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
     count: number;
     details: Array<{ name: string; quantity: number; amount: number }>;
   } | null>(null);
+
+  // Modal "Resumen de Envases" (reemplaza el SweetAlert largo). Se resuelve
+  // mediante una promesa guardada en un ref cuando el cajero confirma/cancela.
+  const [containersSummary, setContainersSummary] = useState<{
+    clientName: string;
+    details: ContainerSummaryDetail[];
+  } | null>(null);
+  const containersSummaryResolver = useRef<
+    ((info: AdjustedContainersInfo | null) => void) | null
+  >(null);
+  // Bandera: el cajero eligió "dejar importe" de envases pero no había cliente.
+  // Al seleccionar uno, se reanuda el checkout automáticamente.
+  const pendingContainerCheckout = useRef(false);
 
   // Nuevo Agrega estos estados y funciones dentro de tu componente
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -274,10 +339,12 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
     const details: Array<{ name: string; quantity: number; amount: number }> = [];
 
     for (const item of cart) {
-      // Calcular cantidad de items (considerando presentaciones)
-      // Si tiene presentación, usar presentationQuantity, sino usar quantity
-      const itemQuantity = item.selectedPresentation && item.presentationQuantity 
-        ? item.presentationQuantity 
+      // Cantidad de ENVASES FÍSICOS del item.
+      // Con presentación (ej: 1 Paquete de 12), los envases físicos son
+      // presentationQuantity × unidades que contiene la presentación = 1 × 12 = 12.
+      // Sin presentación, es la cantidad simple del item.
+      const itemQuantity = item.selectedPresentation
+        ? (item.presentationQuantity || 1) * (item.selectedPresentation.quantity || 1)
         : (item.quantity || 1);
       
       for (const container of containers) {
@@ -307,6 +374,36 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
     }
 
     return { total, count, details };
+  };
+
+  // Procesa el flujo "dejar importe de envases": muestra el resumen compacto,
+  // y si el cajero confirma, guarda la info y abre el modal de cobro.
+  // Recibe el nombre del cliente EXPLÍCITO para no depender del estado async
+  // (clave para reanudar tras elegir cliente en el selector).
+  const processContainerDeposit = async (
+    clientName: string,
+    containers: Container[]
+  ) => {
+    const containersInfo = calculateContainersTotal(containers);
+
+    const adjustedContainersInfo = await new Promise<AdjustedContainersInfo | null>(
+      (resolve) => {
+        containersSummaryResolver.current = resolve;
+        setContainersSummary({ clientName, details: containersInfo.details });
+      }
+    );
+
+    setContainersSummary(null);
+    containersSummaryResolver.current = null;
+
+    if (!adjustedContainersInfo || adjustedContainersInfo.total <= 0) {
+      setContainersDepositInfo(null);
+      return;
+    }
+
+    setContainersDepositInfo(adjustedContainersInfo);
+    // Abrir el modal de cobro (el importe se agrega al total allí).
+    setShowModal(true);
   };
 
   // Función para manejar el checkout con validación de envases
@@ -355,208 +452,15 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         setShowModal(true);
       } else {
         // Va a dejar importe
-        // Validar que el cliente no sea "Publico en General"
+        // Si no hay cliente válido, abrir el selector automáticamente y reanudar
+        // el flujo de importe cuando se elija uno (sin salir ni repetir pasos).
         if (!selectedClient || client === "Publico en General") {
-          Swal.fire({
-            icon: "warning",
-            title: "Cliente requerido",
-            text: "Para dejar importe de envases, debe seleccionar un cliente específico (no puede ser 'Publico en General')",
-            confirmButtonText: "Entendido",
-            confirmButtonColor: "#667eea",
-          });
+          pendingContainerCheckout.current = true;
+          setShowClientModal(true);
           return;
         }
 
-        // Calcular total de envases
-        const containersInfo = calculateContainersTotal(containers);
-        
-        // Crear un modal interactivo para ajustar cantidades
-        const adjustedDetails = containersInfo.details.map(detail => ({
-          ...detail,
-          adjustedQuantity: detail.quantity, // Inicialmente igual a la cantidad original
-          unitPrice: detail.amount / detail.quantity, // Precio unitario
-        }));
-
-        // Función para recalcular totales
-        const recalculateTotals = (details: typeof adjustedDetails) => {
-          const totalCount = details.reduce((sum, d) => sum + d.adjustedQuantity, 0);
-          const totalAmount = details.reduce((sum, d) => sum + (d.adjustedQuantity * d.unitPrice), 0);
-          return { totalCount, totalAmount };
-        };
-
-        // Crear HTML del modal con inputs para ajustar cantidades
-        const createModalHTML = (details: typeof adjustedDetails) => {
-          const { totalCount, totalAmount } = recalculateTotals(details);
-          
-          const detailsHtml = details
-            .map(
-              (detail, idx) =>
-                `<div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #e5e7eb;">
-                  <div style="flex: 1;">
-                    <span style="font-weight: 600; color: #1f2937;">${detail.name}</span>
-                    <div style="margin-top: 0.25rem; font-size: 0.85rem; color: #6b7280;">
-                      Precio unitario: $${detail.unitPrice.toFixed(2)}
-                    </div>
-                  </div>
-                  <div style="display: flex; align-items: center; gap: 0.5rem; margin-left: 1rem;">
-                    <button 
-                      type="button" 
-                      class="btn-decrease-${idx}" 
-                      style="width: 32px; height: 32px; border: 1px solid #d1d5db; background: #f9fafb; border-radius: 4px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; ${detail.adjustedQuantity <= 0 ? 'opacity: 0.5; cursor: not-allowed;' : ''}"
-                      ${detail.adjustedQuantity <= 0 ? 'disabled' : ''}
-                    >−</button>
-                    <input 
-                      type="number" 
-                      id="quantity-${idx}" 
-                      value="${detail.adjustedQuantity}" 
-                      min="0" 
-                      max="${detail.quantity}"
-                      style="width: 60px; text-align: center; border: 1px solid #d1d5db; border-radius: 4px; padding: 0.25rem; font-weight: 600;"
-                    />
-                    <button 
-                      type="button" 
-                      class="btn-increase-${idx}" 
-                      style="width: 32px; height: 32px; border: 1px solid #d1d5db; background: #f9fafb; border-radius: 4px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; ${detail.adjustedQuantity >= detail.quantity ? 'opacity: 0.5; cursor: not-allowed;' : ''}"
-                      ${detail.adjustedQuantity >= detail.quantity ? 'disabled' : ''}
-                    >+</button>
-                    <span style="color: #6b7280; font-size: 0.85rem;">/ ${detail.quantity}</span>
-                    <span style="margin-left: 0.5rem; font-weight: 600; color: #059669; min-width: 80px; text-align: right;" id="amount-${idx}">
-                      $${(detail.adjustedQuantity * detail.unitPrice).toFixed(2)}
-                    </span>
-                  </div>
-                </div>`
-            )
-            .join("");
-
-          return `
-            <div style="text-align: left; margin-top: 1rem;">
-              <p style="font-weight: 600; margin-bottom: 0.75rem; font-size: 1rem;">Cliente: <strong>${client}</strong></p>
-              <p style="font-size: 0.9rem; color: #6b7280; margin-bottom: 1rem;">
-                Ajuste las cantidades si el cliente trajo algunos envases:
-              </p>
-              <div style="margin: 1rem 0; max-height: 300px; overflow-y: auto;">
-                ${detailsHtml}
-              </div>
-              <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; margin-top: 0.5rem; border-top: 2px solid #1f2937; font-size: 1.1rem;">
-                <span><strong>Total de envases:</strong> <span id="total-count">${totalCount}</span></span>
-                <span><strong>Total a cobrar:</strong> <span style="color: #059669;" id="total-amount">$${totalAmount.toFixed(2)}</span></span>
-              </div>
-              <p style="margin-top: 1rem; font-size: 0.9rem; color: #6b7280; font-style: italic;">
-                Este importe se agregará al total de la venta y se registrará como depósito de envases.
-              </p>
-            </div>
-          `;
-        };
-
-        // Mostrar modal interactivo
-        const { value: confirmed } = await Swal.fire({
-          icon: "info",
-          title: "📋 Resumen de Envases",
-          html: createModalHTML(adjustedDetails),
-          showCancelButton: true,
-          confirmButtonText: "Continuar con el cobro",
-          cancelButtonText: "Cancelar",
-          confirmButtonColor: "#667eea",
-          cancelButtonColor: "#6b7280",
-          didOpen: () => {
-            // Función para actualizar la UI
-            const updateUI = () => {
-              const { totalCount, totalAmount } = recalculateTotals(adjustedDetails);
-              const totalCountEl = document.getElementById('total-count');
-              const totalAmountEl = document.getElementById('total-amount');
-              if (totalCountEl) totalCountEl.textContent = totalCount.toString();
-              if (totalAmountEl) totalAmountEl.textContent = `$${totalAmount.toFixed(2)}`;
-            };
-
-            // Agregar event listeners para los botones de incremento/decremento
-            adjustedDetails.forEach((detail, idx) => {
-              const decreaseBtn = document.querySelector(`.btn-decrease-${idx}`) as HTMLButtonElement;
-              const increaseBtn = document.querySelector(`.btn-increase-${idx}`) as HTMLButtonElement;
-              const quantityInput = document.getElementById(`quantity-${idx}`) as HTMLInputElement;
-              const amountSpan = document.getElementById(`amount-${idx}`) as HTMLElement;
-
-              const updateButtons = () => {
-                if (decreaseBtn) {
-                  decreaseBtn.disabled = detail.adjustedQuantity <= 0;
-                  decreaseBtn.style.opacity = detail.adjustedQuantity <= 0 ? '0.5' : '1';
-                  decreaseBtn.style.cursor = detail.adjustedQuantity <= 0 ? 'not-allowed' : 'pointer';
-                }
-                if (increaseBtn) {
-                  increaseBtn.disabled = detail.adjustedQuantity >= detail.quantity;
-                  increaseBtn.style.opacity = detail.adjustedQuantity >= detail.quantity ? '0.5' : '1';
-                  increaseBtn.style.cursor = detail.adjustedQuantity >= detail.quantity ? 'not-allowed' : 'pointer';
-                }
-              };
-
-              if (decreaseBtn && quantityInput && amountSpan) {
-                decreaseBtn.addEventListener('click', () => {
-                  if (detail.adjustedQuantity > 0) {
-                    detail.adjustedQuantity--;
-                    quantityInput.value = detail.adjustedQuantity.toString();
-                    amountSpan.textContent = `$${(detail.adjustedQuantity * detail.unitPrice).toFixed(2)}`;
-                    updateButtons();
-                    updateUI();
-                  }
-                });
-
-                if (increaseBtn) {
-                  increaseBtn.addEventListener('click', () => {
-                    if (detail.adjustedQuantity < detail.quantity) {
-                      detail.adjustedQuantity++;
-                      quantityInput.value = detail.adjustedQuantity.toString();
-                      amountSpan.textContent = `$${(detail.adjustedQuantity * detail.unitPrice).toFixed(2)}`;
-                      updateButtons();
-                      updateUI();
-                    }
-                  });
-                }
-
-                quantityInput.addEventListener('input', (e) => {
-                  const newValue = Math.max(0, Math.min(detail.quantity, parseInt((e.target as HTMLInputElement).value) || 0));
-                  detail.adjustedQuantity = newValue;
-                  quantityInput.value = newValue.toString();
-                  amountSpan.textContent = `$${(detail.adjustedQuantity * detail.unitPrice).toFixed(2)}`;
-                  updateButtons();
-                  updateUI();
-                });
-
-                // Inicializar estado de botones
-                updateButtons();
-              }
-            });
-          },
-        });
-
-        if (!confirmed) {
-          // Usuario canceló, limpiar información de depósitos
-          setContainersDepositInfo(null);
-          return;
-        }
-
-        // Recalcular con las cantidades ajustadas
-        const finalTotals = recalculateTotals(adjustedDetails);
-        const finalDetails = adjustedDetails
-          .filter(d => d.adjustedQuantity > 0) // Solo incluir envases con cantidad > 0
-          .map(d => ({
-            name: d.name,
-            quantity: d.adjustedQuantity,
-            amount: d.adjustedQuantity * d.unitPrice,
-          }));
-
-        // Guardar información de depósitos ajustada
-        const adjustedContainersInfo = {
-          total: finalTotals.totalAmount,
-          count: finalTotals.totalCount,
-          details: finalDetails,
-        };
-
-        setContainersDepositInfo(adjustedContainersInfo);
-
-        // Continuar con el flujo normal - el importe se agregará al total en el modal
-        // Esperar un momento para que SweetAlert2 se cierre completamente antes de abrir el modal
-        setTimeout(() => {
-          setShowModal(true);
-        }, 100); // Pequeño delay para permitir que SweetAlert2 se cierre completamente
+        await processContainerDeposit(client, containers);
       }
     } else {
       // No hay envases - flujo normal
@@ -986,16 +890,41 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
 
   const handleRemove = (id: number, name: string, presentationId?: number) => {
     setCart((prev) => prev.filter((item) => {
+      // Líneas del Bloque_Folio: la eliminación individual es no-op (Req 3.3).
+      // Solo se pueden quitar en bloque mediante "Quitar folio" (tarea 9.5).
+      const isFolioLine = item.folioBlockId !== undefined;
+
       // Si se especifica presentationId, comparar también por presentación
       if (presentationId !== undefined) {
-        return !(item.id === id && 
-                 item.name === name && 
-                 item.selectedPresentation?.id === presentationId);
+        const matches =
+          item.id === id &&
+          item.name === name &&
+          item.selectedPresentation?.id === presentationId;
+        return !(matches && !isFolioLine);
       }
       // Si no hay presentación, comparar solo por id y name
-      return !(item.id === id && item.name === name && !item.selectedPresentation);
+      const matches = item.id === id && item.name === name && !item.selectedPresentation;
+      return !(matches && !isFolioLine);
     }));
   };
+
+  /**
+   * Quita el Bloque_Folio completo del carrito como una sola unidad (Req 3.5):
+   * elimina todas las líneas con `folioBlockId === loadedFolio.pendingSaleId`,
+   * conserva los Productos_Extra y limpia `loadedFolio`. NO toca la base de
+   * datos: la Venta_Pendiente permanece con estado `PENDING` (Req 3.6).
+   */
+  const handleRemoveFolioBlock = () => {
+    if (!loadedFolio) return;
+    const folioId = loadedFolio.pendingSaleId;
+    setCart((prev) => removeFolioBlockLines(prev, folioId));
+    setLoadedFolio(null);
+  };
+
+  // El detalle a entregar por la Caja_Auxiliar (Req 6.1, 6.2) se deriva con la
+  // función pura `getFolioDeliveryDetail(cart, folioId)` en el punto de consumo
+  // (Vista_Mis_Folios), filtrando las líneas propias del Folio cargado y
+  // excluyendo los Productos_Extra.
 
   // Función para actualizar cantidad de productos por pieza
   const handleUpdateQuantity = (
@@ -1030,6 +959,12 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         }
 
         if (isSameItem) {
+          // Bloque_Folio: las líneas provenientes de un folio son inmutables.
+          // El cambio de cantidad es no-op (Req 3.2); la línea queda idéntica.
+          if (item.folioBlockId !== undefined) {
+            return item;
+          }
+
           // Precio Abierto: la cantidad es inmutable en 1. tryUpdateQuantity
           // garantiza que estas líneas nunca se modifiquen (Req 4.2).
           if (isOpenPrice(item)) {
@@ -1209,7 +1144,27 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         paymentReference: data.paymentReference || undefined, // Folio/ref comprobante (tarjeta)
         details,
         branch,
-        cashRegister
+        cashRegister,
+        // Origen de la venta y vínculo con el folio cargado (Req 4.1, 9.3).
+        // Si hay un Bloque_Folio cargado, la venta proviene de una Venta_Pendiente;
+        // el backend marcará el folio como PAID de forma atómica. Si no, es directa.
+        // Origen según el bloque cargado:
+        // - PENDING_SALE: folio de caja → envía pendingSaleId para marcar PAID.
+        // - ONLINE: pedido de la tienda online → envía onlineOrderId (sin pendingSaleId).
+        // - sin bloque: venta directa.
+        origin: loadedFolio
+          ? loadedFolio.source === "ONLINE"
+            ? "ONLINE"
+            : "PENDING_SALE"
+          : "DIRECT",
+        sourceCashRegister: loadedFolio?.cashRegister,
+        pendingSaleId:
+          loadedFolio?.source === "PENDING_SALE" ? loadedFolio.pendingSaleId : undefined,
+        onlineOrderId:
+          loadedFolio?.source === "ONLINE"
+            ? String(loadedFolio.onlineOrderId)
+            : undefined,
+        paidBy: selectedCashier?.name,
       };
       
       // 1️⃣ Crear la venta
@@ -1330,13 +1285,18 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         }
       }
       
-      // 3️⃣ Descontar inventario después de crear la venta exitosamente
-      await updateInventoryFromSale(cart, branch);
+      // 3️⃣ Descontar inventario después de crear la venta exitosamente.
+      // Para pedidos de la tienda online (origin=ONLINE) NO se descuenta aquí:
+      // la tienda online ya gestionó el stock de ese pedido (evita doble descuento).
+      if (loadedFolio?.source !== "ONLINE") {
+        await updateInventoryFromSale(cart, branch);
+      }
       
       // 4️⃣ Limpiar carrito, reiniciar contador, limpiar depósitos y actualizar turno activo
       setCart([]);
       setProductCounter(1); // Reiniciar contador de productos no registrados
       setContainersDepositInfo(null); // Limpiar información de depósitos
+      setLoadedFolio(null); // Limpiar el folio cargado tras el cobro exitoso (Req 4.1)
       
       // Actualizar información del turno activo
       await checkActiveShift();
@@ -1563,6 +1523,8 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         total,
         branch: branch || "Sucursal Default",
         cashRegister: cashRegister || "Caja 1",
+        status: "PENDING",
+        createdBy: selectedCashier?.name || undefined, // Cajero que generó el folio
         details,
       });
 
@@ -1627,12 +1589,20 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
 
   const handlePendingSaleSelect = (pendingSale: PendingSale) => {
     console.log('pendiente cargar',pendingSale )
+    // Metadatos del Bloque_Folio aplicados a cada línea proveniente del folio.
+    // Marcan las líneas como inmutables y permiten agruparlas/quitarlas en bloque.
+    const folioMeta = {
+      folioBlockId: pendingSale.id,
+      folioCode: pendingSale.code,
+      folioCashRegister: pendingSale.cashRegister,
+    };
+
     // Convertir los detalles de la venta pendiente al formato del carrito
     const cartItems: ItemCart[] = pendingSale.details.map((detail) => {
       // Open-price lines restore directly from the preserved captured price
       // (quantity 1, saleType "PrecioAbierto") without reopening the price modal.
       if (isOpenPrice(detail)) {
-        return fromPendingDetail(detail) as ItemCart;
+        return { ...(fromPendingDetail(detail) as ItemCart), ...folioMeta };
       }
 
       // Crear un producto básico con la información disponible
@@ -1697,22 +1667,36 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         presentationQuantity = undefined;
       }
 
-      // Crear el item del carrito
+      // Crear el item del carrito marcado como parte del Bloque_Folio inmutable.
       const cartItem: ItemCart = {
         ...baseProduct,
         quantity: cartQuantity,
         price: cartPrice,
         selectedPresentation,
         presentationQuantity,
+        ...folioMeta,
       };
 
       return cartItem;
     });
 
-    // Cargar el carrito
-    setCart(() => cartItems);
-    // Reiniciar contador de productos no registrados al cargar una venta pendiente
-    setProductCounter(1);
+    // Agregar el Bloque_Folio al carrito SIN borrar la PendingSale (Req 2.1, 3.1).
+    // Se conservan los Productos_Extra existentes (líneas sin folioBlockId) y se
+    // reemplaza cualquier bloque previamente cargado para evitar duplicados.
+    setCart((prev) => {
+      const withoutPreviousFolio = prev.filter(
+        (item) => item.folioBlockId === undefined
+      );
+      return [...cartItems, ...withoutPreviousFolio];
+    });
+
+    // Registrar el folio cargado para el encabezado del bloque y el cobro (tarea 9.8).
+    setLoadedFolio({
+      source: "PENDING_SALE",
+      pendingSaleId: pendingSale.id,
+      code: pendingSale.code,
+      cashRegister: pendingSale.cashRegister,
+    });
 
     // Cerrar el modal
     setShowPendingSalesModal(false);
@@ -1733,7 +1717,78 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       inputRef.current?.focus();
     }, 100);
   };
- 
+
+  // Carga un pedido de la tienda online al carrito como bloque inmutable
+  // (mismo mecanismo que el folio: folioBlockId). El cobro generará una venta
+  // con origin=ONLINE; el inventario NO se descuenta localmente porque la tienda
+  // online ya gestionó el stock.
+  const handleOnlineOrderSelect = (order: StoreOrder) => {
+    const blockMeta = {
+      folioBlockId: order.id,
+      folioCode: `Pedido ${order.id}`,
+      folioCashRegister: order.branch?.name,
+    };
+
+    const cartItems: ItemCart[] = (order.items ?? []).map((it) => {
+      // La API online entrega cantidad confirmada (si hubo revisión) y precio
+      // unitario. No hay presentación/granel ni unidad base: se tratan como
+      // líneas simples de precio fijo.
+      const qty = it.confirmedQuantity ?? it.quantity;
+      const baseProduct: Product = {
+        id: it.productId ?? 0,
+        code: "",
+        name: it.presentationName
+          ? `${it.productName} (${it.presentationName})`
+          : it.productName,
+        status: 1,
+        saleType: "Pieza",
+        price: it.unitPrice,
+        cost: 0,
+        icon: "",
+        categoryId: "",
+      };
+      return {
+        ...baseProduct,
+        quantity: qty,
+        price: it.unitPrice,
+        ...blockMeta,
+      };
+    });
+
+    // Reemplaza cualquier bloque previo; conserva los Productos_Extra.
+    setCart((prev) => {
+      const withoutPreviousBlock = prev.filter(
+        (item) => item.folioBlockId === undefined
+      );
+      return [...cartItems, ...withoutPreviousBlock];
+    });
+
+    setLoadedFolio({
+      source: "ONLINE",
+      pendingSaleId: order.id,
+      code: `Pedido ${order.id}`,
+      cashRegister: order.branch?.name,
+      onlineOrderId: order.id,
+    });
+
+    setShowOnlineSalesModal(false);
+
+    Swal.fire({
+      icon: "success",
+      title: "Pedido cargado",
+      html: `
+        <p>El pedido en línea <strong>#${order.id}</strong> se cargó correctamente</p>
+        <p style="margin-top: 10px;">Cliente: ${order.user?.name || order.user?.email || "Sin nombre"}</p>
+      `,
+      timer: 2000,
+      showConfirmButton: false,
+    });
+
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
+  };
+
   return (
     <div className="app-sales">
       <div className="sales-container">
@@ -1972,6 +2027,54 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                 </button>
               </div>
             )}
+            {loadedFolio && (
+              <div
+                className="folio-block-banner"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  padding: "0.4rem 0.75rem",
+                  margin: "0 0 0.5rem 0",
+                  borderLeft: "3px solid #6366f1",
+                  background: "#eef2ff",
+                  borderRadius: "4px",
+                  fontSize: "0.85rem",
+                  color: "#4338ca",
+                }}
+              >
+                <span aria-hidden="true">{loadedFolio.source === "ONLINE" ? "🌐" : "🎫"}</span>
+                <span>
+                  {loadedFolio.source === "ONLINE" ? (
+                    <>Pedido en línea <strong>#{loadedFolio.onlineOrderId}</strong></>
+                  ) : (
+                    <>Folio <strong>{loadedFolio.code}</strong></>
+                  )}
+                  {loadedFolio.cashRegister && (
+                    <> · {loadedFolio.source === "ONLINE" ? "Sucursal" : "Caja de origen"}: <strong>{loadedFolio.cashRegister}</strong></>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  className="folio-block-remove"
+                  onClick={handleRemoveFolioBlock}
+                  title="Quitar del carrito (conserva los productos extra)"
+                  style={{
+                    marginLeft: "auto",
+                    padding: "0.2rem 0.6rem",
+                    border: "1px solid #c7d2fe",
+                    background: "#ffffff",
+                    borderRadius: "4px",
+                    color: "#4338ca",
+                    fontSize: "0.8rem",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Quitar folio
+                </button>
+              </div>
+            )}
             <div className="table-scroll">
               <table className="venta-table">
                 <thead>
@@ -1984,6 +2087,7 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                       <button onClick={() => {
                         setCart([]);
                         setProductCounter(1); // Reiniciar contador al limpiar carrito
+                        setLoadedFolio(null); // Vaciar también el folio cargado (evita banner fantasma)
                       }}>❌</button>
                     </th>
                   </tr>
@@ -2037,11 +2141,23 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                         ? item.selectedPresentation.unitPrice
                         : item.price;
 
+                      // Línea perteneciente al Bloque_Folio: se resalta con el
+                      // mismo acento morado del banner para identificarla a simple vista.
+                      const isFolioLine = item.folioBlockId !== undefined;
+
                       return (
-                        <tr key={`${item.id}-${item.selectedPresentation?.id || 'default'}-${index}`}>
+                        <tr
+                          key={`${item.id}-${item.selectedPresentation?.id || 'default'}-${index}`}
+                          className={isFolioLine ? "folio-line" : undefined}
+                        >
                           <td>
                             <h4>
                               {displayName}
+                              {isFolioLine && (
+                                <span className="folio-line-tag" title="Producto del folio (no editable)">
+                                  🎫 Folio
+                                </span>
+                              )}
                               {isPromoActive(item) && !item.selectedPresentation && (
                                 <span className="cart-promo-badge">🎁 PROMO</span>
                               )}
@@ -2054,8 +2170,9 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                           </td>
                           <td>
                             {/* Mostrar controles de cantidad solo para productos "Pieza" sin presentaciones.
-                                Precio Abierto se trata como Granel: sin controles +/- y cantidad fija 1. */}
-                            {item.saleType?.toLowerCase() === 'pieza' && !item.selectedPresentation && !isOpenPrice(item) ? (
+                                Precio Abierto se trata como Granel: sin controles +/- y cantidad fija 1.
+                                Las líneas del Bloque_Folio son inmutables: se ocultan los controles (Req 3.2). */}
+                            {item.folioBlockId === undefined && item.saleType?.toLowerCase() === 'pieza' && !item.selectedPresentation && !isOpenPrice(item) ? (
                               <div className="quantity-controls">
                                 <button
                                   className="quantity-btn quantity-btn-minus"
@@ -2107,9 +2224,13 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
                             <h4>${subtotal.toFixed(2)}</h4>
                           </td>
                           <td>
-                            <button onClick={() => handleRemove(item.id, item.name, item.selectedPresentation?.id)}>
-                              ✖
-                            </button>
+                            {/* Las líneas del Bloque_Folio no se eliminan individualmente (Req 3.3).
+                                Se oculta el botón de quitar para esas líneas. */}
+                            {item.folioBlockId === undefined && (
+                              <button onClick={() => handleRemove(item.id, item.name, item.selectedPresentation?.id)}>
+                                ✖
+                              </button>
+                            )}
                           </td>
                         </tr>
                       );
@@ -2137,6 +2258,8 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
         onCheckout={handleCheckoutWithContainers}
         onSaleToPending={saleToPending}
         showPendingCarts={showPendingCarts}
+        showOnlineSales={() => setShowOnlineSalesModal(true)}
+        onlineSalesVisible={isOnlineStoreVisible}
         onFocusSearch={() => {
           setTimeout(() => {
             inputRef.current?.focus();
@@ -2162,6 +2285,22 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
             onConfirm={confirmPayment}
           />
         )}
+
+        {/* Resumen de Envases (compacto). Resuelve la promesa pendiente. */}
+        {containersSummary && (
+          <ContainersSummaryModal
+            isOpen={true}
+            clientName={containersSummary.clientName}
+            details={containersSummary.details}
+            onCancel={() => {
+              containersSummaryResolver.current?.(null);
+            }}
+            onConfirm={(info) => {
+              containersSummaryResolver.current?.(info);
+            }}
+          />
+        )}
+
         {showCategoryModal && (
           <CategoryProductModal
             onClose={() => {
@@ -2297,11 +2436,18 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
             currentClient={client}
             onClose={() => {
               setShowClientModal(false);
+              // Si cerró sin elegir cliente, cancelar el flujo de dejar importe.
+              pendingContainerCheckout.current = false;
               setTimeout(() => {
                 inputRef.current?.focus();
               }, 100);
             }}
             onSelect={async (clientName, clientObj) => {
+              // Capturar la bandera ANTES de cualquier await / onClose, porque
+              // handleSelectClient llama onClose() justo después y éste la borra.
+              const resumeContainerCheckout = pendingContainerCheckout.current;
+              pendingContainerCheckout.current = false;
+
               setClient(clientName);
               setSelectedClient(clientObj || null);
               
@@ -2326,6 +2472,18 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
               }
               
               setShowClientModal(false);
+
+              // Si veníamos del flujo "dejar importe de envases" sin cliente,
+              // reanudar directamente con el cliente recién elegido (sin volver
+              // a teclear Cobrar y sin depender del estado async).
+              if (resumeContainerCheckout) {
+                const containers = await checkContainersInCart();
+                if (containers.length > 0) {
+                  await processContainerDeposit(clientName, containers);
+                }
+                return;
+              }
+
               setTimeout(() => {
                 inputRef.current?.focus();
               }, 100);
@@ -2342,6 +2500,16 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
             }, 100);
           }}
           onSelect={handlePendingSaleSelect}
+        />
+        <OnlineSalesModal
+          isOpen={showOnlineSalesModal}
+          onClose={() => {
+            setShowOnlineSalesModal(false);
+            setTimeout(() => {
+              inputRef.current?.focus();
+            }, 100);
+          }}
+          onSelect={handleOnlineOrderSelect}
         />
       </div>
     </div>

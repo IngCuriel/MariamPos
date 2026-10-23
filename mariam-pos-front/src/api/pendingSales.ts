@@ -19,6 +19,8 @@ export interface PendingSaleDetail {
   basePrice?: number; // Precio capturado preservado en la venta pendiente
 }
 
+export type PendingSaleStatus = "PENDING" | "PAID";
+
 export interface PendingSale {
   id: number;
   code: string;
@@ -26,14 +28,34 @@ export interface PendingSale {
   total: number;
   branch?: string;
   cashRegister?: string;
+  status: PendingSaleStatus;
+  createdBy?: string;
+  paidAt?: string | null;
+  paidSaleId?: number | null;
+  paidCashRegister?: string | null;
+  paidBy?: string | null;
   details: PendingSaleDetail[];
   createdAt: string;
   updatedAt: string;
 }
 
-export const getPendingSales = async (): Promise<PendingSale[]> => {
+export const getPendingSales = async (
+  filters?: {
+    cashRegister?: string;
+    status?: PendingSaleStatus;
+    startDate?: string; // YYYY-MM-DD (filtra por paidAt si status=PAID, si no por createdAt)
+    endDate?: string; // YYYY-MM-DD
+  }
+): Promise<PendingSale[]> => {
   const clientAxios = await getAxiosClient();
-  const { data } = await clientAxios.get<PendingSale[]>("/pending-sales");
+  const params = new URLSearchParams();
+  if (filters?.cashRegister) params.append("cashRegister", filters.cashRegister);
+  if (filters?.status) params.append("status", filters.status);
+  if (filters?.startDate) params.append("startDate", filters.startDate);
+  if (filters?.endDate) params.append("endDate", filters.endDate);
+  const queryString = params.toString();
+  const url = queryString ? `/pending-sales?${queryString}` : "/pending-sales";
+  const { data } = await clientAxios.get<PendingSale[]>(url);
   return data;
 };
 
@@ -64,6 +86,15 @@ export const updatePendingSale = async (
 ): Promise<PendingSale> => {
   const clientAxios = await getAxiosClient();
   const { data } = await clientAxios.put<PendingSale>(`/pending-sales/${id}`, pendingSale);
+  return data;
+};
+
+export const markPendingSalePaid = async (
+  id: number,
+  payload: { saleId: number; paidCashRegister?: string; paidBy?: string }
+): Promise<PendingSale> => {
+  const clientAxios = await getAxiosClient();
+  const { data } = await clientAxios.patch<PendingSale>(`/pending-sales/${id}/pay`, payload);
   return data;
 };
 

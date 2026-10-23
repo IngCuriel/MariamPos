@@ -5,6 +5,7 @@ import {
   createPendingSale,
   deletePendingSale,
   updatePendingSale,
+  markPendingSalePaidHandler,
 } from "../controllers/pendingSalesController.js";
 
 const router = express.Router();
@@ -14,6 +15,7 @@ router.get("/:id", getPendingSaleById);
 router.post("/", createPendingSale);
 router.delete("/:id", deletePendingSale);
 router.put("/:id", updatePendingSale);
+router.patch("/:id/pay", markPendingSalePaidHandler); // nuevo (Req 4)
 
 export default router;
 

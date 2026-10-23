@@ -11,6 +11,23 @@ interface PendingSaleDetailModalProps {
 const money = (n: number) =>
   n.toLocaleString("es-MX", { style: "currency", currency: "MXN" });
 
+// Fecha y hora en zona horaria de México (America/Mexico_City).
+const dateTimeMx = (v?: string | null) => {
+  if (!v) return "—";
+  try {
+    return new Date(v).toLocaleString("es-MX", {
+      timeZone: "America/Mexico_City",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "—";
+  }
+};
+
 const PendingSaleDetailModal: React.FC<PendingSaleDetailModalProps> = ({
   isOpen,
   pendingSale,
@@ -38,6 +55,40 @@ const PendingSaleDetailModal: React.FC<PendingSaleDetailModalProps> = ({
             <div className="psd-note">📝 {pendingSale.clientName}</div>
           )}
 
+          {/* Metadatos: creación siempre; cobro solo si está pagado.
+              Caja de origen y cajero creador de forma compacta. */}
+          <div className="psd-dates">
+            <div className="psd-date-item">
+              <span className="psd-date-label">🕓 Creado</span>
+              <span className="psd-date-value">
+                {dateTimeMx(pendingSale.createdAt)}
+                {pendingSale.createdBy ? ` · ${pendingSale.createdBy}` : ""}
+              </span>
+            </div>
+            <div className="psd-date-item">
+              <span className="psd-date-label">🏪 Caja de origen</span>
+              <span className="psd-date-value">
+                {pendingSale.cashRegister || "—"}
+                {pendingSale.branch ? ` · ${pendingSale.branch}` : ""}
+              </span>
+            </div>
+            {pendingSale.status === "PAID" && (
+              <div className="psd-date-item">
+                <span className="psd-date-label">🟢 Cobrado</span>
+                <span className="psd-date-value">
+                  {dateTimeMx(pendingSale.paidAt)}
+                  {pendingSale.paidBy ? ` · ${pendingSale.paidBy}` : ""}
+                </span>
+              </div>
+            )}
+            {pendingSale.status === "PAID" && pendingSale.paidCashRegister && (
+              <div className="psd-date-item">
+                <span className="psd-date-label">💵 Cobrado en</span>
+                <span className="psd-date-value">{pendingSale.paidCashRegister}</span>
+              </div>
+            )}
+          </div>
+
           <div className="psd-list">
             {details.map((d, i) => {
               // ¿Tiene presentación? (ej: Bulto). presentationName viene poblado.
@@ -57,38 +108,31 @@ const PendingSaleDetailModal: React.FC<PendingSaleDetailModalProps> = ({
                   ? d.price * unitsPerPres * d.quantity
                   : d.subTotal ?? d.price * d.quantity;
 
+              const calcText = hasPresentation
+                ? `${d.quantity} ${d.quantity === 1 ? "presentación" : "presentaciones"}${
+                    unitsPerPres ? ` · ${unitsPerPres}${unitName ? " " + unitName : ""} c/u` : ""
+                  } × ${money(d.price)}`
+                : `${d.quantity}${
+                    unitName ? " " + unitName : d.quantity === 1 ? " unidad" : " unidades"
+                  } × ${money(d.price)}`;
+
               return (
                 <div key={i} className="psd-item">
-                  <div className="psd-item-main">
-                    <span className="psd-item-name">{d.productName || "Producto"}</span>
-                    <span className="psd-item-subtotal">{money(lineTotal)}</span>
-                  </div>
-
+                  <span className="psd-item-name" title={d.productName || "Producto"}>
+                    {d.productName || "Producto"}
+                  </span>
+                  {/* Badge solo cuando NO es normal: presentación (📦) o granel (⚖️) */}
                   {hasPresentation ? (
-                    <div className="psd-item-detail">
-                      <span className="psd-badge psd-badge--pres">
-                        📦 {d.presentationName}
-                      </span>
-                      <span className="psd-item-calc">
-                        {d.quantity} {d.quantity === 1 ? "presentación" : "presentaciones"}
-                        {unitsPerPres
-                          ? ` · ${unitsPerPres}${unitName ? " " + unitName : ""} c/u`
-                          : ""}{" "}
-                        × {money(d.price)}
-                      </span>
-                    </div>
+                    <span className="psd-badge psd-badge--pres">
+                      📦 {d.presentationName}
+                    </span>
+                  ) : d.saleType === "Granel" ? (
+                    <span className="psd-badge">⚖️ Granel</span>
                   ) : (
-                    <div className="psd-item-detail">
-                      <span className="psd-badge">
-                        {d.saleType === "Granel" ? "⚖️ Granel" : "🏷️ Normal"}
-                      </span>
-                      <span className="psd-item-calc">
-                        {d.quantity}
-                        {unitName ? " " + unitName : d.quantity === 1 ? " unidad" : " unidades"} ×{" "}
-                        {money(d.price)}
-                      </span>
-                    </div>
+                    <span className="psd-badge-empty" aria-hidden="true" />
                   )}
+                  <span className="psd-item-calc">{calcText}</span>
+                  <span className="psd-item-subtotal">{money(lineTotal)}</span>
                 </div>
               );
             })}

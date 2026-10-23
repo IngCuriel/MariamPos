@@ -868,6 +868,36 @@
   border-bottom: none;
 }
 
+/* ---- Líneas del Bloque_Folio: acento morado (igual que el banner del folio) ---- */
+.venta-table tbody tr.folio-line {
+  background: #eef2ff;
+}
+
+.venta-table tbody tr.folio-line:hover {
+  background: #e4e9ff;
+}
+
+/* Barra morada al costado izquierdo para agrupar visualmente el bloque */
+.venta-table tbody tr.folio-line td:first-child {
+  box-shadow: inset 3px 0 0 #6366f1;
+}
+
+/* Etiqueta discreta "Folio" junto al nombre del producto */
+.folio-line-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #e0e7ff;
+  color: #4338ca;
+  font-size: 0.68rem;
+  font-weight: 700;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
 .venta-table td h4 {
   margin: 0;
   font-size: 0.92rem;

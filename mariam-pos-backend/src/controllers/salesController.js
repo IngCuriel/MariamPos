@@ -1,4 +1,5 @@
 import prisma from "../utils/prisma.js";
+import { markPendingSalePaid } from "./pendingSalesController.js";
 
 /**
  * Computes the base-unit quantity for a sale detail line.
@@ -73,7 +74,8 @@ export const getSalesById = async (req, res) => {
 
 export const createSales = async (req, res) => {
   try {
-    const { folio, status, total, branch, cashRegister, paymentMethod, clientName, createdBy, amountReceived, paymentReference, details } =
+    const { folio, status, total, branch, cashRegister, paymentMethod, clientName, createdBy, amountReceived, paymentReference, details,
+      origin, sourceCashRegister, onlineOrderId, pendingSaleId, paidBy } =
       req.body;
 
     if (!details || details.length === 0) {
@@ -97,41 +99,67 @@ export const createSales = async (req, res) => {
       }
     }
 
-    const sale = await prisma.sale.create({
-      data: {
-        folio,
-        status,
-        total,
-        branch,
-        cashRegister,
-        paymentMethod,
-        clientName,
-        createdBy: createdBy?.trim() || null, // Cajero que registró la venta
-        amountReceived: amountReceived != null ? Number(amountReceived) : null, // Monto recibido (efectivo)
-        paymentReference: paymentReference?.trim() || null, // Folio/ref comprobante (tarjeta)
-        shiftId, // Asociar venta al turno activo si existe
-        details: {
-          create: details.map((d) => ({
-            productId: d.productId,
-            quantity: d.quantity,
-            price: d.price,
-            productName: d.productName,
-            subTotal: d.subTotal,
-            unitAbbrev: d.unitAbbrev || null, // Unidad congelada al momento de la venta
-            baseUnitQuantity: computeBaseUnitQuantity(d), // Cantidad en unidad base (para devoluciones/cancelaciones)
-          })),
+    // Cobro atómico: la Sale y el marcado del folio como PAID se realizan en una
+    // única transacción. Si la creación de la Sale falla, la transacción revierte
+    // completa: no queda Sale huérfana y la PendingSale permanece PENDING (Req 4.5).
+    const result = await prisma.$transaction(async (tx) => {
+      const sale = await tx.sale.create({
+        data: {
+          folio,
+          status,
+          total,
+          branch,
+          cashRegister,
+          paymentMethod,
+          clientName,
+          createdBy: createdBy?.trim() || null, // Cajero que registró la venta
+          amountReceived: amountReceived != null ? Number(amountReceived) : null, // Monto recibido (efectivo)
+          paymentReference: paymentReference?.trim() || null, // Folio/ref comprobante (tarjeta)
+          shiftId, // Asociar venta al turno activo si existe
+          origin: origin || "DIRECT", // Origen de la venta (Req 9.2)
+          sourceCashRegister: sourceCashRegister || null, // Caja de origen del folio cuando origin = PENDING_SALE (Req 9.4)
+          onlineOrderId: onlineOrderId || null, // Referencia opcional para pedidos en línea (Req 9.5)
+          details: {
+            create: details.map((d) => ({
+              productId: d.productId,
+              quantity: d.quantity,
+              price: d.price,
+              productName: d.productName,
+              subTotal: d.subTotal,
+              unitAbbrev: d.unitAbbrev || null, // Unidad congelada al momento de la venta
+              baseUnitQuantity: computeBaseUnitQuantity(d), // Cantidad en unidad base (para devoluciones/cancelaciones)
+            })),
+          },
         },
-      },
-      include: {
-        details: {
-          include: { product: true }, // Para mostrar info del producto
+        include: {
+          details: {
+            include: { product: true }, // Para mostrar info del producto
+          },
         },
-      },
+      });
+
+      // Si la venta proviene de un folio pendiente, marcarlo como PAID dentro de
+      // la misma transacción vinculándolo a la Sale creada (Req 1.3, 4.1, 4.2, 4.3).
+      if (pendingSaleId) {
+        await markPendingSalePaid(
+          pendingSaleId,
+          { saleId: sale.id, paidCashRegister: cashRegister, paidBy },
+          tx
+        );
+      }
+
+      return sale;
     });
 
-    res.status(201).json(sale);
+    res.status(201).json(result);
   } catch (error) {
     console.error("Error al registrar la venta:", error);
+    // Los errores esperados de markPendingSalePaid traen statusCode (404/409);
+    // se respeta ese código (p.ej. 409 ante un intento de doble cobro de un folio
+    // ya PAID) en lugar de un 500 genérico.
+    if ([400, 404, 409].includes(error.statusCode)) {
+      return res.status(error.statusCode).json({ error: error.message });
+    }
     res.status(500).json({ error: "Error al registrar la venta" });
   }
 };

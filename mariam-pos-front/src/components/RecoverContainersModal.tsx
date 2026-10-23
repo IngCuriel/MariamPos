@@ -9,6 +9,8 @@ import type { ClientContainerDeposit } from "../api/clientContainerDeposits";
 import { getActiveShift, createCashMovement } from "../api/cashRegister";
 import type { CreateCashMovementInput } from "../types";
 import { useCashier } from "../contexts/CashierContext";
+import RecoverContainerDetailModal from "./RecoverContainerDetailModal";
+import ReturnContainerConfirmModal from "./ReturnContainerConfirmModal";
 import "../styles/components/recoverContainersModal.css";
 
 interface RecoverContainersModalProps {
@@ -55,6 +57,11 @@ const RecoverContainersModal: React.FC<RecoverContainersModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [returningId, setReturningId] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  const [detailDeposit, setDetailDeposit] = useState<ClientContainerDeposit | null>(null);
+  // Depósito cuyo regreso se está confirmando en el modal pro.
+  const [confirmDeposit, setConfirmDeposit] = useState<ClientContainerDeposit | null>(null);
+  const PAGE_SIZE = 10;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -66,6 +73,7 @@ const RecoverContainersModal: React.FC<RecoverContainersModalProps> = ({
         statusFilter === "ALL" ? undefined : statusFilter
       );
       setDeposits(data);
+      setPage(1); // reiniciar a la primera página con cada búsqueda
     } catch (e) {
       console.error("Error al cargar envases:", e);
       setError("No se pudieron cargar los envases. Intente de nuevo.");
@@ -80,34 +88,10 @@ const RecoverContainersModal: React.FC<RecoverContainersModalProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  // Regresar el importe de un depósito: valida turno, registra la salida de
+  // Ejecuta el regreso del importe: valida turno, registra la salida de
   // efectivo en la caja activa y marca el depósito como devuelto.
-  const handleReturn = async (deposit: ClientContainerDeposit) => {
+  const executeReturn = async (deposit: ClientContainerDeposit) => {
     const clientName = deposit.client?.name || "Cliente General";
-    const result = await Swal.fire({
-      icon: "question",
-      title: "💰 Regresar importe de envase",
-      html: `
-        <div style="text-align:left;margin-top:0.5rem;">
-          <p>Cliente: <strong>${clientName}</strong></p>
-          <p>Envase: <strong>${deposit.containerName}</strong> (${deposit.quantity})</p>
-          <p>Importe a regresar:
-            <strong style="color:#059669;font-size:1.2rem;">${mxn(deposit.importAmount)}</strong>
-          </p>
-          <div style="margin-top:0.75rem;padding:0.6rem;background:#f0fdf4;border-radius:6px;font-size:0.85rem;color:#065f46;">
-            Se registrará una salida de efectivo en el turno activo.
-          </div>
-        </div>
-      `,
-      showCancelButton: true,
-      confirmButtonText: "✅ Confirmar",
-      cancelButtonText: "Cancelar",
-      confirmButtonColor: "#059669",
-      cancelButtonColor: "#6b7280",
-    });
-
-    if (!result.isConfirmed) return;
-
     setReturningId(deposit.id);
     try {
       const branch = localStorage.getItem("sucursal") || "Sucursal Principal";
@@ -133,15 +117,18 @@ const RecoverContainersModal: React.FC<RecoverContainersModalProps> = ({
         reason: `Regreso importe de envase - ${clientName}`,
         notes: `${deposit.containerName} (${deposit.quantity}) - ${mxn(deposit.importAmount)}`,
       };
-      await createCashMovement(movement);
+      const createdMovement = await createCashMovement(movement);
 
-      // Marcar el depósito como devuelto (todo), registrando el cajero que regresa.
+      // Marcar el depósito como devuelto (todo), registrando el cajero que
+      // regresa y el id del movimiento de SALIDA para trazabilidad.
       await returnClientContainerDeposit(
         deposit.id,
         undefined,
-        selectedCashier?.name || undefined
+        selectedCashier?.name || undefined,
+        createdMovement?.id
       );
 
+      setConfirmDeposit(null);
       Swal.fire({
         icon: "success",
         title: "✅ Importe regresado",
@@ -175,6 +162,12 @@ const RecoverContainersModal: React.FC<RecoverContainersModalProps> = ({
 
   const totalContainers = sorted.reduce((s, d) => s + (d.quantity || 0), 0);
   const totalAmount = sorted.reduce((s, d) => s + (d.importAmount || 0), 0);
+
+  // Paginación en cliente (la API devuelve la lista completa).
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageStart = (safePage - 1) * PAGE_SIZE;
+  const pageRows = sorted.slice(pageStart, pageStart + PAGE_SIZE);
 
   return (
     <div className="rec-overlay" onClick={onClose} role="presentation">
@@ -267,67 +260,105 @@ const RecoverContainersModal: React.FC<RecoverContainersModalProps> = ({
               No hay envases por recuperar en el rango seleccionado.
             </div>
           ) : (
+            <>
             <div className="rec-table-wrap">
               <table className="rec-table">
                 <thead>
                   <tr>
-                    <th>Folio</th>
                     <th>Fecha</th>
-                    <th>Turno</th>
                     <th>Cliente</th>
+                    <th>Venta</th>
                     <th>Envase</th>
                     <th className="rec-th-right">Cant.</th>
                     <th className="rec-th-right">Importe</th>
                     <th>Dio envase</th>
-                    <th>Regresó Importe</th>
-                    <th className="rec-th-center">Acción</th>
+                    <th className="rec-th-center">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {sorted.map((d) => (
+                  {pageRows.map((d) => (
                     <tr key={d.id}>
-                      <td className="rec-td-folio">#{d.id}</td>
                       <td>{dateTime(d.createdAt)}</td>
-                      <td className="rec-td-muted">
-                        {d.shiftId ? `#${d.shiftId}` : "—"}
-                      </td>
                       <td className="rec-td-client">
                         {d.client?.name || "Cliente General"}
+                      </td>
+                      <td className="rec-td-muted">
+                        {d.saleId ? `#${d.saleId}` : "—"}
                       </td>
                       <td>{d.containerName}</td>
                       <td className="rec-th-right">{d.quantity}</td>
                       <td className="rec-th-right rec-due">{mxn(d.importAmount)}</td>
-                      <td className="rec-td-muted">{d.createdBy || "—"}</td>
-                      <td className="rec-td-muted">{d.returnedBy || "—"}</td>
+                      <td className="rec-td-muted" title={d.createdBy || ""}>
+                        {d.createdBy
+                          ? d.createdBy.length > 10
+                            ? `${d.createdBy.slice(0, 10)}…`
+                            : d.createdBy
+                          : "—"}
+                      </td>
                       <td className="rec-td-action">
-                        {d.status === "PENDING" ? (
+                        <div className="rec-row-actions">
                           <button
                             type="button"
-                            className="rec-return-btn"
-                            disabled={returningId === d.id}
-                            onClick={() => handleReturn(d)}
+                            className="rec-detail-btn"
+                            onClick={() => setDetailDeposit(d)}
                           >
-                            {returningId === d.id ? "⏳..." : "💰 Regresar"}
+                            👁️ Detalle
                           </button>
-                        ) : (
-                          <span className="rec-returned-tag">✅ Devuelto</span>
-                        )}
+                          {d.status === "PENDING" ? (
+                            <button
+                              type="button"
+                              className="rec-return-btn"
+                              disabled={returningId === d.id}
+                              onClick={() => setConfirmDeposit(d)}
+                            >
+                              {returningId === d.id ? "⏳..." : "💰 Regresar"}
+                            </button>
+                          ) : (
+                            <span className="rec-returned-tag">✅ Devuelto</span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colSpan={5} className="rec-th-right">
+                    <td colSpan={4} className="rec-th-right">
                       Totales
                     </td>
                     <td className="rec-th-right">{totalContainers}</td>
                     <td className="rec-th-right rec-due">{mxn(totalAmount)}</td>
-                    <td colSpan={3}></td>
+                    <td colSpan={2}></td>
                   </tr>
                 </tfoot>
               </table>
             </div>
+
+            {/* Paginación en cliente */}
+            {totalPages > 1 && (
+              <div className="rec-pagination">
+                <button
+                  type="button"
+                  className="rec-page-btn"
+                  disabled={safePage <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  ‹ Anterior
+                </button>
+                <span className="rec-page-info">
+                  Página {safePage} de {totalPages} · {sorted.length} registro(s)
+                </span>
+                <button
+                  type="button"
+                  className="rec-page-btn"
+                  disabled={safePage >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  Siguiente ›
+                </button>
+              </div>
+            )}
+            </>
           )}
         </div>
 
@@ -337,6 +368,32 @@ const RecoverContainersModal: React.FC<RecoverContainersModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Modal de detalle/seguimiento del envase */}
+      <RecoverContainerDetailModal
+        isOpen={detailDeposit !== null}
+        deposit={detailDeposit}
+        onClose={() => setDetailDeposit(null)}
+      />
+
+      {/* Confirmación pro de regreso de importe (con desglose del cliente) */}
+      <ReturnContainerConfirmModal
+        isOpen={confirmDeposit !== null}
+        deposit={confirmDeposit}
+        otherPending={
+          confirmDeposit
+            ? deposits.filter(
+                (d) =>
+                  d.status === "PENDING" &&
+                  d.clientId === confirmDeposit.clientId &&
+                  d.id !== confirmDeposit.id
+              )
+            : []
+        }
+        loading={returningId !== null}
+        onConfirm={() => confirmDeposit && executeReturn(confirmDeposit)}
+        onClose={() => setConfirmDeposit(null)}
+      />
     </div>
   );
 };

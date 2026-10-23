@@ -563,15 +563,8 @@ const ShiftModal: React.FC<ShiftModalProps> = ({
         </button>
 
         <h2 className="modal-title" style={{ fontSize: "1.5rem", marginBottom: "12px", marginTop: "0" }}>
-          🔴 Cerrar Turno de Caja
-        </h2>
-
-        <div style={{ marginBottom: "15px", textAlign: "center" }}>
-          <p style={{ fontSize: "0.95rem", color: "#6b7280", fontWeight: "600", margin: "2px 0" }}>
-            Turno #{activeShift.id}
-          </p>
-        </div>
-
+          🔴 Cerrar Turno #{activeShift.id}
+        </h2> 
         {/* Layout en dos columnas */}
         <div style={{ 
           display: "grid", 
