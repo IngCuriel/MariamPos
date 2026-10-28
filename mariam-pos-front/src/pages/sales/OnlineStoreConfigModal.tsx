@@ -23,32 +23,23 @@ interface OnlineStoreConfigModalProps {
 interface FormState {
   enabled: boolean;
   apiUrl: string;
-  storeName: string;
   username: string;
   password: string;
-  productsEndpoint: string;
-  salesEndpoint: string;
 }
 
 const EMPTY_FORM: FormState = {
   enabled: false,
   apiUrl: "",
-  storeName: "",
   username: "",
   password: "",
-  productsEndpoint: "",
-  salesEndpoint: "",
 };
 
 /** Maps a loaded config into the non-sensitive form fields (password stays empty). */
 const toForm = (config: OnlineStoreConfig | null): FormState => ({
   enabled: config?.enabled ?? false,
   apiUrl: config?.apiUrl ?? "",
-  storeName: config?.storeName ?? "",
   username: config?.username ?? "",
   password: "", // write-only: never prefilled
-  productsEndpoint: config?.productsEndpoint ?? "",
-  salesEndpoint: config?.salesEndpoint ?? "",
 });
 
 const OnlineStoreConfigModal: React.FC<OnlineStoreConfigModalProps> = ({
@@ -103,14 +94,22 @@ const OnlineStoreConfigModal: React.FC<OnlineStoreConfigModalProps> = ({
     }
 
     // Build the upsert payload with the non-sensitive fields (Req 5.5).
+    // El nombre de la tienda es el mismo que la sucursal: se guarda desde `branch`
+    // (ya no se captura en un campo aparte del formulario).
+    //
+    // La URL del API es solo el dominio base (ej. https://mariam-pos-web-api.onrender.com/api).
+    // Los endpoints concretos (/orders, /auth/login, /products, etc.) están
+    // hardcodeados en el código cliente (ver api/onlineStoreOrders.ts), por lo
+    // que `productsEndpoint` y `salesEndpoint` ya no se capturan y se guardan
+    // como null; las columnas se conservan en el schema por compatibilidad.
     const payload: OnlineStoreConfigPayload = {
       branch,
       enabled: form.enabled,
       apiUrl: form.apiUrl.trim() || null,
-      storeName: form.storeName.trim() || null,
+      storeName: branch,
       username: form.username.trim() || null,
-      productsEndpoint: form.productsEndpoint.trim() || null,
-      salesEndpoint: form.salesEndpoint.trim() || null,
+      productsEndpoint: null,
+      salesEndpoint: null,
     };
 
     // Attach the password only when the admin typed one; leaving it empty keeps
@@ -203,25 +202,19 @@ const OnlineStoreConfigModal: React.FC<OnlineStoreConfigModalProps> = ({
               </label>
 
               <div className="osc-field">
-                <label htmlFor="osc-apiUrl">URL del API</label>
+                <label htmlFor="osc-apiUrl">Dominio del API</label>
                 <input
                   id="osc-apiUrl"
                   type="text"
                   value={form.apiUrl}
-                  placeholder="https://tienda.ejemplo.com/api"
+                  placeholder="https://mariam-pos-web-api.onrender.com/api"
                   onChange={(e) => setField("apiUrl", e.target.value)}
                 />
-              </div>
-
-              <div className="osc-field">
-                <label htmlFor="osc-storeName">Nombre de la tienda</label>
-                <input
-                  id="osc-storeName"
-                  type="text"
-                  value={form.storeName}
-                  placeholder="Mi tienda online"
-                  onChange={(e) => setField("storeName", e.target.value)}
-                />
+                <span className="osc-hint">
+                  Solo el dominio base del API (incluí el sufijo <code>/api</code>).
+                  Las rutas internas (pedidos, login, productos) ya están
+                  configuradas en el sistema.
+                </span>
               </div>
 
               <div className="osc-field">
@@ -250,28 +243,6 @@ const OnlineStoreConfigModal: React.FC<OnlineStoreConfigModalProps> = ({
                   La contraseña nunca se muestra. Dejala vacía para conservar la
                   actual.
                 </span>
-              </div>
-
-              <div className="osc-field">
-                <label htmlFor="osc-productsEndpoint">Endpoint de productos</label>
-                <input
-                  id="osc-productsEndpoint"
-                  type="text"
-                  value={form.productsEndpoint}
-                  placeholder="/products"
-                  onChange={(e) => setField("productsEndpoint", e.target.value)}
-                />
-              </div>
-
-              <div className="osc-field">
-                <label htmlFor="osc-salesEndpoint">Endpoint de ventas</label>
-                <input
-                  id="osc-salesEndpoint"
-                  type="text"
-                  value={form.salesEndpoint}
-                  placeholder="/sales"
-                  onChange={(e) => setField("salesEndpoint", e.target.value)}
-                />
               </div>
             </form>
           )}

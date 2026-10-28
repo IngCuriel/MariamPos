@@ -325,3 +325,114 @@
 .onl-error .onl-empty-title {
   color: #b91c1c;
 }
+
+/* ===== Formulario de login (cuando no hay sesión en la tienda online) ===== */
+.onl-login {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 20px;
+  text-align: center;
+}
+
+.onl-login-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+  opacity: 0.85;
+}
+
+.onl-login-title {
+  margin: 0 0 4px 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.onl-login-sub {
+  margin: 0 0 18px 0;
+  font-size: 13px;
+  color: #64748b;
+  max-width: 360px;
+}
+
+.onl-login-form {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+}
+
+.onl-login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.onl-login-field label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.onl-login-field input {
+  min-height: 42px;
+  padding: 8px 12px;
+  font-size: 0.95rem;
+  border: 2px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  color: #1f2937;
+}
+
+.onl-login-field input:focus {
+  outline: none;
+  border-color: var(--modal-field-focus);
+}
+
+.onl-login-field input:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+.onl-login-error {
+  font-size: 0.85rem;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.onl-login-btn {
+  margin-top: 4px;
+  min-height: 46px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  color: var(--modal-search-fg);
+  background: var(--modal-search-bg);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.onl-login-btn:hover:not(:disabled) {
+  background: var(--modal-search-bg-hover);
+  transform: translateY(-1px);
+}
+
+.onl-login-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.onl-login-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

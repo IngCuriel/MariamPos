@@ -1286,11 +1286,13 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
       }
       
       // 3️⃣ Descontar inventario después de crear la venta exitosamente.
-      // Para pedidos de la tienda online (origin=ONLINE) NO se descuenta aquí:
-      // la tienda online ya gestionó el stock de ese pedido (evita doble descuento).
-      if (loadedFolio?.source !== "ONLINE") {
-        await updateInventoryFromSale(cart, branch);
-      }
+      // Incluye los pedidos de la tienda online (origin=ONLINE): sus ítems se
+      // resuelven al producto local real por `code` al cargarlos, por lo que el
+      // descuento de stock se comporta como una venta normal. Los ítems que no
+      // se resolvieron quedan ligados al producto genérico (id 1), que
+      // `updateInventoryFromSale` excluye explícitamente, así que no se descuenta
+      // stock de productos que no corresponden.
+      await updateInventoryFromSale(cart, branch);
       
       // 4️⃣ Limpiar carrito, reiniciar contador, limpiar depósitos y actualizar turno activo
       setCart([]);
@@ -1720,33 +1722,100 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
 
   // Carga un pedido de la tienda online al carrito como bloque inmutable
   // (mismo mecanismo que el folio: folioBlockId). El cobro generará una venta
-  // con origin=ONLINE; el inventario NO se descuenta localmente porque la tienda
-  // online ya gestionó el stock.
-  const handleOnlineOrderSelect = (order: StoreOrder) => {
+  // con origin=ONLINE.
+  //
+  // Resolución de producto (clave): el `productId` que trae el pedido es el id
+  // del producto en la TIENDA ONLINE y NO coincide con el id local. Por eso cada
+  // ítem se resuelve contra el catálogo local por `code` (SKU estable):
+  //   - Si existe un producto local con ese `code` → se usa ESE producto real
+  //     (id, inventario, trackInventory). Al cobrar se comporta como venta
+  //     normal y descuenta inventario si el producto lo rastrea.
+  //   - Si NO existe (p. ej. producto aún no cargado en esta sucursal) → se liga
+  //     al producto genérico `000000` (producto común) cobrando el precio que
+  //     trae el pedido. El genérico no descuenta inventario.
+  const handleOnlineOrderSelect = async (order: StoreOrder) => {
     const blockMeta = {
       folioBlockId: order.id,
       folioCode: `Pedido ${order.id}`,
       folioCashRegister: order.branch?.name,
     };
 
-    const cartItems: ItemCart[] = (order.items ?? []).map((it) => {
+    // Resuelve un producto local por `code` (SKU) consultando el backend.
+    // NOTA: el estado `products` solo se llena con la búsqueda del cajero, por lo
+    // que NO sirve para resolver aquí; hay que ir al backend por cada code.
+    // `getProductsFilters` busca por código/nombre; se exige coincidencia EXACTA
+    // de `code` para evitar falsos positivos por coincidencia parcial de nombre.
+    const resolveLocalProductByCode = async (
+      code: string
+    ): Promise<Product | undefined> => {
+      try {
+        const matches = await getProductsFilters(code, true);
+        return matches.find((p) => (p.code ?? "").trim() === code);
+      } catch (err) {
+        console.error(`Error al resolver producto local por code ${code}:`, err);
+        return undefined;
+      }
+    };
+
+    // Producto genérico local (code "000000") usado como respaldo cuando el
+    // producto del pedido no existe en el catálogo local.
+    const genericMatches = await getProductsFilters("000000", true).catch(
+      () => [] as Product[]
+    );
+    const genericProduct = genericMatches.find((p) => p.code === "000000");
+
+    let unresolvedCount = 0;
+
+    const items = order.items ?? [];
+
+    // Resolver todos los ítems en paralelo (una consulta por code).
+    const resolvedProducts = await Promise.all(
+      items.map((it) => {
+        const code = it.code?.trim();
+        return code ? resolveLocalProductByCode(code) : Promise.resolve(undefined);
+      })
+    );
+
+    const cartItems: ItemCart[] = items.map((it, index) => {
       // La API online entrega cantidad confirmada (si hubo revisión) y precio
       // unitario. No hay presentación/granel ni unidad base: se tratan como
       // líneas simples de precio fijo.
       const qty = it.confirmedQuantity ?? it.quantity;
-      const baseProduct: Product = {
-        id: it.productId ?? 0,
-        code: "",
-        name: it.presentationName
-          ? `${it.productName} (${it.presentationName})`
-          : it.productName,
-        status: 1,
-        saleType: "Pieza",
-        price: it.unitPrice,
-        cost: 0,
-        icon: "",
-        categoryId: "",
-      };
+
+      // Nombre a mostrar/congelar (incluye presentación si vino informada).
+      const displayName = it.presentationName
+        ? `${it.productName} (${it.presentationName})`
+        : it.productName;
+
+      const localProduct = resolvedProducts[index];
+
+      // Producto efectivo: el local resuelto, o el genérico como respaldo.
+      const resolved = localProduct ?? genericProduct;
+      if (!localProduct) unresolvedCount += 1;
+
+      const baseProduct: Product = resolved
+        ? {
+            // Producto local real (o genérico): conserva id, inventario y
+            // trackInventory para que el cobro descuente stock correctamente.
+            ...resolved,
+            // El nombre y precio se congelan con lo que trae el pedido online.
+            name: displayName,
+            price: it.unitPrice,
+          }
+        : {
+            // Último respaldo (no debería ocurrir si existe el genérico): línea
+            // suelta no ligada a inventario.
+            id: 1,
+            code: "000000",
+            name: displayName,
+            status: 1,
+            saleType: "Pieza",
+            price: it.unitPrice,
+            cost: 0,
+            icon: "",
+            categoryId: "",
+          };
+
       return {
         ...baseProduct,
         quantity: qty,
@@ -1773,14 +1842,24 @@ const salesPage: React.FC<SalesPageProps> = ({ onBack }) => {
 
     setShowOnlineSalesModal(false);
 
+    // Si algún ítem no se pudo resolver contra el catálogo local, se ligó al
+    // producto genérico y no descontará inventario: avisar al cajero.
+    const unresolvedNotice =
+      unresolvedCount > 0
+        ? `<p style="margin-top: 10px; padding: 8px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px; font-size: 0.9rem; color: #92400e;">
+             ⚠️ ${unresolvedCount} ${unresolvedCount === 1 ? "producto no se encontró" : "productos no se encontraron"} en el catálogo local y se cobrará al precio del pedido sin descontar inventario.
+           </p>`
+        : "";
+
     Swal.fire({
       icon: "success",
       title: "Pedido cargado",
       html: `
         <p>El pedido en línea <strong>#${order.id}</strong> se cargó correctamente</p>
         <p style="margin-top: 10px;">Cliente: ${order.user?.name || order.user?.email || "Sin nombre"}</p>
+        ${unresolvedNotice}
       `,
-      timer: 2000,
+      timer: unresolvedCount > 0 ? 4000 : 2000,
       showConfirmButton: false,
     });
 

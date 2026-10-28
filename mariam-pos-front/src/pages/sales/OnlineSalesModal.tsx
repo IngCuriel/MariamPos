@@ -2,9 +2,11 @@ import React, { useEffect, useState, useCallback } from "react";
 import {
   fetchOnlineStoreOrdersPage,
   isOnlineStoreAuthenticated,
+  loginOnlineStore,
   type StoreOrder,
 } from "../../api/onlineStoreOrders";
 import { ORDER_STATUS, STATUS_LABELS } from "../../constants/onlineStoreOrderStatus";
+import { useOnlineStoreConfig } from "../../hooks/useOnlineStoreConfig";
 import OnlineSaleDetailModal from "./OnlineSaleDetailModal";
 import "../../styles/pages/sales/onlineSalesModal.css";
 
@@ -49,11 +51,20 @@ const statusBadge = (status: string) => {
  * realiza aquí todavía (fuera de alcance de esta etapa).
  */
 const OnlineSalesModal: React.FC<OnlineSalesModalProps> = ({ isOpen, onClose, onSelect }) => {
+  const { username: configUsername, config } = useOnlineStoreConfig();
+  const storeName = config?.storeName ?? null;
   const [orders, setOrders] = useState<StoreOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [authed, setAuthed] = useState<boolean>(false);
   const [detailOrder, setDetailOrder] = useState<StoreOrder | null>(null);
+
+  // Estado del formulario de login (visible cuando no hay sesión en la tienda online).
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [emailTouched, setEmailTouched] = useState(false);
 
   const load = useCallback(async () => {
     // Requiere sesión en la tienda online (token propio).
@@ -91,6 +102,47 @@ const OnlineSalesModal: React.FC<OnlineSalesModalProps> = ({ isOpen, onClose, on
     if (isOpen) load();
   }, [isOpen, load]);
 
+  // Precarga el email con el usuario de la config (salvo que el cajero ya escribió).
+  useEffect(() => {
+    if (isOpen && !emailTouched && configUsername) {
+      setLoginEmail(configUsername);
+    }
+  }, [isOpen, configUsername, emailTouched]);
+
+  // Al cerrar, limpia el formulario (el email vuelve al usuario de la config).
+  useEffect(() => {
+    if (!isOpen) {
+      setLoginEmail(configUsername ?? "");
+      setLoginPassword("");
+      setEmailTouched(false);
+      setLoginError(null);
+      setLoginLoading(false);
+    }
+  }, [isOpen, configUsername]);
+
+  // Inicia sesión en la tienda online y, si tiene éxito, carga los pedidos.
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError(null);
+    if (!loginEmail.trim() || !loginPassword) {
+      setLoginError("Ingresá usuario y contraseña.");
+      return;
+    }
+    setLoginLoading(true);
+    try {
+      await loginOnlineStore(loginEmail.trim(), loginPassword);
+      setLoginPassword("");
+      setEmailTouched(false);
+      await load(); // ya autenticado → trae los pedidos
+    } catch (err: any) {
+      setLoginError(
+        err?.message || "No se pudo iniciar sesión. Verificá los datos."
+      );
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -125,13 +177,55 @@ const OnlineSalesModal: React.FC<OnlineSalesModalProps> = ({ isOpen, onClose, on
 
           <div className="onl-body">
             {!authed ? (
-              <div className="onl-empty">
-                <div className="onl-empty-icon">🔒</div>
-                <p className="onl-empty-title">Inicia sesión en Tienda online</p>
-                <p className="onl-empty-text">
-                  Para ver los pedidos en línea listos para entregar, primero
-                  inicia sesión desde el módulo «Tienda online» del menú principal.
+              <div className="onl-login">
+                <div className="onl-login-icon">🔒</div>
+                <h3 className="onl-login-title">Iniciar sesión en la tienda online</h3>
+                <p className="onl-login-sub">
+                  {storeName
+                    ? `Tienda: ${storeName}`
+                    : "Ingresá tus credenciales para ver los pedidos listos para entregar."}
                 </p>
+
+                <form className="onl-login-form" onSubmit={handleLogin}>
+                  <div className="onl-login-field">
+                    <label htmlFor="onl-login-email">Usuario</label>
+                    <input
+                      id="onl-login-email"
+                      type="email"
+                      autoComplete="username"
+                      value={loginEmail}
+                      placeholder="usuario@tienda.com"
+                      onChange={(e) => {
+                        setEmailTouched(true);
+                        setLoginEmail(e.target.value);
+                      }}
+                      disabled={loginLoading}
+                    />
+                  </div>
+
+                  <div className="onl-login-field">
+                    <label htmlFor="onl-login-password">Contraseña</label>
+                    <input
+                      id="onl-login-password"
+                      type="password"
+                      autoComplete="current-password"
+                      value={loginPassword}
+                      placeholder="Tu contraseña"
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      disabled={loginLoading}
+                    />
+                  </div>
+
+                  {loginError && <div className="onl-login-error">⚠️ {loginError}</div>}
+
+                  <button
+                    type="submit"
+                    className="onl-login-btn"
+                    disabled={loginLoading}
+                  >
+                    {loginLoading ? "Iniciando sesión..." : "Iniciar sesión"}
+                  </button>
+                </form>
               </div>
             ) : error ? (
               <div className="onl-empty onl-error">

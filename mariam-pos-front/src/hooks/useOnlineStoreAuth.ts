@@ -7,13 +7,7 @@ import {
   isOnlineStoreAuthenticated,
   ONLINE_STORE_UNAUTHORIZED_EVENT,
 } from '../api/onlineStoreOrders';
-
-/**
- * Credenciales por defecto en POS (agilizan el acceso del cajero).
- * Compartidas con el flujo legacy de "Tienda en Línea".
- */
-export const DEFAULT_ONLINE_STORE_EMAIL = 'admin@mariamstore.com';
-export const DEFAULT_ONLINE_STORE_PASSWORD = 'admin123'; // NOSONAR — credenciales de demo en POS solicitadas por producto
+import { useOnlineStoreConfig } from './useOnlineStoreConfig';
 
 export const OFFLINE_LOGIN_MESSAGE = 'Revisa tu conexión a Internet.';
 
@@ -51,15 +45,36 @@ export interface UseOnlineStoreAuthResult {
  * `isAuthenticated` arranca en true.
  */
 export function useOnlineStoreAuth(): UseOnlineStoreAuthResult {
+  // El usuario se prellenar desde la configuración de tienda online por sucursal
+  // (OnlineStoreConfig.username); la contraseña nunca se precarga ni se hardcodea.
+  const { username: configUsername } = useOnlineStoreConfig();
+
   const [isAuthenticated, setIsAuthenticated] = useState(() => isOnlineStoreAuthenticated());
   const [user, setUser] = useState<OnlineStoreUser>(() => getOnlineStoreUser());
-  const [email, setEmail] = useState(DEFAULT_ONLINE_STORE_EMAIL);
-  const [password, setPassword] = useState(DEFAULT_ONLINE_STORE_PASSWORD);
+  const [email, setEmailState] = useState('');
+  const [password, setPassword] = useState('');
+  // Marca si el cajero ya editó el email manualmente, para no pisarlo al
+  // resolver la config de forma asíncrona.
+  const [emailTouched, setEmailTouched] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [browserOnline, setBrowserOnline] = useState(
     () => globalThis.navigator?.onLine ?? true,
   );
+
+  // Envoltorio de setEmail: cualquier edición manual marca `emailTouched`.
+  const setEmail = useCallback((value: string) => {
+    setEmailTouched(true);
+    setEmailState(value);
+  }, []);
+
+  // Prellena el email con el username de la config cuando resuelve, salvo que el
+  // cajero ya haya escrito algo en el campo.
+  useEffect(() => {
+    if (!emailTouched && configUsername) {
+      setEmailState(configUsername);
+    }
+  }, [configUsername, emailTouched]);
 
   useEffect(() => {
     const syncOnline = () => {
@@ -88,8 +103,9 @@ export function useOnlineStoreAuth(): UseOnlineStoreAuthResult {
         const response = await loginOnlineStore(email, password);
         setUser(response.user as Record<string, unknown>);
         setIsAuthenticated(true);
-        setEmail(DEFAULT_ONLINE_STORE_EMAIL);
-        setPassword(DEFAULT_ONLINE_STORE_PASSWORD);
+        setEmailState(configUsername ?? '');
+        setEmailTouched(false);
+        setPassword('');
       } catch (err: unknown) {
         if (isNetworkLoginFailure(err)) {
           setLoginError(OFFLINE_LOGIN_MESSAGE);
@@ -101,31 +117,33 @@ export function useOnlineStoreAuth(): UseOnlineStoreAuthResult {
         setLoginLoading(false);
       }
     },
-    [email, password],
+    [email, password, configUsername],
   );
 
   const logout = useCallback(() => {
     removeOnlineStoreToken();
     setIsAuthenticated(false);
     setUser(null);
-    setEmail(DEFAULT_ONLINE_STORE_EMAIL);
-    setPassword(DEFAULT_ONLINE_STORE_PASSWORD);
+    setEmailState(configUsername ?? '');
+    setEmailTouched(false);
+    setPassword('');
     setLoginError(null);
-  }, []);
+  }, [configUsername]);
 
   // Desloguea la UI en el acto cuando el interceptor detecta un 401 (token expirado).
   useEffect(() => {
     const handleUnauthorized = () => {
       setIsAuthenticated(false);
       setUser(null);
-      setEmail(DEFAULT_ONLINE_STORE_EMAIL);
-      setPassword(DEFAULT_ONLINE_STORE_PASSWORD);
+      setEmailState(configUsername ?? '');
+      setEmailTouched(false);
+      setPassword('');
     };
     globalThis.addEventListener?.(ONLINE_STORE_UNAUTHORIZED_EVENT, handleUnauthorized);
     return () => {
       globalThis.removeEventListener?.(ONLINE_STORE_UNAUTHORIZED_EVENT, handleUnauthorized);
     };
-  }, []);
+  }, [configUsername]);
 
   return {
     isAuthenticated,

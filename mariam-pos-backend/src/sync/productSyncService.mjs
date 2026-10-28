@@ -3,13 +3,50 @@ import axios from 'axios'
 import dotenv from 'dotenv'
 
 dotenv.config()
-const REMOTE_API_URL = process.env.REMOTE_API_URL
+// URL base por defecto (fallback) desde el entorno.
+const FALLBACK_REMOTE_API_URL = process.env.REMOTE_API_URL
+
+/**
+ * Resuelve la URL base del servidor remoto para la sincronización.
+ *
+ * Prioridad:
+ *   1. La `apiUrl` de la configuración de tienda online HABILITADA
+ *      (OnlineStoreConfig con enabled=true). Se asume "esta instalación =
+ *      una sucursal": se toma el primer registro habilitado con apiUrl.
+ *   2. Si no hay config habilitada con apiUrl, se usa REMOTE_API_URL del .env
+ *      (fallback, para no romper la sincronización existente).
+ *
+ * Nota: las RUTAS siguen siendo fijas (/api/products/bulk, etc.); esta función
+ * solo resuelve la BASE. La config se consulta en cada ejecución del sync, de
+ * modo que un cambio en el modal de configuración se refleja sin reiniciar.
+ */
+async function resolveRemoteApiUrl() {
+  try {
+    const config = await prisma.onlineStoreConfig.findFirst({
+      where: { enabled: true, apiUrl: { not: null } },
+      orderBy: { updatedAt: 'desc' },
+    })
+    const fromConfig = config?.apiUrl?.trim()
+    if (fromConfig) {
+      // Normaliza la base: quita la barra final y un sufijo "/api" si viniera
+      // incluido, porque las rutas de este servicio ya agregan "/api/...".
+      return fromConfig.replace(/\/$/, '').replace(/\/api$/, '')
+    }
+  } catch (error) {
+    console.warn('⚠️ No se pudo leer OnlineStoreConfig para el sync; se usa REMOTE_API_URL.', error?.message)
+  }
+  return FALLBACK_REMOTE_API_URL
+}
 // Intervalo de sincronización: 10 minutos (600000 ms)
 const SYNC_INTERVAL = (process.env.SYNC_INTERVAL_MINUTES || 10) * 60 * 1000
 // Tiempo de espera para verificar conexión
 const CONNECTION_TIMEOUT = 2000
-// Número máximo de productos por batch
-const BATCH_SIZE = 10
+// Número máximo de productos por batch (cada corrida del loop automático sube
+// hasta esta cantidad de productos pendientes). 30 es un punto medio: en
+// operación normal solo hay unos pocos cambios por vez y se suben rápido; en
+// plan free de Render evita payloads muy grandes. La carga inicial masiva de
+// miles de productos se hace con el botón manual (que acepta su propio límite).
+const BATCH_SIZE = 30
 // Reintentos con backoff exponencial
 const MAX_RETRIES = 3
 const INITIAL_RETRY_DELAY = 1000 // 1 segundo
@@ -23,17 +60,18 @@ let consecutiveFailures = 0
 /**
  * Verifica si hay conexión a internet de manera eficiente
  */
-async function hasInternetConnection() {
+async function hasInternetConnection(baseUrl) {
+  const base = baseUrl || (await resolveRemoteApiUrl())
   try {
-    const response = await axios.get(`${REMOTE_API_URL}/health`, { 
+    await axios.get(`${base}/health`, {
       timeout: CONNECTION_TIMEOUT,
       validateStatus: (status) => status < 500
     })
     return true
-  } catch (error) {
+  } catch {
     try {
-      await axios.head(`${REMOTE_API_URL}/api/products`, { 
-        timeout: CONNECTION_TIMEOUT 
+      await axios.head(`${base}/api/products`, {
+        timeout: CONNECTION_TIMEOUT
       })
       return true
     } catch {
@@ -45,9 +83,9 @@ async function hasInternetConnection() {
 /**
  * Envía un batch de productos con reintentos y manejo de errores
  */
-async function sendProductsBatch(products, retryCount = 0) {
+async function sendProductsBatch(products, baseUrl, retryCount = 0) {
   try {
-    const res = await axios.post(`${REMOTE_API_URL}/api/products/bulk`, products, {
+    const res = await axios.post(`${baseUrl}/api/products/bulk`, products, {
       timeout: 60000, // 60 segundos timeout para productos (más datos)
       headers: {
         'Content-Type': 'application/json'
@@ -72,7 +110,7 @@ async function sendProductsBatch(products, retryCount = 0) {
       const delay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount)
       console.log(`⚠️ Error al enviar batch de productos, reintentando en ${delay}ms... (intento ${retryCount + 1}/${MAX_RETRIES})`)
       await new Promise(resolve => setTimeout(resolve, delay))
-      return sendProductsBatch(products, retryCount + 1)
+      return sendProductsBatch(products, baseUrl, retryCount + 1)
     }
     throw error
   }
@@ -81,9 +119,9 @@ async function sendProductsBatch(products, retryCount = 0) {
 /**
  * Envía un batch de categorías con reintentos y manejo de errores
  */
-async function sendCategoriesBatch(categories, retryCount = 0) {
+async function sendCategoriesBatch(categories, baseUrl, retryCount = 0) {
   try {
-    const res = await axios.post(`${REMOTE_API_URL}/api/products/categories/bulk`, categories, {
+    const res = await axios.post(`${baseUrl}/api/products/categories/bulk`, categories, {
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json'
@@ -107,7 +145,7 @@ async function sendCategoriesBatch(categories, retryCount = 0) {
       const delay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount)
       console.log(`⚠️ Error al enviar batch de categorías, reintentando en ${delay}ms... (intento ${retryCount + 1}/${MAX_RETRIES})`)
       await new Promise(resolve => setTimeout(resolve, delay))
-      return sendCategoriesBatch(categories, retryCount + 1)
+      return sendCategoriesBatch(categories, baseUrl, retryCount + 1)
     }
     throw error
   }
@@ -127,7 +165,15 @@ async function syncPendingProducts(limit = BATCH_SIZE) {
   const startTime = Date.now()
 
   try {
-    const online = await hasInternetConnection()
+    // Resuelve la URL base para esta corrida: config de tienda online habilitada
+    // o, en su defecto, REMOTE_API_URL (fallback).
+    const baseUrl = await resolveRemoteApiUrl()
+    if (!baseUrl) {
+      console.log('⚠️ Sin URL remota configurada (ni config de tienda online ni REMOTE_API_URL). Se omite el sync.')
+      return { success: false, message: 'Sin URL remota configurada' }
+    }
+
+    const online = await hasInternetConnection(baseUrl)
     
     if (!online) {
       console.log('🌐 Sin conexión a internet. El sistema funciona en modo offline.')
@@ -147,7 +193,7 @@ async function syncPendingProducts(limit = BATCH_SIZE) {
 
     if (pendingCategories.length > 0) {
       console.log(`📤 Sincronizando ${pendingCategories.length} categoría(s) pendiente(s)...`)
-      const result = await sendCategoriesBatch(pendingCategories)
+      const result = await sendCategoriesBatch(pendingCategories, baseUrl)
       if (result.success) {
         console.log(`✅ ${result.count} categoría(s) sincronizada(s) correctamente.`)
       }
@@ -165,9 +211,11 @@ async function syncPendingProducts(limit = BATCH_SIZE) {
             showInPOS: true
           }
         },
-        presentations: {
-          where: { syncStatus: 'pendiente' }
-        },
+        presentations: true, // Todas las presentaciones (el bulk hace upsert completo;
+        // filtrar solo 'pendiente' causaba que se enviaran vacías y la API borraba
+        // las existentes por el deleteMany con notIn:[]).
+        priceTiers: true, // Tramos de precio escalonado (mayoreo)
+        unit: true, // Unidad de medida (se envía como texto plano)
         inventory: true,
         kitItems: {
           include: {
@@ -217,9 +265,24 @@ async function syncPendingProducts(limit = BATCH_SIZE) {
         categoryId: product.categoryId,
         trackInventory: product.trackInventory,
         isKit: product.isKit,
+        // Modo de precio y promoción (se sincronizan a la tienda online).
+        pricingMode: product.pricingMode,
+        isPromo: product.isPromo,
+        promoPrice: product.promoPrice,
+        promoEndsAt: product.promoEndsAt,
+        // Unidad de medida como TEXTO PLANO (no se manda el id para no depender
+        // de que las unidades tengan el mismo id entre local y tienda online).
+        unitName: product.unit?.name ?? null,
+        unitAbbreviation: product.unit?.abbreviation ?? null,
         branch: product.branch || "Sucursal Default",
         createdAt: product.createdAt,
         category: product.category,
+        // Tramos de precio escalonado (solo relevantes si pricingMode = "tiered").
+        priceTiers: product.priceTiers.map((t) => ({
+          minQty: t.minQty,
+          maxQty: t.maxQty,
+          unitPrice: t.unitPrice
+        })),
         presentations: product.presentations.map(p => ({
           id: p.id,
           name: p.name,
@@ -247,7 +310,7 @@ async function syncPendingProducts(limit = BATCH_SIZE) {
     })
 
     // Enviar el batch
-    const result = await sendProductsBatch(productsToSync)
+    const result = await sendProductsBatch(productsToSync, baseUrl)
     
     if (result.success) {
       const elapsed = Date.now() - startTime
@@ -373,7 +436,7 @@ export async function startProductSyncLoop() {
 
   console.log('🔁 Servicio de sincronización de productos iniciado...')
   console.log(`   Intervalo: ${SYNC_INTERVAL / 1000 / 60} minutos`)
-  console.log(`   API remota: ${REMOTE_API_URL || 'No configurada'}`)
+  console.log(`   API remota: config de tienda online (enabled) o REMOTE_API_URL (${FALLBACK_REMOTE_API_URL || 'No configurada'})`)
   console.log(`   Modo: Offline-first (funciona sin internet)`)
   
   // Sincronizar inmediatamente al iniciar (si hay conexión)

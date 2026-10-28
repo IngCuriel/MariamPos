@@ -70,6 +70,13 @@ function mapAxiosError(error: unknown, fallback: string): Error {
 export interface StoreOrderItem {
   id: number;
   productId: number | null;
+  /**
+   * Código (SKU) del producto en el catálogo. Es el identificador de negocio
+   * estable usado para resolver el producto local correspondiente al cobrar un
+   * pedido online (el `productId` es el id de la tienda y NO coincide con el id
+   * local). La API online lo incluye por ítem; puede faltar en pedidos antiguos.
+   */
+  code?: string | null;
   productName: string;
   quantity: number;
   unitPrice: number;

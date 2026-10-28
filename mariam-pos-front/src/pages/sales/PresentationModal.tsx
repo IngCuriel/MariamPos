@@ -53,7 +53,7 @@ export const PresentationModal = async (product: Product): Promise<{ presentatio
 
   // Nombre de la unidad de medida del producto (ej: "Kilogramo"). Fallback: "unidad".
   const unitName = product.unit?.name || 'unidad';
-  const unitPlural = product.unit?.name ? product.unit.name : 'unidades';
+  const unitPlural = product.unit?.name ? product.unit.name+'s' : 'unidades';
 
   const presentationsHTML = product.presentations
     .map((pres, index) => {

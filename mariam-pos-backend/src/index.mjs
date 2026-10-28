@@ -222,7 +222,7 @@ checkPort()
       console.log(`🖥️  Servidor corriendo en http://${HOST === "0.0.0.0" ? "localhost" : HOST}:${PORT}`);
       console.log(`🌐 Accesible desde la red local en: http://[IP-DE-ESTA-MAQUINA]:${PORT}`);
       startSyncLoop();//   🔁 activa sincronización automática de ventas
-      // startProductSyncLoop();//   🔁 sincronización automática de productos DESACTIVADA - ahora es manual desde la UI
+      startProductSyncLoop();// 🔁 activa sincronización automática de productos (los cambios pendientes se suben solos; la carga inicial masiva se hace con el botón manual)
     });
 
     // Configurar timeout del servidor

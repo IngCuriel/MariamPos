@@ -172,27 +172,46 @@ export const createInventoryMovement = async (req, res) => {
         break;
     }
 
-    // Crear movimiento
-    const movement = await prisma.inventoryMovement.create({
-      data: {
-        productId,
-        type,
-        quantity,
-        reason,
-        reference,
-        notes,
-        branch,
-        cashRegister,
-      },
-    });
+    // Movimiento + actualización de stock + marcado de re-sincronización, todo
+    // en una transacción para que queden consistentes entre sí.
+    //
+    // Al cambiar el stock se marca el Product como syncStatus='pendiente' para
+    // que el loop de sincronización automática vuelva a subir el producto (con
+    // su currentStock actualizado) a la tienda online. Así el inventario online
+    // refleja las ventas/ajustes locales con el desfase del intervalo del loop,
+    // sin depender de una sincronización manual (Frente C).
+    const movement = await prisma.$transaction(async (tx) => {
+      const createdMovement = await tx.inventoryMovement.create({
+        data: {
+          productId,
+          type,
+          quantity,
+          reason,
+          reference,
+          notes,
+          branch,
+          cashRegister,
+        },
+      });
 
-    // Actualizar inventario
-    await prisma.inventory.update({
-      where: { productId },
-      data: {
-        currentStock: newStock,
-        lastMovementDate: new Date(),
-      },
+      await tx.inventory.update({
+        where: { productId },
+        data: {
+          currentStock: newStock,
+          lastMovementDate: new Date(),
+        },
+      });
+
+      // Reencolar el producto para re-sincronización (no el producto común id 1,
+      // que no se sincroniza como catálogo real).
+      if (productId !== 1) {
+        await tx.product.update({
+          where: { id: productId },
+          data: { syncStatus: 'pendiente' },
+        });
+      }
+
+      return createdMovement;
     });
 
     res.json(movement);

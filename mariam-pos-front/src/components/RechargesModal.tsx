@@ -37,7 +37,7 @@ const RechargesModal: React.FC<RechargesModalProps> = ({ isOpen, onClose }) => {
     <div className="online-store-login-container">
       <div className="online-store-login-header">
         <h3>Iniciar sesión</h3>
-        <p>Credenciales de administrador cargadas; pulsa «Iniciar sesión» para continuar.</p>
+        <p>Ingresa la contraseña de la tienda online para continuar.</p>
       </div>
 
       {!browserOnline && (
